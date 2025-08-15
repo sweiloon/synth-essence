@@ -1,7 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { 
   UserCircle, 
@@ -11,35 +13,61 @@ import {
   Image, 
   User,
   Edit,
-  Trash2
+  Trash2,
+  Settings
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AvatarCreationDialog } from './AvatarCreationDialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: string) => void }) => {
   const [myAvatars, setMyAvatars] = useState<any[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newAvatar, setNewAvatar] = useState({
+    name: '',
+    gender: '',
+    age: '',
+    mbti: ''
+  });
   const { toast } = useToast();
 
-  // Load avatars from localStorage on component mount
-  useEffect(() => {
-    const savedAvatars = localStorage.getItem('myAvatars');
-    if (savedAvatars) {
-      try {
-        setMyAvatars(JSON.parse(savedAvatars));
-      } catch (error) {
-        console.error('Error loading avatars from localStorage:', error);
-      }
+  const mbtiTypes = [
+    'INTJ', 'INTP', 'ENTJ', 'ENTP',
+    'INFJ', 'INFP', 'ENFJ', 'ENFP',
+    'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
+    'ISTP', 'ISFP', 'ESTP', 'ESFP'
+  ];
+
+  const handleCreateAvatar = () => {
+    if (!newAvatar.name || !newAvatar.gender || !newAvatar.age || !newAvatar.mbti) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
+      });
+      return;
     }
-  }, []);
 
-  // Save avatars to localStorage whenever myAvatars changes
-  useEffect(() => {
-    localStorage.setItem('myAvatars', JSON.stringify(myAvatars));
-  }, [myAvatars]);
+    const avatar = {
+      id: Date.now().toString(),
+      ...newAvatar,
+      progress: {
+        chatbot: false,
+        tts: false,
+        images: false,
+        avatar: false
+      },
+      createdAt: new Date().toISOString()
+    };
 
-  const handleCreateAvatar = (avatar: any) => {
     setMyAvatars([...myAvatars, avatar]);
+    setNewAvatar({ name: '', gender: '', age: '', mbti: '' });
+    setIsCreateDialogOpen(false);
+    
+    toast({
+      title: "Avatar Created!",
+      description: `${avatar.name} has been created successfully. Start training now!`,
+    });
   };
 
   const handleStartTraining = (avatarId: string, type: string) => {
@@ -76,13 +104,6 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
     });
   };
 
-  const getAvatarImage = (avatar: any) => {
-    if (avatar.images && avatar.images.length > 0) {
-      return avatar.images[0];
-    }
-    return null;
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -97,21 +118,82 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
           </p>
         </div>
         
-        <Button 
-          onClick={() => setIsCreateDialogOpen(true)} 
-          className="btn-hero"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Create New Avatar
-        </Button>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="btn-hero">
+              <Plus className="mr-2 h-4 w-4" />
+              Create New Avatar
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create New Avatar</DialogTitle>
+              <DialogDescription>
+                Set up your avatar's basic information to get started.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Avatar Name *</Label>
+                <Input
+                  id="name"
+                  placeholder="Enter avatar name"
+                  value={newAvatar.name}
+                  onChange={(e) => setNewAvatar({...newAvatar, name: e.target.value})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gender *</Label>
+                <Select onValueChange={(value) => setNewAvatar({...newAvatar, gender: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="non-binary">Non-binary</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="age">Starting Age *</Label>
+                <Input
+                  id="age"
+                  type="number"
+                  placeholder="Enter age"
+                  value={newAvatar.age}
+                  onChange={(e) => setNewAvatar({...newAvatar, age: e.target.value})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="mbti">Preferred MBTI *</Label>
+                <Select onValueChange={(value) => setNewAvatar({...newAvatar, mbti: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select MBTI type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mbtiTypes.map((type) => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button onClick={handleCreateAvatar} className="flex-1">
+                  Create Avatar
+                </Button>
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {/* Avatar Creation Dialog */}
-      <AvatarCreationDialog
-        isOpen={isCreateDialogOpen}
-        onClose={() => setIsCreateDialogOpen(false)}
-        onCreateAvatar={handleCreateAvatar}
-      />
 
       {/* Avatar List */}
       {myAvatars.length === 0 ? (
@@ -133,35 +215,24 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
           {myAvatars.map((avatar) => (
             <Card key={avatar.id} className="card-modern">
               <CardHeader className="pb-3">
-                <div className="flex items-start gap-3">
-                  {getAvatarImage(avatar) ? (
-                    <img
-                      src={getAvatarImage(avatar)}
-                      alt={avatar.name}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-border"
-                    />
-                  ) : (
-                    <UserCircle className="h-12 w-12 text-muted-foreground" />
-                  )}
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg truncate">{avatar.name}</CardTitle>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteAvatar(avatar.id)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 flex-wrap mt-2">
-                      <Badge variant="outline">{avatar.gender}</Badge>
-                      <Badge variant="outline">{avatar.age} years</Badge>
-                      <Badge variant="secondary">{avatar.mbti}</Badge>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <UserCircle className="h-5 w-5" />
+                    <CardTitle className="text-lg">{avatar.name}</CardTitle>
                   </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm">
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDeleteAvatar(avatar.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Badge variant="outline">{avatar.gender}</Badge>
+                  <Badge variant="outline">{avatar.age} years</Badge>
+                  <Badge variant="secondary">{avatar.mbti}</Badge>
                 </div>
               </CardHeader>
               
