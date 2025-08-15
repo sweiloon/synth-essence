@@ -51,14 +51,14 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar 
         activeSection={activeSection}
         onSectionChange={setActiveSection}
         onLogout={handleLogout}
       />
       <main className="flex-1 overflow-auto">
-        <div className="p-4">
+        <div className="p-3 md:p-4 pt-16 md:pt-4">
           {renderActiveSection()}
         </div>
       </main>

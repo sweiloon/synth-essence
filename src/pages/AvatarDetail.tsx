@@ -34,10 +34,10 @@ const AvatarDetail = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-xl font-bold mb-2">Avatar Not Found</h1>
-          <Button onClick={() => navigate('/marketplace')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Marketplace
+          <h1 className="text-lg font-bold mb-2">Avatar Not Found</h1>
+          <Button onClick={() => navigate('/')}>
+            <ArrowLeft className="h-3 w-3 mr-2" />
+            Back to Dashboard
           </Button>
         </div>
       </div>
@@ -65,20 +65,24 @@ const AvatarDetail = () => {
     });
   };
 
+  const handleBackToDashboard = () => {
+    navigate('/', { replace: true });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-white/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3">
+        <div className="max-w-5xl mx-auto px-3 py-2">
           <div className="flex items-center justify-between">
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => navigate(-1)}
+              onClick={handleBackToDashboard}
               className="text-xs"
             >
               <ArrowLeft className="h-3 w-3 mr-1" />
-              Back
+              Back to Dashboard
             </Button>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleShare}>
@@ -94,10 +98,10 @@ const AvatarDetail = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="max-w-5xl mx-auto px-3 py-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left Column - Images */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Main Avatar Image */}
             <div className="relative aspect-[3/4] rounded-lg overflow-hidden">
               <img
@@ -105,7 +109,7 @@ const AvatarDetail = () => {
                 alt={avatar.name}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute top-3 left-3">
+              <div className="absolute top-2 left-2">
                 <Badge variant="secondary" className="text-xs">
                   {avatar.category}
                 </Badge>
@@ -127,25 +131,25 @@ const AvatarDetail = () => {
           </div>
 
           {/* Right Column - Details */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Basic Info */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold">{avatar.name}</h1>
+                <h1 className="text-xl font-bold">{avatar.name}</h1>
                 <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                  <span className="font-medium">{avatar.rating}</span>
-                  <span className="text-sm text-muted-foreground">({avatar.totalSales} sales)</span>
+                  <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                  <span className="font-medium text-sm">{avatar.rating}</span>
+                  <span className="text-xs text-muted-foreground">({avatar.totalSales} sales)</span>
                 </div>
               </div>
               
-              <p className="text-muted-foreground">{avatar.description}</p>
+              <p className="text-sm text-muted-foreground">{avatar.description}</p>
               <p className="text-xs text-muted-foreground">Created by {avatar.creator}</p>
               
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                  <span className="text-2xl font-bold text-green-600">${avatar.price}</span>
+                  <DollarSign className="h-4 w-4 text-green-600" />
+                  <span className="text-xl font-bold text-black">${avatar.price}</span>
                 </div>
                 <Badge variant="outline" className="text-xs">
                   MBTI: {avatar.mbti}
@@ -159,11 +163,11 @@ const AvatarDetail = () => {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-3 w-3" />
                   Personality
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 <div className="flex flex-wrap gap-1">
                   {avatar.personality.map((trait) => (
                     <Badge key={trait} variant="secondary" className="text-xs">
@@ -178,7 +182,7 @@ const AvatarDetail = () => {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Heart className="h-4 w-4" />
+                  <Heart className="h-3 w-3" />
                   Favorites
                 </CardTitle>
               </CardHeader>
@@ -197,11 +201,11 @@ const AvatarDetail = () => {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Mic className="h-4 w-4" />
+                  <Mic className="h-3 w-3" />
                   Voice & Languages
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Voice Description</p>
                   <p className="text-sm">{avatar.voiceDescription}</p>
@@ -233,7 +237,7 @@ const AvatarDetail = () => {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Camera className="h-4 w-4" />
+                  <Camera className="h-3 w-3" />
                   Lifestyle
                 </CardTitle>
               </CardHeader>
@@ -252,7 +256,7 @@ const AvatarDetail = () => {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
+                  <BookOpen className="h-3 w-3" />
                   Background Story
                 </CardTitle>
               </CardHeader>
@@ -264,7 +268,7 @@ const AvatarDetail = () => {
             </Card>
 
             {/* Purchase Button */}
-            <div className="sticky bottom-4 bg-white/80 backdrop-blur-sm rounded-lg p-4 border">
+            <div className="sticky bottom-3 bg-white/80 backdrop-blur-sm rounded-lg p-3 border">
               <Button 
                 onClick={handlePurchase}
                 className="w-full"
