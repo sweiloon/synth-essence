@@ -13,7 +13,8 @@ import {
   Bot,
   ShoppingBag,
   Menu,
-  X
+  X,
+  UserCircle
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,6 +31,7 @@ const navigationItems = [
   { id: 'images', label: 'AI Images', icon: Image },
   { id: 'avatar', label: 'AI Avatar', icon: User },
   { id: 'learning-path', label: 'Learning Path', icon: GitBranch },
+  { id: 'my-avatar', label: 'My Avatar', icon: UserCircle },
 ];
 
 const Sidebar = ({ activeSection, onSectionChange, onLogout }: SidebarProps) => {

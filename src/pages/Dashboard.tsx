@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from '@/components/dashboard/Sidebar';
 import DashboardOverview from '@/components/dashboard/DashboardOverview';
 import MarketplaceSection from '@/components/dashboard/sections/MarketplaceSection';
@@ -9,6 +10,7 @@ import ImagesSection from '@/components/dashboard/sections/ImagesSection';
 import AvatarSection from '@/components/dashboard/sections/AvatarSection';
 import LearningPathSection from '@/components/dashboard/sections/LearningPathSection';
 import SettingsSection from '@/components/dashboard/sections/SettingsSection';
+import MyAvatarSection from '@/components/dashboard/sections/MyAvatarSection';
 import { useToast } from '@/hooks/use-toast';
 
 interface DashboardProps {
@@ -17,7 +19,15 @@ interface DashboardProps {
 
 const Dashboard = ({ onLogout }: DashboardProps) => {
   const [activeSection, setActiveSection] = useState('dashboard');
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Handle navigation from avatar detail page
+  useEffect(() => {
+    if (location.state?.activeSection) {
+      setActiveSection(location.state.activeSection);
+    }
+  }, [location.state]);
 
   const handleLogout = () => {
     toast({
@@ -43,6 +53,8 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         return <AvatarSection />;
       case 'learning-path':
         return <LearningPathSection />;
+      case 'my-avatar':
+        return <MyAvatarSection onSectionChange={setActiveSection} />;
       case 'settings':
         return <SettingsSection />;
       default:

@@ -66,7 +66,8 @@ const AvatarDetail = () => {
   };
 
   const handleBackToDashboard = () => {
-    navigate('/', { replace: true });
+    // Navigate back to dashboard with marketplace section active
+    navigate('/', { state: { activeSection: 'marketplace' } });
   };
 
   return (
@@ -82,7 +83,7 @@ const AvatarDetail = () => {
               className="text-xs"
             >
               <ArrowLeft className="h-3 w-3 mr-1" />
-              Back to Dashboard
+              Back to Marketplace
             </Button>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleShare}>
