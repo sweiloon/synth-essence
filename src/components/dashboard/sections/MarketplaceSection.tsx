@@ -1,200 +1,293 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  ShoppingBag, 
-  Star, 
-  DollarSign,
-  Search,
+  Store, 
+  Search, 
   Filter,
-  SlidersHorizontal
+  Star,
+  Users,
+  Heart,
+  ShoppingCart
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { avatarProfiles } from '@/data/avatarData';
 import { useNavigate } from 'react-router-dom';
+import { avatarProfiles } from '@/data/avatarData';
+import { useToast } from '@/hooks/use-toast';
 
 const MarketplaceSection = () => {
-  const [filter, setFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
-  const { toast } = useToast();
+  const [selectedPersonality, setSelectedPersonality] = useState('all');
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [cart, setCart] = useState<string[]>([]);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleViewAvatar = (avatarId: string) => {
+  // Load favorites and cart from localStorage
+  useEffect(() => {
+    const savedFavorites = localStorage.getItem('avatarFavorites');
+    const savedCart = localStorage.getItem('avatarCart');
+    
+    if (savedFavorites) {
+      try {
+        setFavorites(JSON.parse(savedFavorites));
+      } catch (error) {
+        console.error('Error loading favorites from localStorage:', error);
+      }
+    }
+    
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+      }
+    }
+  }, []);
+
+  // Save favorites to localStorage
+  useEffect(() => {
+    localStorage.setItem('avatarFavorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  // Save cart to localStorage
+  useEffect(() => {
+    localStorage.setItem('avatarCart', JSON.stringify(cart));
+  }, [cart]);
+
+  const categories = ['all', ...new Set(avatarProfiles.map(avatar => avatar.category.toLowerCase()))];
+  const personalities = ['all', ...new Set(avatarProfiles.flatMap(avatar => avatar.personality))];
+
+  const filteredAvatars = useMemo(() => {
+    return avatarProfiles.filter(avatar => {
+      const matchesSearch = avatar.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          avatar.description.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesCategory = selectedCategory === 'all' || 
+                            avatar.category.toLowerCase() === selectedCategory;
+      
+      const matchesPrice = priceRange === 'all' || 
+                         (priceRange === 'under-100' && avatar.price < 100) ||
+                         (priceRange === '100-150' && avatar.price >= 100 && avatar.price <= 150) ||
+                         (priceRange === 'over-150' && avatar.price > 150);
+      
+      const matchesPersonality = selectedPersonality === 'all' ||
+                               avatar.personality.includes(selectedPersonality);
+      
+      return matchesSearch && matchesCategory && matchesPrice && matchesPersonality;
+    });
+  }, [searchTerm, selectedCategory, priceRange, selectedPersonality]);
+
+  const handleAvatarClick = (avatarId: string) => {
     navigate(`/avatar/${avatarId}`);
   };
 
-  const categories = ['all', 'Business', 'Kids', 'Lifestyle', 'Entertainment', 'Luxury', 'Wellness', 'Alternative', 'Casual', 'Cultural'];
-  const priceRanges = [
-    { label: 'All Prices', value: 'all' },
-    { label: 'Under $100', value: 'under100' },
-    { label: '$100 - $150', value: '100-150' },
-    { label: '$150+', value: 'over150' }
-  ];
+  const toggleFavorite = (avatarId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites(prev => {
+      const newFavorites = prev.includes(avatarId) 
+        ? prev.filter(id => id !== avatarId)
+        : [...prev, avatarId];
+      
+      toast({
+        title: prev.includes(avatarId) ? "Removed from Favorites" : "Added to Favorites",
+        description: prev.includes(avatarId) 
+          ? "Avatar removed from your favorites" 
+          : "Avatar added to your favorites",
+      });
+      
+      return newFavorites;
+    });
+  };
 
-  const filteredAvatars = avatarProfiles.filter(avatar => {
-    const matchesCategory = filter === 'all' || avatar.category === filter;
-    const matchesSearch = avatar.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         avatar.personality.some(p => p.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                         avatar.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    let matchesPrice = true;
-    if (priceRange === 'under100') matchesPrice = avatar.price < 100;
-    else if (priceRange === '100-150') matchesPrice = avatar.price >= 100 && avatar.price <= 150;
-    else if (priceRange === 'over150') matchesPrice = avatar.price > 150;
-
-    return matchesCategory && matchesSearch && matchesPrice;
-  });
+  const addToCart = (avatarId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!cart.includes(avatarId)) {
+      setCart(prev => [...prev, avatarId]);
+      toast({
+        title: "Added to Cart",
+        description: "Avatar added to your cart successfully",
+      });
+    } else {
+      toast({
+        title: "Already in Cart",
+        description: "This avatar is already in your cart",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4" />
+            <h1 className="text-2xl font-bold flex items-center gap-3">
+              <Store className="h-6 w-6" />
               Avatar Marketplace
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Discover and purchase AI avatars created by the community
+            <p className="text-muted-foreground">
+              Discover and purchase AI avatars from our community
             </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm">
+              <Heart className="mr-2 h-4 w-4" />
+              Favorites ({favorites.length})
+            </Button>
+            <Button variant="outline" size="sm">
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Cart ({cart.length})
+            </Button>
           </div>
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-card rounded-lg p-4 border space-y-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search avatars by name, personality, or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-10"
-            />
+        <div className="flex flex-col lg:flex-row gap-4 p-4 bg-muted/50 rounded-lg">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search avatars..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
-
-          {/* Filters Row */}
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground font-medium">Category Filters:</span>
-            </div>
-            
-            {/* Category Filter */}
-            <div className="flex gap-2 flex-wrap">
-              {categories.map((category) => (
-                <Button
-                  key={category}
-                  variant={filter === category ? "default" : "outline"}
-                  size="sm"
-                  className="text-sm px-4 py-2 h-8 mx-1"
-                  onClick={() => setFilter(category)}
-                >
-                  {category === 'all' ? 'All' : category}
-                </Button>
-              ))}
-            </div>
-
-            {/* Price Filter */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground font-medium">Price Filters:</span>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {priceRanges.map((range) => (
-                  <Button
-                    key={range.value}
-                    variant={priceRange === range.value ? "default" : "outline"}
-                    size="sm"
-                    className="text-sm px-4 py-2 h-8 mx-1"
-                    onClick={() => setPriceRange(range.value)}
-                  >
-                    {range.label}
-                  </Button>
+          
+          <div className="flex flex-wrap gap-3">
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
+                  </SelectItem>
                 ))}
-              </div>
-            </div>
+              </SelectContent>
+            </Select>
+
+            <Select value={priceRange} onValueChange={setPriceRange}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Price Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Prices</SelectItem>
+                <SelectItem value="under-100">Under $100</SelectItem>
+                <SelectItem value="100-150">$100 - $150</SelectItem>
+                <SelectItem value="over-150">Over $150</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedPersonality} onValueChange={setSelectedPersonality}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Personality" />
+              </SelectTrigger>
+              <SelectContent>
+                {personalities.map((personality) => (
+                  <SelectItem key={personality} value={personality}>
+                    {personality === 'all' ? 'All Personalities' : personality}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" size="sm" className="ml-2">
+              <Filter className="mr-2 h-4 w-4" />
+              Reset Filters
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Results Count */}
-      <div className="text-sm text-muted-foreground">
-        Showing {filteredAvatars.length} avatar{filteredAvatars.length !== 1 ? 's' : ''}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Showing {filteredAvatars.length} of {avatarProfiles.length} avatars
+        </p>
       </div>
 
       {/* Avatar Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredAvatars.map((avatar) => (
           <Card 
             key={avatar.id} 
-            className="card-modern overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02] max-w-sm"
-            onClick={() => handleViewAvatar(avatar.id)}
+            className="card-modern cursor-pointer hover:shadow-lg transition-all duration-200 group"
+            onClick={() => handleAvatarClick(avatar.id)}
           >
-            {/* Avatar Image */}
-            <div className="relative aspect-[3/4] overflow-hidden">
-              <img
-                src={avatar.image}
-                alt={avatar.name}
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute top-2 right-2">
-                <Badge variant="secondary" className="text-sm px-2 py-1">
-                  {avatar.category}
-                </Badge>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                <h3 className="text-white font-semibold text-base mb-1">{avatar.name}</h3>
-                <div className="flex items-center gap-1 text-sm text-white/80 mb-2">
-                  <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                  <span>{avatar.rating}</span>
-                  <span>•</span>
-                  <span>{avatar.totalSales} sales</span>
+            <CardHeader className="pb-3">
+              <div className="relative">
+                <img
+                  src={avatar.image}
+                  alt={avatar.name}
+                  className="w-full h-48 object-cover rounded-lg mb-3"
+                />
+                <div className="absolute top-2 right-2 flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => toggleFavorite(avatar.id, e)}
+                  >
+                    <Heart className={`h-4 w-4 ${favorites.includes(avatar.id) ? 'fill-current text-red-500' : ''}`} />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => addToCart(avatar.id, e)}
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                  </Button>
                 </div>
+              </div>
+              
+              <div className="space-y-2">
+                <CardTitle className="text-lg font-semibold">{avatar.name}</CardTitle>
                 <div className="flex items-center justify-between">
+                  <p className="text-xl font-bold text-black">${avatar.price}</p>
                   <div className="flex items-center gap-1">
-                    <DollarSign className="h-4 w-4 text-white" />
-                    <span className="font-bold text-white text-base">${avatar.price}</span>
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span className="text-sm font-medium">{avatar.rating}</span>
                   </div>
-                  <Badge variant="outline" className="text-sm border-white/50 text-white bg-white/10">
-                    {avatar.mbti}
-                  </Badge>
                 </div>
               </div>
-            </div>
+            </CardHeader>
             
-            <CardContent className="p-4 space-y-3">
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {avatar.description}
-              </p>
-              
-              {/* Personality Badges */}
-              <div className="flex flex-wrap gap-1">
-                {avatar.personality.slice(0, 3).map((trait) => (
-                  <Badge key={trait} variant="secondary" className="text-sm px-2 py-1">
-                    {trait}
-                  </Badge>
-                ))}
-                {avatar.personality.length > 3 && (
-                  <Badge variant="outline" className="text-sm px-2 py-1">
-                    +{avatar.personality.length - 3}
-                  </Badge>
-                )}
-              </div>
-              
-              <div className="flex items-center justify-between pt-2">
-                <div className="text-sm text-muted-foreground">
-                  {avatar.languages.slice(0, 2).join(', ')}
-                  {avatar.languages.length > 2 && ' +'}
+            <CardContent className="pt-0">
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {avatar.description}
+                </p>
+                
+                <div className="flex flex-wrap gap-1">
+                  {avatar.personality.slice(0, 3).map((trait, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {trait}
+                    </Badge>
+                  ))}
+                  {avatar.personality.length > 3 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{avatar.personality.length - 3}
+                    </Badge>
+                  )}
                 </div>
-                <div className="text-base font-bold text-black">
-                  ${avatar.price}
+                
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    <span>{avatar.totalSales} sales</span>
+                  </div>
+                  <span className="text-xs">by {avatar.creator}</span>
                 </div>
               </div>
             </CardContent>
@@ -203,19 +296,19 @@ const MarketplaceSection = () => {
       </div>
 
       {filteredAvatars.length === 0 && (
-        <div className="text-center py-8">
+        <div className="text-center py-12">
           <p className="text-muted-foreground">No avatars found matching your criteria.</p>
           <Button 
             variant="outline" 
-            size="sm" 
-            className="mt-2"
+            className="mt-4"
             onClick={() => {
-              setFilter('all');
-              setSearchQuery('');
+              setSearchTerm('');
+              setSelectedCategory('all');
               setPriceRange('all');
+              setSelectedPersonality('all');
             }}
           >
-            Clear Filters
+            Clear all filters
           </Button>
         </div>
       )}
