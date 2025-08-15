@@ -10,7 +10,8 @@ import {
   GitBranch, 
   Settings, 
   LogOut,
-  Bot
+  Bot,
+  ShoppingBag
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -21,6 +22,7 @@ interface SidebarProps {
 
 const navigationItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'marketplace', label: 'Avatar Marketplace', icon: ShoppingBag },
   { id: 'chatbot', label: 'AI Chatbot', icon: MessageSquare },
   { id: 'tts', label: 'TTS Voice', icon: Mic },
   { id: 'images', label: 'AI Images', icon: Image },
@@ -30,23 +32,23 @@ const navigationItems = [
 
 const Sidebar = ({ activeSection, onSectionChange, onLogout }: SidebarProps) => {
   return (
-    <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
+    <div className="w-56 bg-sidebar border-r border-sidebar-border flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
-            <Bot className="w-4 h-4 text-sidebar-primary-foreground" />
+      <div className="p-4 border-b border-sidebar-border">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-sidebar-primary rounded-md flex items-center justify-center">
+            <Bot className="w-3 h-3 text-sidebar-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-bold text-sidebar-foreground">AI Avatar Lab</h1>
-            <p className="text-xs text-sidebar-foreground/60">Scientific Reporting</p>
+            <h1 className="text-sm font-bold text-sidebar-foreground">AvatarHub</h1>
+            <p className="text-xs text-sidebar-foreground/60">Your AI Avatar Station</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <div className="space-y-2">
+      <nav className="flex-1 p-3">
+        <div className="space-y-1">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
@@ -55,9 +57,9 @@ const Sidebar = ({ activeSection, onSectionChange, onLogout }: SidebarProps) => 
               <button
                 key={item.id}
                 onClick={() => onSectionChange(item.id)}
-                className={`nav-item w-full ${isActive ? 'nav-item-active' : ''}`}
+                className={`nav-item w-full text-sm ${isActive ? 'nav-item-active' : ''}`}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
               </button>
             );
@@ -66,21 +68,22 @@ const Sidebar = ({ activeSection, onSectionChange, onLogout }: SidebarProps) => 
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border space-y-2">
+      <div className="p-3 border-t border-sidebar-border space-y-1">
         <button
           onClick={() => onSectionChange('settings')}
-          className={`nav-item w-full ${activeSection === 'settings' ? 'nav-item-active' : ''}`}
+          className={`nav-item w-full text-sm ${activeSection === 'settings' ? 'nav-item-active' : ''}`}
         >
-          <Settings className="w-5 h-5" />
+          <Settings className="w-4 h-4" />
           <span>Settings</span>
         </button>
         
         <Button
           variant="ghost"
+          size="sm"
           className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
           onClick={onLogout}
         >
-          <LogOut className="w-5 h-5 mr-3" />
+          <LogOut className="w-4 h-4 mr-2" />
           Logout
         </Button>
       </div>

@@ -2,11 +2,13 @@
 import React, { useState } from 'react';
 import Sidebar from '@/components/dashboard/Sidebar';
 import DashboardOverview from '@/components/dashboard/DashboardOverview';
+import MarketplaceSection from '@/components/dashboard/sections/MarketplaceSection';
 import ChatbotSection from '@/components/dashboard/sections/ChatbotSection';
 import TTSSection from '@/components/dashboard/sections/TTSSection';
 import ImagesSection from '@/components/dashboard/sections/ImagesSection';
 import AvatarSection from '@/components/dashboard/sections/AvatarSection';
 import LearningPathSection from '@/components/dashboard/sections/LearningPathSection';
+import SettingsSection from '@/components/dashboard/sections/SettingsSection';
 import { useToast } from '@/hooks/use-toast';
 
 interface DashboardProps {
@@ -29,6 +31,8 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
     switch (activeSection) {
       case 'dashboard':
         return <DashboardOverview onSectionChange={setActiveSection} />;
+      case 'marketplace':
+        return <MarketplaceSection />;
       case 'chatbot':
         return <ChatbotSection />;
       case 'tts':
@@ -40,12 +44,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
       case 'learning-path':
         return <LearningPathSection />;
       case 'settings':
-        return (
-          <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Settings</h1>
-            <p className="text-muted-foreground">Settings panel will be implemented.</p>
-          </div>
-        );
+        return <SettingsSection />;
       default:
         return <DashboardOverview onSectionChange={setActiveSection} />;
     }
@@ -59,7 +58,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         onLogout={handleLogout}
       />
       <main className="flex-1 overflow-auto">
-        <div className="p-6">
+        <div className="p-4">
           {renderActiveSection()}
         </div>
       </main>
