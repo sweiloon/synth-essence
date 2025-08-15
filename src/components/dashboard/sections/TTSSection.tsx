@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,7 @@ import {
   Download, 
   Volume2,
   Settings,
-  Waveform
+  AudioLines
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -170,7 +169,7 @@ const TTSSection = () => {
             <Card className="card-modern">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Waveform className="h-5 w-5" />
+                  <AudioLines className="h-5 w-5" />
                   Voice Preview
                 </CardTitle>
                 <CardDescription>
