@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,11 +19,39 @@ const MarketplaceSection = () => {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [priceRange, setPriceRange] = useState('all');
+  const [purchasedAvatars, setPurchasedAvatars] = useState<string[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Load purchased avatars from localStorage on component mount
+  useEffect(() => {
+    const saved = localStorage.getItem('purchasedAvatars');
+    if (saved) {
+      try {
+        setPurchasedAvatars(JSON.parse(saved));
+      } catch (error) {
+        console.error('Error loading purchased avatars from localStorage:', error);
+      }
+    }
+  }, []);
+
+  // Save purchased avatars to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('purchasedAvatars', JSON.stringify(purchasedAvatars));
+  }, [purchasedAvatars]);
+
   const handleViewAvatar = (avatarId: string) => {
     navigate(`/avatar/${avatarId}`);
+  };
+
+  const handlePurchaseAvatar = (avatarId: string, avatarName: string) => {
+    if (!purchasedAvatars.includes(avatarId)) {
+      setPurchasedAvatars([...purchasedAvatars, avatarId]);
+      toast({
+        title: "Avatar Purchased!",
+        description: `${avatarName} has been added to your collection.`,
+      });
+    }
   };
 
   const categories = ['all', 'Business', 'Kids', 'Lifestyle', 'Entertainment', 'Luxury', 'Wellness', 'Alternative', 'Casual', 'Cultural'];
@@ -149,6 +176,13 @@ const MarketplaceSection = () => {
                   {avatar.category}
                 </Badge>
               </div>
+              {purchasedAvatars.includes(avatar.id) && (
+                <div className="absolute top-2 left-2">
+                  <Badge variant="default" className="text-sm px-2 py-1 bg-green-600">
+                    Owned
+                  </Badge>
+                </div>
+              )}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
                 <h3 className="text-white font-semibold text-base mb-1">{avatar.name}</h3>
                 <div className="flex items-center gap-1 text-sm text-white/80 mb-2">
@@ -197,6 +231,18 @@ const MarketplaceSection = () => {
                   ${avatar.price}
                 </div>
               </div>
+
+              {!purchasedAvatars.includes(avatar.id) && (
+                <Button 
+                  className="w-full mt-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePurchaseAvatar(avatar.id, avatar.name);
+                  }}
+                >
+                  Purchase
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: string) => void }) => {
   const [myAvatars, setMyAvatars] = useState<any[]>([]);
@@ -27,9 +28,27 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
     name: '',
     gender: '',
     age: '',
-    mbti: ''
+    mbti: '',
+    images: [] as File[]
   });
   const { toast } = useToast();
+
+  // Load avatars from localStorage on component mount
+  useEffect(() => {
+    const savedAvatars = localStorage.getItem('myAvatars');
+    if (savedAvatars) {
+      try {
+        setMyAvatars(JSON.parse(savedAvatars));
+      } catch (error) {
+        console.error('Error loading avatars from localStorage:', error);
+      }
+    }
+  }, []);
+
+  // Save avatars to localStorage whenever myAvatars changes
+  useEffect(() => {
+    localStorage.setItem('myAvatars', JSON.stringify(myAvatars));
+  }, [myAvatars]);
 
   const mbtiTypes = [
     'INTJ', 'INTP', 'ENTJ', 'ENTP',
@@ -48,25 +67,40 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
       return;
     }
 
-    const avatar = {
-      id: Date.now().toString(),
-      ...newAvatar,
-      progress: {
-        chatbot: false,
-        tts: false,
-        images: false,
-        avatar: false
-      },
-      createdAt: new Date().toISOString()
-    };
+    // Convert images to base64 URLs for storage
+    const imagePromises = newAvatar.images.map(file => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsDataURL(file);
+      });
+    });
 
-    setMyAvatars([...myAvatars, avatar]);
-    setNewAvatar({ name: '', gender: '', age: '', mbti: '' });
-    setIsCreateDialogOpen(false);
-    
-    toast({
-      title: "Avatar Created!",
-      description: `${avatar.name} has been created successfully. Start training now!`,
+    Promise.all(imagePromises).then(imageUrls => {
+      const avatar = {
+        id: Date.now().toString(),
+        name: newAvatar.name,
+        gender: newAvatar.gender,
+        age: newAvatar.age,
+        mbti: newAvatar.mbti,
+        images: imageUrls,
+        progress: {
+          chatbot: false,
+          tts: false,
+          images: false,
+          avatar: false
+        },
+        createdAt: new Date().toISOString()
+      };
+
+      setMyAvatars([...myAvatars, avatar]);
+      setNewAvatar({ name: '', gender: '', age: '', mbti: '', images: [] });
+      setIsCreateDialogOpen(false);
+      
+      toast({
+        title: "Avatar Created!",
+        description: `${avatar.name} has been created successfully. Start training now!`,
+      });
     });
   };
 
@@ -129,7 +163,7 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
             <DialogHeader>
               <DialogTitle>Create New Avatar</DialogTitle>
               <DialogDescription>
-                Set up your avatar's basic information to get started.
+                Set up your avatar's basic information and upload profile images to get started.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -181,6 +215,12 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
                   </SelectContent>
                 </Select>
               </div>
+
+              <ImageUpload
+                onImagesChange={(images) => setNewAvatar({...newAvatar, images})}
+                maxImages={5}
+                label="Profile Images (optional)"
+              />
               
               <div className="flex gap-2 pt-4">
                 <Button onClick={handleCreateAvatar} className="flex-1">
@@ -215,6 +255,22 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
           {myAvatars.map((avatar) => (
             <Card key={avatar.id} className="card-modern">
               <CardHeader className="pb-3">
+                {/* Avatar Image Display */}
+                {avatar.images && avatar.images.length > 0 && (
+                  <div className="relative aspect-square mb-3 overflow-hidden rounded-lg">
+                    <img
+                      src={avatar.images[0]}
+                      alt={avatar.name}
+                      className="w-full h-full object-cover"
+                    />
+                    {avatar.images.length > 1 && (
+                      <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                        +{avatar.images.length - 1} more
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <UserCircle className="h-5 w-5" />
