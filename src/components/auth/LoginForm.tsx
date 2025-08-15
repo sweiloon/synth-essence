@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,44 +6,44 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, Chrome } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
 interface LoginFormProps {
   onSwitchToSignup: () => void;
   onSwitchToForgotPassword: () => void;
   onLoginSuccess: () => void;
 }
-
-const LoginForm = ({ onSwitchToSignup, onSwitchToForgotPassword, onLoginSuccess }: LoginFormProps) => {
+const LoginForm = ({
+  onSwitchToSignup,
+  onSwitchToForgotPassword,
+  onLoginSuccess
+}: LoginFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     // Simulate login
     setTimeout(() => {
       setIsLoading(false);
       toast({
         title: "Welcome back!",
-        description: "Successfully signed in to your account.",
+        description: "Successfully signed in to your account."
       });
       onLoginSuccess();
     }, 1000);
   };
-
   const handleGoogleAuth = () => {
     toast({
       title: "Google Authentication",
-      description: "Google auth integration will be implemented with backend.",
+      description: "Google auth integration will be implemented with backend."
     });
   };
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
         <div className="flex justify-center mb-6">
@@ -52,8 +51,8 @@ const LoginForm = ({ onSwitchToSignup, onSwitchToForgotPassword, onLoginSuccess 
             <div className="w-6 h-6 bg-white rounded-full"></div>
           </div>
         </div>
-        <h1 className="text-2xl font-bold">HiterraHub</h1>
-        <p className="text-muted-foreground">Scientific Reporting Platform</p>
+        <h1 className="text-2xl font-bold">AvatarHub</h1>
+        <p className="text-muted-foreground">Your AI Avatar Station</p>
       </div>
 
       <div className="space-y-4">
@@ -69,15 +68,7 @@ const LoginForm = ({ onSwitchToSignup, onSwitchToForgotPassword, onLoginSuccess 
           <Label htmlFor="email">Email Address</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="pl-10 input-modern"
-              required
-            />
+            <Input id="email" type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} className="pl-10 input-modern" required />
           </div>
         </div>
 
@@ -85,43 +76,23 @@ const LoginForm = ({ onSwitchToSignup, onSwitchToForgotPassword, onLoginSuccess 
           <Label htmlFor="password">Password</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 input-modern"
-              required
-            />
+            <Input id="password" type="password" placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} className="pl-10 input-modern" required />
           </div>
         </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Checkbox
-              id="remember"
-              checked={rememberMe}
-              onCheckedChange={(checked) => setRememberMe(checked === true)}
-            />
+            <Checkbox id="remember" checked={rememberMe} onCheckedChange={checked => setRememberMe(checked === true)} />
             <Label htmlFor="remember" className="text-sm">
               Remember me
             </Label>
           </div>
-          <button
-            type="button"
-            onClick={onSwitchToForgotPassword}
-            className="text-sm text-primary hover:underline"
-          >
+          <button type="button" onClick={onSwitchToForgotPassword} className="text-sm text-primary hover:underline">
             Forgot password?
           </button>
         </div>
 
-        <Button
-          type="submit"
-          className="w-full btn-hero"
-          disabled={isLoading}
-        >
+        <Button type="submit" className="w-full btn-hero" disabled={isLoading}>
           {isLoading ? 'Signing In...' : 'Sign In'}
         </Button>
       </form>
@@ -137,12 +108,7 @@ const LoginForm = ({ onSwitchToSignup, onSwitchToForgotPassword, onLoginSuccess 
       </div>
 
       {/* Google Auth */}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        onClick={handleGoogleAuth}
-      >
+      <Button type="button" variant="outline" className="w-full" onClick={handleGoogleAuth}>
         <Chrome className="mr-2 h-4 w-4" />
         Continue with Google
       </Button>
@@ -150,16 +116,10 @@ const LoginForm = ({ onSwitchToSignup, onSwitchToForgotPassword, onLoginSuccess 
       {/* Switch to Signup */}
       <div className="text-center text-sm">
         <span className="text-muted-foreground">Don't have an account? </span>
-        <button
-          type="button"
-          onClick={onSwitchToSignup}
-          className="text-primary font-medium hover:underline"
-        >
+        <button type="button" onClick={onSwitchToSignup} className="text-primary font-medium hover:underline">
           Sign up here
         </button>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default LoginForm;
