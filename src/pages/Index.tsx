@@ -1,10 +1,12 @@
 
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Auth from './Auth';
 import Dashboard from './Dashboard';
 
 const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const location = useLocation();
 
   const handleAuthSuccess = () => {
     setIsAuthenticated(true);
@@ -13,6 +15,12 @@ const Index = () => {
   const handleLogout = () => {
     setIsAuthenticated(false);
   };
+
+  // Check if we're on an avatar detail route
+  if (location.pathname.startsWith('/avatar/')) {
+    // This will be handled by the AvatarDetail component
+    return null;
+  }
 
   if (isAuthenticated) {
     return <Dashboard onLogout={handleLogout} />;
