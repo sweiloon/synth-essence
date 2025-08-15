@@ -22,6 +22,7 @@ const Index = () => {
     return null;
   }
 
+  // Always render either Auth or Dashboard - never a blank state
   if (isAuthenticated) {
     return <Dashboard onLogout={handleLogout} />;
   }
