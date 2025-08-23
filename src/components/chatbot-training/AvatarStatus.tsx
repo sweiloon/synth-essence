@@ -39,12 +39,15 @@ export const AvatarStatus: React.FC<AvatarStatusProps> = ({ avatar }) => {
   const [userPrompt, setUserPrompt] = useState('');
   const { toast } = useToast();
 
-  // Generate dummy system and user prompts based on avatar data
+  // Generate dummy system and user prompts based on avatar data with proper null checking
   const generateSystemPrompt = () => {
+    const secondaryLanguages = avatar.secondaryLanguages || [];
+    const knowledgeFiles = avatar.knowledgeFiles || [];
+    
     return `You are ${avatar.name}, an AI avatar with the following characteristics:
 
-PRIMARY LANGUAGE: ${avatar.primaryLanguage}
-SECONDARY LANGUAGES: ${avatar.secondaryLanguages.join(', ') || 'None'}
+PRIMARY LANGUAGE: ${avatar.primaryLanguage || 'Not specified'}
+SECONDARY LANGUAGES: ${secondaryLanguages.join(', ') || 'None'}
 
 BACKSTORY: ${avatar.backstory || 'No backstory provided'}
 
@@ -53,7 +56,7 @@ PERSONALITY GUIDELINES:
 - Respond in your primary language unless specifically asked to use another language
 - Reference your backstory when relevant to the conversation
 
-KNOWLEDGE BASE: ${avatar.knowledgeFiles.length} documents available for reference
+KNOWLEDGE BASE: ${knowledgeFiles.length} documents available for reference
 
 ${avatar.hiddenRules ? `SPECIAL INSTRUCTIONS: ${avatar.hiddenRules}` : ''}
 
@@ -95,6 +98,10 @@ Always stay in character and provide helpful, engaging responses.`;
     }
   };
 
+  // Safely access avatar properties with fallbacks
+  const secondaryLanguages = avatar.secondaryLanguages || [];
+  const knowledgeFiles = avatar.knowledgeFiles || [];
+
   return (
     <div className="space-y-6">
       {/* Avatar Overview */}
@@ -112,7 +119,7 @@ Always stay in character and provide helpful, engaging responses.`;
                 <Globe className="h-4 w-4" />
                 <span className="text-sm font-medium">Primary Language</span>
               </div>
-              <Badge variant="outline">{avatar.primaryLanguage}</Badge>
+              <Badge variant="outline">{avatar.primaryLanguage || 'Not specified'}</Badge>
             </div>
             
             <div className="space-y-2">
@@ -121,8 +128,8 @@ Always stay in character and provide helpful, engaging responses.`;
                 <span className="text-sm font-medium">Secondary Languages</span>
               </div>
               <div className="flex flex-wrap gap-1">
-                {avatar.secondaryLanguages.length > 0 ? (
-                  avatar.secondaryLanguages.map((lang, index) => (
+                {secondaryLanguages.length > 0 ? (
+                  secondaryLanguages.map((lang, index) => (
                     <Badge key={index} variant="secondary" className="text-xs">
                       {lang}
                     </Badge>
@@ -139,7 +146,7 @@ Always stay in character and provide helpful, engaging responses.`;
                 <span className="text-sm font-medium">Knowledge Base</span>
               </div>
               <Badge variant="outline">
-                {avatar.knowledgeFiles.length} documents
+                {knowledgeFiles.length} documents
               </Badge>
             </div>
 

@@ -47,11 +47,14 @@ const ChatbotSection = () => {
     });
   };
 
-  // Get real knowledge files from selected avatar
+  // Get real knowledge files from selected avatar with proper null checking
   const getKnowledgeFiles = () => {
-    if (!selectedAvatar || !selectedAvatar.knowledgeFiles) return [];
+    if (!selectedAvatar) return [];
     
-    return selectedAvatar.knowledgeFiles.map((file: any, index: number) => ({
+    // Ensure knowledgeFiles exists and is an array
+    const knowledgeFiles = selectedAvatar.knowledgeFiles || [];
+    
+    return knowledgeFiles.map((file: any, index: number) => ({
       id: file.id || `file-${index}`,
       name: file.name || `Document ${index + 1}.pdf`,
       size: file.size || 'Unknown size',
@@ -66,7 +69,8 @@ const ChatbotSection = () => {
     // Update the avatar's knowledge files in localStorage
     const updatedAvatars = savedAvatars.map((avatar: any) => {
       if (avatar.id === selectedAvatarId) {
-        const updatedFiles = avatar.knowledgeFiles.map((file: any) => {
+        const currentFiles = avatar.knowledgeFiles || [];
+        const updatedFiles = currentFiles.map((file: any) => {
           if (file.id === fileId) {
             return { ...file, linked: !file.linked };
           }
@@ -91,7 +95,8 @@ const ChatbotSection = () => {
     // Remove file from avatar's knowledge files in localStorage
     const updatedAvatars = savedAvatars.map((avatar: any) => {
       if (avatar.id === selectedAvatarId) {
-        const updatedFiles = avatar.knowledgeFiles.filter((file: any) => file.id !== fileId);
+        const currentFiles = avatar.knowledgeFiles || [];
+        const updatedFiles = currentFiles.filter((file: any) => file.id !== fileId);
         return { ...avatar, knowledgeFiles: updatedFiles };
       }
       return avatar;
