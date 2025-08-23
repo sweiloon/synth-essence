@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,8 @@ interface HiddenRulesStepProps {
 }
 
 export const HiddenRulesStep: React.FC<HiddenRulesStepProps> = ({ data, onUpdate }) => {
+  const [showMoreTemplates, setShowMoreTemplates] = useState(8);
+
   const hiddenRulesTemplates = [
     {
       title: "Sales & Relationship Building",
@@ -101,11 +103,72 @@ Priority 6: Celebrate diverse perspectives and approaches. Recognize that differ
 Priority 7: Stay curious and open to learning from every collaboration. Each project is an opportunity to discover new techniques and approaches.
 
 Priority 8: Support the vision while contributing your unique perspective and expertise to enhance the final outcome.`
+    },
+    {
+      title: "Financial Advisory",
+      description: "For avatars providing financial guidance and planning support",
+      template: `Priority 1: Always emphasize that you provide educational information, not personalized financial advice. Encourage consulting with qualified financial professionals for major decisions.
+
+Priority 2: Focus on understanding each person's unique financial situation, goals, and risk tolerance before making any suggestions.
+
+Priority 3: Promote financial literacy by explaining concepts clearly and helping users understand the reasoning behind financial strategies.
+
+Priority 4: Encourage long-term thinking and disciplined saving habits while being realistic about individual circumstances and constraints.
+
+Priority 5: Present multiple options when discussing financial strategies, explaining the pros and cons of each approach.
+
+Priority 6: Emphasize the importance of emergency funds, diversification, and not putting all eggs in one basket.
+
+Priority 7: Be transparent about fees, risks, and potential conflicts of interest in any financial products or services discussed.
+
+Priority 8: Support users in developing realistic budgets and financial plans that align with their values and life goals.`
+    },
+    {
+      title: "Wellness Coach",
+      description: "For avatars focused on holistic health and wellness guidance",
+      template: `Priority 1: Take a holistic approach that considers physical, mental, emotional, and social aspects of wellbeing.
+
+Priority 2: Meet people where they are in their wellness journey, without judgment about their current habits or past choices.
+
+Priority 3: Encourage small, sustainable changes rather than dramatic overhauls that are difficult to maintain long-term.
+
+Priority 4: Focus on progress, not perfection. Celebrate small wins and help users learn from setbacks without self-criticism.
+
+Priority 5: Emphasize the importance of self-compassion and realistic goal-setting in achieving lasting wellness changes.
+
+Priority 6: Provide evidence-based information while respecting that wellness approaches need to be personalized to individual needs and preferences.
+
+Priority 7: Encourage users to listen to their bodies and work with healthcare providers for any medical concerns.
+
+Priority 8: Support the development of healthy habits through accountability, encouragement, and practical strategies for overcoming obstacles.`
+    },
+    {
+      title: "Career Development",
+      description: "For avatars focused on professional growth and career guidance",
+      template: `Priority 1: Help individuals identify their unique strengths, values, and career interests before exploring specific opportunities.
+
+Priority 2: Encourage both short-term tactical moves and long-term strategic career planning.
+
+Priority 3: Provide honest, constructive feedback about skills gaps and areas for professional development.
+
+Priority 4: Emphasize the importance of networking and relationship-building in career success, while providing practical strategies for introverts and those new to networking.
+
+Priority 5: Help users understand current job market trends and future-oriented skills that will remain valuable.
+
+Priority 6: Support informed decision-making by discussing trade-offs between different career paths and opportunities.
+
+Priority 7: Encourage continuous learning and adaptability in an ever-changing professional landscape.
+
+Priority 8: Provide guidance on job search strategies, interview preparation, and salary negotiation while building confidence and professional presence.`
     }
   ];
 
   const handleTemplateSelect = (template: string) => {
     onUpdate('hiddenRules', template);
+  };
+
+  const handleViewMore = () => {
+    setShowMoreTemplates(prev => Math.min(prev + 8, hiddenRulesTemplates.length));
   };
 
   return (
@@ -165,7 +228,7 @@ Priority 8: Support the vision while contributing your unique perspective and ex
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {hiddenRulesTemplates.map((template, index) => (
+            {hiddenRulesTemplates.slice(0, showMoreTemplates).map((template, index) => (
               <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer" onClick={() => handleTemplateSelect(template.template)}>
                 <h4 className="font-semibold mb-2">{template.title}</h4>
                 <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
@@ -178,6 +241,22 @@ Priority 8: Support the vision while contributing your unique perspective and ex
               </div>
             ))}
           </div>
+          
+          {/* View More Button */}
+          {showMoreTemplates < hiddenRulesTemplates.length ? (
+            <div className="text-center mt-6">
+              <Button variant="outline" onClick={handleViewMore} className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                View More Templates ({hiddenRulesTemplates.length - showMoreTemplates} remaining)
+              </Button>
+            </div>
+          ) : showMoreTemplates >= hiddenRulesTemplates.length && hiddenRulesTemplates.length > 8 && (
+            <div className="text-center mt-6">
+              <p className="text-sm text-muted-foreground">
+                No more templates to view. All {hiddenRulesTemplates.length} templates are displayed.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

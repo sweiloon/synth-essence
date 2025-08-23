@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AvatarDetailStep } from '@/components/avatar-creation/AvatarDetailStep';
 import { AvatarPersonaStep } from '@/components/avatar-creation/AvatarPersonaStep';
 import { BackstoryStep } from '@/components/avatar-creation/BackstoryStep';
@@ -15,12 +16,16 @@ const CreateAvatar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   const [avatarData, setAvatarData] = useState({
     // Step 1: Avatar Detail
+    avatarImages: [],
     name: '',
+    originCountry: 'Malaysia',
     age: '',
     gender: '',
-    languages: [],
+    primaryLanguage: '',
+    secondaryLanguages: [],
     
     // Step 2: Avatar Persona
     favorites: [],
@@ -44,6 +49,22 @@ const CreateAvatar = () => {
     { id: 5, name: 'Hidden Rules', description: 'Special instructions' }
   ];
 
+  const hasUnsavedData = () => {
+    return (
+      avatarData.name ||
+      avatarData.age ||
+      avatarData.gender ||
+      avatarData.primaryLanguage ||
+      avatarData.secondaryLanguages.length > 0 ||
+      avatarData.avatarImages.length > 0 ||
+      avatarData.favorites.length > 0 ||
+      avatarData.mbti ||
+      avatarData.backstory ||
+      avatarData.knowledgeFiles.length > 0 ||
+      avatarData.hiddenRules
+    );
+  };
+
   const updateAvatarData = (field: string, value: any) => {
     setAvatarData(prev => ({ ...prev, [field]: value }));
   };
@@ -51,7 +72,7 @@ const CreateAvatar = () => {
   const validateCurrentStep = () => {
     switch (currentStep) {
       case 1:
-        if (!avatarData.name || !avatarData.age || !avatarData.gender || avatarData.languages.length === 0) {
+        if (!avatarData.name || !avatarData.age || !avatarData.gender || !avatarData.primaryLanguage) {
           toast({
             title: "Missing Information",
             description: "Please fill in all required fields in Avatar Detail.",
@@ -100,6 +121,14 @@ const CreateAvatar = () => {
     }
   };
 
+  const handleBackToMyAvatar = () => {
+    if (hasUnsavedData()) {
+      setShowExitDialog(true);
+    } else {
+      navigate('/dashboard', { state: { activeSection: 'my-avatar' } });
+    }
+  };
+
   const handleCreateAvatar = () => {
     // Save avatar to localStorage (later will be replaced with Supabase)
     const savedAvatars = JSON.parse(localStorage.getItem('myAvatars') || '[]');
@@ -143,6 +172,35 @@ const CreateAvatar = () => {
     }
   };
 
+  // Handle browser back button
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedData()) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (hasUnsavedData()) {
+        e.preventDefault();
+        setShowExitDialog(true);
+        window.history.pushState(null, '', window.location.pathname);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    
+    // Push initial state
+    window.history.pushState(null, '', window.location.pathname);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [avatarData]);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -151,7 +209,7 @@ const CreateAvatar = () => {
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
-              onClick={() => navigate('/dashboard', { state: { activeSection: 'my-avatar' } })}
+              onClick={handleBackToMyAvatar}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -222,6 +280,28 @@ const CreateAvatar = () => {
           </div>
         </div>
       </div>
+
+      {/* Exit Confirmation Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your avatar creation is not complete yet. All the details you've entered will be lost if you leave now. 
+              Are you sure you want to go back to My Avatar page?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay and Continue</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => navigate('/dashboard', { state: { activeSection: 'my-avatar' } })}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Bottom padding to account for fixed navigation */}
       <div className="h-20" />
