@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,19 +72,19 @@ const CreateAvatar = () => {
         throw error;
       }
 
-      // Populate the form with existing data
+      // Populate the form with existing data, properly handling Json types
       setAvatarData({
         name: data.name || '',
-        avatarImages: data.avatar_images || [],
+        avatarImages: Array.isArray(data.avatar_images) ? data.avatar_images : [],
         originCountry: data.origin_country || 'Malaysia',
         age: data.age?.toString() || '',
         gender: data.gender || '',
         primaryLanguage: data.primary_language || 'English',
-        secondaryLanguages: data.secondary_languages || [],
-        personalityTraits: data.personality_traits || [],
+        secondaryLanguages: Array.isArray(data.secondary_languages) ? data.secondary_languages : [],
+        personalityTraits: Array.isArray(data.personality_traits) ? data.personality_traits : [],
         mbtiType: data.mbti_type || '',
         backstory: data.backstory || '',
-        knowledgeFiles: data.knowledge_files || [],
+        knowledgeFiles: Array.isArray(data.knowledge_files) ? data.knowledge_files : [],
         hiddenRules: data.hidden_rules || ''
       });
 
@@ -281,6 +280,7 @@ const CreateAvatar = () => {
         primary_language: avatarData.primaryLanguage,
         secondary_languages: avatarData.secondaryLanguages,
         personality_traits: avatarData.personalityTraits,
+        mbti_type: avatarData.mbtiType,
         backstory: avatarData.backstory || null,
         knowledge_files: avatarData.knowledgeFiles,
         hidden_rules: avatarData.hiddenRules || null
