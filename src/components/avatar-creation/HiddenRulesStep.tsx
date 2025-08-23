@@ -1,10 +1,9 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Shield, Eye, Sparkles } from 'lucide-react';
+import { Shield, Eye, Sparkles, ChevronDown } from 'lucide-react';
 
 interface HiddenRulesStepProps {
   data: any;
@@ -12,6 +11,8 @@ interface HiddenRulesStepProps {
 }
 
 export const HiddenRulesStep: React.FC<HiddenRulesStepProps> = ({ data, onUpdate }) => {
+  const [visibleTemplates, setVisibleTemplates] = useState(8);
+
   const hiddenRulesTemplates = [
     {
       title: "Sales & Relationship Building",
@@ -108,6 +109,13 @@ Priority 8: Support the vision while contributing your unique perspective and ex
     onUpdate('hiddenRules', template);
   };
 
+  const handleViewMore = () => {
+    const newVisible = Math.min(visibleTemplates + 8, hiddenRulesTemplates.length);
+    setVisibleTemplates(newVisible);
+  };
+
+  const canViewMore = visibleTemplates < hiddenRulesTemplates.length;
+
   return (
     <div className="space-y-6">
       {/* Hidden Rules Input */}
@@ -165,7 +173,7 @@ Priority 8: Support the vision while contributing your unique perspective and ex
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {hiddenRulesTemplates.map((template, index) => (
+            {hiddenRulesTemplates.slice(0, visibleTemplates).map((template, index) => (
               <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer" onClick={() => handleTemplateSelect(template.template)}>
                 <h4 className="font-semibold mb-2">{template.title}</h4>
                 <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
@@ -178,6 +186,21 @@ Priority 8: Support the vision while contributing your unique perspective and ex
               </div>
             ))}
           </div>
+          
+          {canViewMore && (
+            <div className="mt-6 text-center">
+              <Button variant="outline" onClick={handleViewMore} className="flex items-center gap-2">
+                <ChevronDown className="h-4 w-4" />
+                View More Templates
+              </Button>
+            </div>
+          )}
+          
+          {!canViewMore && hiddenRulesTemplates.length > 8 && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">No more templates to view</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,163 +1,66 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Heart, Brain, Trophy, Film, Music, Gamepad2, Book, Palette } from 'lucide-react';
+import { Heart, Brain, X } from 'lucide-react';
 
 interface AvatarPersonaStepProps {
   data: any;
   onUpdate: (field: string, value: any) => void;
 }
 
+const tags = {
+  "Hobbies": [
+    "Reading", "Writing", "Painting", "Drawing", "Sculpting", "Gardening", "Cooking", "Baking",
+    "Hiking", "Camping", "Fishing", "Hunting", "Swimming", "Yoga", "Meditation", "Traveling",
+    "Photography", "Gaming", "Coding", "Singing", "Dancing", "Playing musical instruments",
+    "Watching movies", "Listening to music", "Collecting", "Volunteering"
+  ],
+  "Interests": [
+    "Science", "Technology", "Engineering", "Mathematics", "Arts", "History", "Politics",
+    "Economics", "Philosophy", "Psychology", "Sociology", "Environmentalism", "Animal welfare",
+    "Human rights", "Social justice", "Education", "Health", "Fitness", "Nutrition",
+    "Fashion", "Beauty", "Sports", "Music", "Literature", "Film", "Theater"
+  ],
+  "Values": [
+    "Honesty", "Integrity", "Kindness", "Compassion", "Empathy", "Respect", "Responsibility",
+    "Accountability", "Courage", "Perseverance", "Resilience", "Optimism", "Gratitude",
+    "Generosity", "Fairness", "Justice", "Equality", "Freedom", "Peace", "Love"
+  ],
+  "Aesthetics": [
+    "Minimalism", "Maximalism", "Vintage", "Modern", "Rustic", "Bohemian", "Industrial",
+    "Art Deco", "Mid-Century Modern", "Scandinavian", "Coastal", "Tropical", "Gothic",
+    "Steampunk", "Cyberpunk", "Fantasy", "Sci-Fi", "Surrealism", "Abstract", "Realism",
+    "Impressionism", "Expressionism", "Pop Art", "Street Art", "Anime", "Manga"
+  ]
+};
+
+const mbtiTypes = [
+  "ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP",
+  "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"
+];
+
 export const AvatarPersonaStep: React.FC<AvatarPersonaStepProps> = ({ data, onUpdate }) => {
-  const [selectedCategory, setSelectedCategory] = useState('sports');
-
-  const tagCategories = {
-    sports: {
-      icon: Trophy,
-      tags: [
-        'Football', 'Basketball', 'Tennis', 'Swimming', 'Running', 'Cycling', 'Boxing', 'Wrestling',
-        'Golf', 'Baseball', 'Volleyball', 'Badminton', 'Table Tennis', 'Hockey', 'Rugby', 'Cricket',
-        'Skiing', 'Snowboarding', 'Surfing', 'Rock Climbing', 'Hiking', 'Yoga', 'Pilates', 'Martial Arts',
-        'Crossfit', 'Weightlifting', 'Gymnastics', 'Track and Field', 'Triathlon', 'Marathon'
-      ]
-    },
-    movies: {
-      icon: Film,
-      tags: [
-        'Action', 'Comedy', 'Drama', 'Horror', 'Thriller', 'Romance', 'Sci-Fi', 'Fantasy',
-        'Adventure', 'Mystery', 'Crime', 'Documentary', 'Animation', 'Musical', 'Western', 'War',
-        'Biography', 'History', 'Family', 'Superhero', 'Indie Films', 'Foreign Films', 'Classic Cinema',
-        'Marvel', 'DC Comics', 'Studio Ghibli', 'Disney', 'Pixar', 'Netflix Originals', 'Korean Cinema'
-      ]
-    },
-    music: {
-      icon: Music,
-      tags: [
-        'Pop', 'Rock', 'Hip Hop', 'R&B', 'Jazz', 'Classical', 'Electronic', 'Country',
-        'Folk', 'Blues', 'Reggae', 'Punk', 'Metal', 'Alternative', 'Indie', 'Dance',
-        'House', 'Techno', 'Dubstep', 'Ambient', 'World Music', 'Latin', 'K-Pop', 'J-Pop',
-        'Acoustic', 'Instrumental', 'Opera', 'Musical Theatre', 'Lo-Fi', 'Synthwave'
-      ]
-    },
-    hobbies: {
-      icon: Palette,
-      tags: [
-        'Reading', 'Writing', 'Photography', 'Painting', 'Drawing', 'Cooking', 'Baking', 'Gardening',
-        'Knitting', 'Sewing', 'Crafting', 'Woodworking', 'Pottery', 'Jewelry Making', 'Origami',
-        'Chess', 'Board Games', 'Video Games', 'Puzzles', 'Collecting', 'Model Building', 'Dancing',
-        'Singing', 'Playing Instruments', 'Blogging', 'Podcasting', 'Travel', 'Learning Languages', 'Meditation'
-      ]
-    },
-    personality: {
-      icon: Brain,
-      tags: [
-        'Ambitious', 'Creative', 'Analytical', 'Empathetic', 'Optimistic', 'Adventurous', 'Intellectual',
-        'Humorous', 'Compassionate', 'Determined', 'Curious', 'Patient', 'Spontaneous', 'Organized',
-        'Loyal', 'Independent', 'Sociable', 'Thoughtful', 'Confident', 'Gentle', 'Energetic', 'Calm',
-        'Innovative', 'Reliable', 'Charismatic', 'Introspective', 'Passionate', 'Diplomatic', 'Resilient', 'Wise'
-      ]
-    }
-  };
-
-  const mbtiTypes = [
-    {
-      type: 'INTJ',
-      name: 'The Architect',
-      description: 'Imaginative and strategic thinkers, with a plan for everything. Independent, decisive, and highly ambitious.'
-    },
-    {
-      type: 'INTP',
-      name: 'The Thinker', 
-      description: 'Innovative inventors with an unquenchable thirst for knowledge. Logical, flexible, and adaptable.'
-    },
-    {
-      type: 'ENTJ',
-      name: 'The Commander',
-      description: 'Bold, imaginative, and strong-willed leaders. Natural-born leaders who are always finding ways to achieve their goals.'
-    },
-    {
-      type: 'ENTP',
-      name: 'The Debater',
-      description: 'Smart and curious thinkers who cannot resist an intellectual challenge. Quick-witted and audacious.'
-    },
-    {
-      type: 'INFJ',
-      name: 'The Advocate',
-      description: 'Quiet and mystical, yet very inspiring and tireless idealists. Creative, insightful, and passionate.'
-    },
-    {
-      type: 'INFP',
-      name: 'The Mediator',
-      description: 'Poetic, kind, and altruistic people, always eager to help a good cause. True idealists and loyal.'
-    },
-    {
-      type: 'ENFJ',
-      name: 'The Protagonist',
-      description: 'Charismatic and inspiring leaders, able to mesmerize their listeners. Natural-born teachers and mentors.'
-    },
-    {
-      type: 'ENFP',
-      name: 'The Campaigner',
-      description: 'Enthusiastic, creative, and sociable free spirits. Always able to find a reason to smile.'
-    },
-    {
-      type: 'ISTJ',
-      name: 'The Logistician',
-      description: 'Practical and fact-minded, reliable and responsible. Thorough, honest, and tradition-oriented.'
-    },
-    {
-      type: 'ISFJ',
-      name: 'The Protector',
-      description: 'Warm-hearted and dedicated protectors, always ready to defend their loved ones. Kind and loyal.'
-    },
-    {
-      type: 'ESTJ',
-      name: 'The Executive',
-      description: 'Excellent administrators, unsurpassed at managing things or people. Traditional and hardworking.'
-    },
-    {
-      type: 'ESFJ',
-      name: 'The Consul',
-      description: 'Extraordinarily caring, social, and popular people, always eager to help. Warm-hearted and cooperative.'
-    },
-    {
-      type: 'ISTP',
-      name: 'The Virtuoso',
-      description: 'Bold and practical experimenters, masters of all kinds of tools. Flexible and tolerant.'
-    },
-    {
-      type: 'ISFP',
-      name: 'The Adventurer',
-      description: 'Flexible and charming artists, always ready to explore new possibilities. Gentle and passionate.'
-    },
-    {
-      type: 'ESTP',
-      name: 'The Entrepreneur',
-      description: 'Smart, energetic, and perceptive people who truly enjoy living on the edge. Spontaneous and pragmatic.'
-    },
-    {
-      type: 'ESFP',
-      name: 'The Entertainer',
-      description: 'Spontaneous, energetic, and enthusiastic people. Life is never boring around them. Fun-loving and people-focused.'
-    }
-  ];
 
   const handleFavoriteToggle = (tag: string) => {
     const currentFavorites = data.favorites || [];
-    const updatedFavorites = currentFavorites.includes(tag)
-      ? currentFavorites.filter((fav: string) => fav !== tag)
-      : currentFavorites.length < 15 
-        ? [...currentFavorites, tag]
-        : currentFavorites;
+    let updatedFavorites;
+    
+    if (currentFavorites.includes(tag)) {
+      updatedFavorites = currentFavorites.filter((fav: string) => fav !== tag);
+    } else {
+      if (currentFavorites.length >= 25) {
+        return; // Don't add if already at max
+      }
+      updatedFavorites = [...currentFavorites, tag];
+    }
+    
     onUpdate('favorites', updatedFavorites);
   };
 
   return (
     <div className="space-y-6">
-      {/* Pick Favorites Section */}
+      {/* Pick Favorites */}
       <Card className="card-modern">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -165,112 +68,100 @@ export const AvatarPersonaStep: React.FC<AvatarPersonaStepProps> = ({ data, onUp
             Pick Favorites
           </CardTitle>
           <CardDescription>
-            Select 5-15 tags that represent your avatar's interests and personality
+            Select 5-25 things your avatar loves and enjoys (helps define personality)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Selected Favorites Counter */}
-          <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
-            <span className="text-sm font-medium">
-              Selected: {data.favorites?.length || 0} / 15
-            </span>
-            <Badge variant={data.favorites?.length >= 5 ? "default" : "destructive"}>
-              {data.favorites?.length >= 5 ? "Minimum met" : `Need ${5 - (data.favorites?.length || 0)} more`}
-            </Badge>
+          {/* Selected Favorites Count */}
+          <div className="bg-muted/20 rounded-lg p-3">
+            <p className="text-sm font-medium">
+              Selected: {data.favorites?.length || 0}/25 favorites 
+              {(data.favorites?.length || 0) < 5 && (
+                <span className="text-destructive ml-2">(Minimum 5 required)</span>
+              )}
+            </p>
           </div>
-
-          {/* Category Tabs */}
-          <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-            <TabsList className="grid w-full grid-cols-5">
-              {Object.entries(tagCategories).map(([key, category]) => {
-                const IconComponent = category.icon;
-                return (
-                  <TabsTrigger key={key} value={key} className="flex items-center gap-1">
-                    <IconComponent className="h-3 w-3" />
-                    <span className="capitalize hidden sm:inline">{key}</span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
-
-            {Object.entries(tagCategories).map(([key, category]) => (
-              <TabsContent key={key} value={key} className="space-y-3">
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                  {category.tags.map((tag) => {
-                    const isSelected = data.favorites?.includes(tag);
-                    const canSelect = (data.favorites?.length || 0) < 15;
-                    return (
-                      <Button
-                        key={tag}
-                        variant={isSelected ? "default" : "outline"}
-                        size="sm"
-                        className="justify-start text-xs"
-                        onClick={() => handleFavoriteToggle(tag)}
-                        disabled={!isSelected && !canSelect}
-                      >
-                        {tag}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
 
           {/* Selected Favorites Display */}
           {data.favorites && data.favorites.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Selected Favorites:</h4>
-              <div className="flex flex-wrap gap-2">
-                {data.favorites.map((favorite: string) => (
-                  <Badge key={favorite} variant="secondary" className="cursor-pointer" onClick={() => handleFavoriteToggle(favorite)}>
-                    {favorite} ×
-                  </Badge>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-2 p-3 bg-muted/20 rounded-lg">
+              {data.favorites.map((favorite: string) => (
+                <Badge key={favorite} variant="default" className="flex items-center gap-1">
+                  {favorite}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 hover:bg-transparent"
+                    onClick={() => handleFavoriteToggle(favorite)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              ))}
             </div>
           )}
+
+          {/* Category-wise Tag Selection */}
+          {Object.entries(tags).map(([category, categoryTags]) => (
+            <div key={category} className="space-y-3">
+              <h4 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">
+                {category}
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                {categoryTags.map((tag) => {
+                  const isSelected = data.favorites?.includes(tag);
+                  const isDisabled = !isSelected && (data.favorites?.length || 0) >= 25;
+                  
+                  return (
+                    <Button
+                      key={tag}
+                      variant={isSelected ? "default" : "outline"}
+                      size="sm"
+                      className="justify-start text-xs h-8"
+                      onClick={() => handleFavoriteToggle(tag)}
+                      disabled={isDisabled}
+                    >
+                      {tag}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
-      {/* MBTI Selection */}
+      {/* MBTI Type */}
       <Card className="card-modern">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5" />
-            Pick MBTI Type
+            MBTI Type
           </CardTitle>
           <CardDescription>
-            Choose the personality type that best represents your avatar
+            Choose your avatar's Myers-Briggs personality type
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {mbtiTypes.map((mbti) => (
-              <div
-                key={mbti.type}
-                className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                  data.mbti === mbti.type 
-                    ? 'border-primary bg-primary/5' 
-                    : 'border-border hover:border-primary/50'
-                }`}
-                onClick={() => onUpdate('mbti', mbti.type)}
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-lg">{mbti.type}</h4>
-                    {data.mbti === mbti.type && (
-                      <Badge variant="default">Selected</Badge>
-                    )}
-                  </div>
-                  <h5 className="font-medium text-sm">{mbti.name}</h5>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {mbti.description}
-                  </p>
-                </div>
-              </div>
-            ))}
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-4 gap-2">
+            {mbtiTypes.map((type) => {
+              const isSelected = data.mbti === type;
+              return (
+                <Button
+                  key={type}
+                  variant={isSelected ? "default" : "outline"}
+                  size="sm"
+                  className="justify-center"
+                  onClick={() => onUpdate('mbti', type)}
+                >
+                  {type}
+                </Button>
+              );
+            })}
           </div>
+          <p className="text-xs text-muted-foreground">
+            The Myers-Briggs Type Indicator (MBTI) is a popular personality assessment tool.
+          </p>
         </CardContent>
       </Card>
     </div>

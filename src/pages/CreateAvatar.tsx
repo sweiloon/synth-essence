@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -10,17 +10,31 @@ import { BackstoryStep } from '@/components/avatar-creation/BackstoryStep';
 import { KnowledgeBaseStep } from '@/components/avatar-creation/KnowledgeBaseStep';
 import { HiddenRulesStep } from '@/components/avatar-creation/HiddenRulesStep';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const CreateAvatar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   const [avatarData, setAvatarData] = useState({
     // Step 1: Avatar Detail
+    avatarImages: [],
     name: '',
     age: '',
     gender: '',
-    languages: [],
+    originCountry: 'Malaysia',
+    primaryLanguage: '',
+    secondaryLanguages: [],
     
     // Step 2: Avatar Persona
     favorites: [],
@@ -35,6 +49,51 @@ const CreateAvatar = () => {
     // Step 5: Hidden Rules
     hiddenRules: ''
   });
+
+  // Check if user has entered any data
+  const hasUnsavedChanges = () => {
+    return (
+      avatarData.name ||
+      avatarData.age ||
+      avatarData.gender ||
+      avatarData.primaryLanguage ||
+      avatarData.secondaryLanguages.length > 0 ||
+      avatarData.favorites.length > 0 ||
+      avatarData.mbti ||
+      avatarData.backstory ||
+      avatarData.knowledgeFiles.length > 0 ||
+      avatarData.hiddenRules ||
+      avatarData.avatarImages.length > 0
+    );
+  };
+
+  // Handle browser back button
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges()) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    const handlePopState = () => {
+      if (hasUnsavedChanges()) {
+        setShowExitDialog(true);
+        window.history.pushState(null, '', window.location.pathname);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    // Push initial state
+    window.history.pushState(null, '', window.location.pathname);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [avatarData]);
 
   const steps = [
     { id: 1, name: 'Avatar Detail', description: 'Basic information' },
@@ -51,7 +110,7 @@ const CreateAvatar = () => {
   const validateCurrentStep = () => {
     switch (currentStep) {
       case 1:
-        if (!avatarData.name || !avatarData.age || !avatarData.gender || avatarData.languages.length === 0) {
+        if (!avatarData.name || !avatarData.age || !avatarData.gender || !avatarData.primaryLanguage) {
           toast({
             title: "Missing Information",
             description: "Please fill in all required fields in Avatar Detail.",
@@ -98,6 +157,19 @@ const CreateAvatar = () => {
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1);
     }
+  };
+
+  const handleBackToMyAvatar = () => {
+    if (hasUnsavedChanges()) {
+      setShowExitDialog(true);
+    } else {
+      navigate('/dashboard', { state: { activeSection: 'my-avatar' } });
+    }
+  };
+
+  const handleConfirmExit = () => {
+    setShowExitDialog(false);
+    navigate('/dashboard', { state: { activeSection: 'my-avatar' } });
   };
 
   const handleCreateAvatar = () => {
@@ -151,7 +223,7 @@ const CreateAvatar = () => {
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
-              onClick={() => navigate('/dashboard', { state: { activeSection: 'my-avatar' } })}
+              onClick={handleBackToMyAvatar}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -222,6 +294,24 @@ const CreateAvatar = () => {
           </div>
         </div>
       </div>
+
+      {/* Exit Confirmation Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Avatar creation not complete</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to go back to My Avatar page? All your progress and details will be lost and cannot be recovered.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Creating</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmExit} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, Go Back
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Bottom padding to account for fixed navigation */}
       <div className="h-20" />

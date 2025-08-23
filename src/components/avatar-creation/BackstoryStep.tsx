@@ -1,10 +1,9 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Sparkles } from 'lucide-react';
+import { BookOpen, Sparkles, ChevronDown } from 'lucide-react';
 
 interface BackstoryStepProps {
   data: any;
@@ -12,6 +11,8 @@ interface BackstoryStepProps {
 }
 
 export const BackstoryStep: React.FC<BackstoryStepProps> = ({ data, onUpdate }) => {
+  const [visibleTemplates, setVisibleTemplates] = useState(8);
+
   const backstoryTemplates = [
     {
       title: "The Wise Mentor",
@@ -157,6 +158,13 @@ My goal as an artist is not just to create beautiful objects, but to contribute 
     onUpdate('backstory', template);
   };
 
+  const handleViewMore = () => {
+    const newVisible = Math.min(visibleTemplates + 8, backstoryTemplates.length);
+    setVisibleTemplates(newVisible);
+  };
+
+  const canViewMore = visibleTemplates < backstoryTemplates.length;
+
   return (
     <div className="space-y-6">
       {/* Backstory Input */}
@@ -200,7 +208,7 @@ My goal as an artist is not just to create beautiful objects, but to contribute 
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {backstoryTemplates.map((template, index) => (
+            {backstoryTemplates.slice(0, visibleTemplates).map((template, index) => (
               <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer" onClick={() => handleTemplateSelect(template.template)}>
                 <h4 className="font-semibold mb-2">{template.title}</h4>
                 <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
@@ -213,6 +221,21 @@ My goal as an artist is not just to create beautiful objects, but to contribute 
               </div>
             ))}
           </div>
+          
+          {canViewMore && (
+            <div className="mt-6 text-center">
+              <Button variant="outline" onClick={handleViewMore} className="flex items-center gap-2">
+                <ChevronDown className="h-4 w-4" />
+                View More Templates
+              </Button>
+            </div>
+          )}
+          
+          {!canViewMore && backstoryTemplates.length > 8 && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">No more templates to view</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
