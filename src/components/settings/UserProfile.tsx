@@ -12,6 +12,8 @@ import {
   Camera
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const UserProfile = () => {
   const [profileData, setProfileData] = useState({
@@ -22,45 +24,88 @@ const UserProfile = () => {
     website: ''
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Fetch user data from localStorage (where signup data is stored)
-    const userData = localStorage.getItem('userData');
-    if (userData) {
-      const parsedData = JSON.parse(userData);
-      setProfileData({
-        name: parsedData.name || parsedData.firstName + ' ' + parsedData.lastName || '',
-        email: parsedData.email || '',
-        bio: parsedData.bio || 'AI Avatar enthusiast and creator',
-        company: parsedData.company || '',
-        website: parsedData.website || ''
-      });
-    } else {
-      // Fallback - try to get from any other stored user info
-      const storedEmail = localStorage.getItem('userEmail');
-      const storedName = localStorage.getItem('userName');
-      if (storedEmail || storedName) {
-        setProfileData(prev => ({
-          ...prev,
-          email: storedEmail || prev.email,
-          name: storedName || prev.name
-        }));
-      }
+    if (user) {
+      fetchUserProfile();
     }
-  }, []);
+  }, [user]);
 
-  const handleProfileSave = () => {
-    // Save updated profile data
-    const existingData = JSON.parse(localStorage.getItem('userData') || '{}');
-    const updatedData = { ...existingData, ...profileData };
-    localStorage.setItem('userData', JSON.stringify(updatedData));
+  const fetchUserProfile = async () => {
+    if (!user) return;
     
-    setIsEditing(false);
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been successfully updated.",
-    });
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile data.",
+          variant: "destructive"
+        });
+      } else if (data) {
+        setProfileData({
+          name: data.name || '',
+          email: data.email || user.email || '',
+          bio: data.bio || 'AI Avatar enthusiast and creator',
+          company: data.company || '',
+          website: data.website || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleProfileSave = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: profileData.name,
+          email: profileData.email,
+          bio: profileData.bio,
+          company: profileData.company,
+          website: profileData.website,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        toast({
+          title: "Update Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        setIsEditing(false);
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been successfully updated.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Update Error",
+        description: "An unexpected error occurred while updating your profile.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getInitials = (name: string) => {
@@ -71,6 +116,22 @@ const UserProfile = () => {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  if (isLoading && !profileData.name) {
+    return (
+      <Card className="card-modern">
+        <CardContent className="p-6">
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="space-y-3">
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="card-modern">
@@ -88,11 +149,12 @@ const UserProfile = () => {
           variant={isEditing ? "default" : "outline"}
           size="sm"
           onClick={isEditing ? handleProfileSave : () => setIsEditing(true)}
+          disabled={isLoading}
         >
           {isEditing ? (
             <>
               <Save className="h-4 w-4 mr-1" />
-              Save
+              {isLoading ? 'Saving...' : 'Save'}
             </>
           ) : (
             <>

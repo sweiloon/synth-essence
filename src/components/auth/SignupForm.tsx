@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, User, Chrome } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SignupFormProps {
   onSwitchToLogin: () => void;
@@ -23,6 +24,7 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { signUp } = useAuth();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -51,15 +53,31 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
 
     setIsLoading(true);
     
-    // Simulate signup
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { error } = await signUp(formData.email, formData.password, formData.name);
+      
+      if (error) {
+        toast({
+          title: "Sign Up Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Account Created!",
+          description: "Welcome to AvatarHub. Please check your email to verify your account.",
+        });
+        onSignupSuccess();
+      }
+    } catch (error) {
       toast({
-        title: "Account Created!",
-        description: "Welcome to AI Avatar Lab. Your account has been created successfully.",
+        title: "Sign Up Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
       });
-      onSignupSuccess();
-    }, 1000);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleAuth = () => {
@@ -78,8 +96,8 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
             <div className="w-6 h-6 bg-white rounded-full"></div>
           </div>
         </div>
-        <h1 className="text-2xl font-bold">HiterraHub</h1>
-        <p className="text-muted-foreground">Scientific Reporting Platform</p>
+        <h1 className="text-2xl font-bold">AvatarHub</h1>
+        <p className="text-muted-foreground">Your AI Avatar Station</p>
       </div>
 
       <div className="space-y-4">

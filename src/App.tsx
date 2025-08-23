@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Index from '@/pages/Index';
@@ -6,37 +7,60 @@ import Dashboard from '@/pages/Dashboard';
 import NotFound from '@/pages/NotFound';
 import AvatarDetail from '@/pages/AvatarDetail';
 import { Toaster } from "@/components/ui/toaster"
-import { Toaster as SonnerToaster, toast } from "@/components/ui/sonner"
+import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import CreateAvatar from '@/pages/CreateAvatar';
+import { useAuth } from '@/hooks/useAuth';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setIsAuthenticated(true);
-    }
-  }, []);
+  // Show loading screen while checking auth state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
-  const handleLogin = (token: string) => {
-    localStorage.setItem('token', token);
-    setIsAuthenticated(true);
+  const handleLogin = () => {
+    // Authentication is handled by the useAuth hook
+    // This is just a placeholder for compatibility
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    // Logout is handled by the useAuth hook in the Dashboard component
   };
 
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Index isAuthenticated={isAuthenticated} onLogin={handleLogin} onLogout={handleLogout} />} />
-        <Route path="/auth" element={<Auth onLogin={handleLogin} />} />
-        <Route path="/dashboard" element={isAuthenticated ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/auth" />} />
-        <Route path="/create-avatar" element={isAuthenticated ? <CreateAvatar /> : <Navigate to="/auth" />} />
-        <Route path="/avatar/:id" element={isAuthenticated ? <AvatarDetail /> : <Navigate to="/auth" />} />
+        <Route 
+          path="/" 
+          element={
+            <Index 
+              isAuthenticated={!!user} 
+              onLogin={handleLogin} 
+              onLogout={handleLogout} 
+            />
+          } 
+        />
+        <Route 
+          path="/auth" 
+          element={!user ? <Auth onLogin={handleLogin} /> : <Navigate to="/" />} 
+        />
+        <Route 
+          path="/dashboard" 
+          element={user ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/auth" />} 
+        />
+        <Route 
+          path="/create-avatar" 
+          element={user ? <CreateAvatar /> : <Navigate to="/auth" />} 
+        />
+        <Route 
+          path="/avatar/:id" 
+          element={user ? <AvatarDetail /> : <Navigate to="/auth" />} 
+        />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ForgotPasswordFormProps {
   onBackToLogin: () => void;
@@ -15,20 +16,37 @@ const ForgotPasswordForm = ({ onBackToLogin }: ForgotPasswordFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const { toast } = useToast();
+  const { resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate password reset
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsEmailSent(true);
+    try {
+      const { error } = await resetPassword(email);
+      
+      if (error) {
+        toast({
+          title: "Reset Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        setIsEmailSent(true);
+        toast({
+          title: "Reset Email Sent",
+          description: "Check your email for password reset instructions.",
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Reset Email Sent",
-        description: "Check your email for password reset instructions.",
+        title: "Reset Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
       });
-    }, 1000);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isEmailSent) {
@@ -84,8 +102,8 @@ const ForgotPasswordForm = ({ onBackToLogin }: ForgotPasswordFormProps) => {
             <div className="w-6 h-6 bg-white rounded-full"></div>
           </div>
         </div>
-        <h1 className="text-2xl font-bold">HiterraHub</h1>
-        <p className="text-muted-foreground">Scientific Reporting Platform</p>
+        <h1 className="text-2xl font-bold">AvatarHub</h1>
+        <p className="text-muted-foreground">Your AI Avatar Station</p>
       </div>
 
       <div className="space-y-4">

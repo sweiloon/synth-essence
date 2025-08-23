@@ -12,6 +12,7 @@ import LearningPathSection from '@/components/dashboard/sections/LearningPathSec
 import SettingsSection from '@/components/dashboard/sections/SettingsSection';
 import MyAvatarSection from '@/components/dashboard/sections/MyAvatarSection';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -21,6 +22,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const location = useLocation();
   const { toast } = useToast();
+  const { signOut } = useAuth();
 
   // Handle navigation from avatar detail page
   useEffect(() => {
@@ -29,12 +31,21 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
     }
   }, [location.state]);
 
-  const handleLogout = () => {
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
-    onLogout();
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+      onLogout();
+    } catch (error) {
+      toast({
+        title: "Logout Error",
+        description: "An error occurred while logging out.",
+        variant: "destructive"
+      });
+    }
   };
 
   const renderActiveSection = () => {
