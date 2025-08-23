@@ -1,370 +1,355 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, ArrowRight, CheckCircle, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+
 import { AvatarDetailStep } from '@/components/avatar-creation/AvatarDetailStep';
 import { AvatarPersonaStep } from '@/components/avatar-creation/AvatarPersonaStep';
 import { BackstoryStep } from '@/components/avatar-creation/BackstoryStep';
 import { KnowledgeBaseStep } from '@/components/avatar-creation/KnowledgeBaseStep';
 import { HiddenRulesStep } from '@/components/avatar-creation/HiddenRulesStep';
-import { useToast } from '@/hooks/use-toast';
 
 const CreateAvatar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [showExitDialog, setShowExitDialog] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const { user } = useAuth();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isCreating, setIsCreating] = useState(false);
+
   const [avatarData, setAvatarData] = useState({
     // Step 1: Avatar Detail
-    avatarImages: [],
     name: '',
+    avatarImages: [],
     originCountry: 'Malaysia',
     age: '',
     gender: '',
-    primaryLanguage: '',
+    primaryLanguage: 'English',
     secondaryLanguages: [],
-    
+
     // Step 2: Avatar Persona
-    favorites: [],
-    mbti: '',
-    
+    personalityTraits: [],
+
     // Step 3: Backstory
     backstory: '',
-    
+
     // Step 4: Knowledge Base
     knowledgeFiles: [],
-    
+
     // Step 5: Hidden Rules
-    hiddenRules: '',
-    
-    // Additional fields for editing
-    id: '',
-    progress: {
-      chatbot: false,
-      tts: false,
-      images: false,
-      avatar: false
-    },
-    createdAt: ''
+    hiddenRules: ''
   });
 
   const steps = [
-    { id: 1, name: 'Avatar Detail', description: 'Basic information' },
-    { id: 2, name: 'Avatar Persona', description: 'Personality & preferences' },
-    { id: 3, name: 'Backstory', description: 'Character background' },
-    { id: 4, name: 'Knowledge Base', description: 'Upload documents' },
-    { id: 5, name: 'Hidden Rules', description: 'Special instructions' }
+    {
+      title: 'Avatar Detail',
+      description: 'Basic information and appearance',
+      component: AvatarDetailStep
+    },
+    {
+      title: 'Avatar Persona',
+      description: 'Personality traits and characteristics',
+      component: AvatarPersonaStep
+    },
+    {
+      title: 'Backstory',
+      description: 'Background and history',
+      component: BackstoryStep
+    },
+    {
+      title: 'Knowledge Base',
+      description: 'Upload training documents',
+      component: KnowledgeBaseStep
+    },
+    {
+      title: 'Hidden Rules',
+      description: 'Special instructions and constraints',
+      component: HiddenRulesStep
+    }
   ];
 
-  // Check if editing existing avatar
-  useEffect(() => {
-    const editingAvatarId = localStorage.getItem('editingAvatarId');
-    if (editingAvatarId) {
-      const savedAvatars = JSON.parse(localStorage.getItem('myAvatars') || '[]');
-      const avatarToEdit = savedAvatars.find((avatar: any) => avatar.id === editingAvatarId);
-      if (avatarToEdit) {
-        setAvatarData(avatarToEdit);
-        setIsEditing(true);
-      }
-      localStorage.removeItem('editingAvatarId');
-    }
-  }, []);
-
-  const hasUnsavedData = () => {
-    return (
-      avatarData.name ||
-      avatarData.age ||
-      avatarData.gender ||
-      avatarData.primaryLanguage ||
-      avatarData.secondaryLanguages.length > 0 ||
-      avatarData.avatarImages.length > 0 ||
-      avatarData.favorites.length > 0 ||
-      avatarData.mbti ||
-      avatarData.backstory ||
-      avatarData.knowledgeFiles.length > 0 ||
-      avatarData.hiddenRules
-    );
-  };
-
   const updateAvatarData = (field: string, value: any) => {
-    setAvatarData(prev => ({ ...prev, [field]: value }));
+    setAvatarData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const validateCurrentStep = () => {
     switch (currentStep) {
-      case 1:
-        if (!avatarData.name || !avatarData.age || !avatarData.gender || !avatarData.primaryLanguage) {
+      case 0: // Avatar Detail
+        if (!avatarData.name.trim()) {
           toast({
-            title: "Missing Information",
-            description: "Please fill in all required fields in Avatar Detail.",
+            title: "Validation Error",
+            description: "Avatar name is required.",
             variant: "destructive"
           });
           return false;
         }
-        break;
-      case 2:
-        if (avatarData.favorites.length < 5 || !avatarData.mbti) {
+        if (!avatarData.originCountry) {
           toast({
-            title: "Missing Information",
-            description: "Please select at least 5 favorites and choose an MBTI type.",
+            title: "Validation Error",
+            description: "Origin country is required.",
             variant: "destructive"
           });
           return false;
         }
-        break;
-      case 3:
-        if (!avatarData.backstory.trim()) {
+        if (!avatarData.age || parseInt(avatarData.age) < 1) {
           toast({
-            title: "Missing Information",
-            description: "Please provide a backstory for your avatar.",
+            title: "Validation Error",
+            description: "Valid age is required.",
             variant: "destructive"
           });
           return false;
         }
-        break;
+        if (!avatarData.gender) {
+          toast({
+            title: "Validation Error",
+            description: "Gender is required.",
+            variant: "destructive"
+          });
+          return false;
+        }
+        if (!avatarData.primaryLanguage) {
+          toast({
+            title: "Validation Error",
+            description: "Primary language is required.",
+            variant: "destructive"
+          });
+          return false;
+        }
+        return true;
+      case 1: // Avatar Persona
+        if (!avatarData.personalityTraits || avatarData.personalityTraits.length === 0) {
+          toast({
+            title: "Validation Error",
+            description: "At least one personality trait is required.",
+            variant: "destructive"
+          });
+          return false;
+        }
+        return true;
+      default:
+        return true;
     }
-    return true;
   };
 
   const handleNext = () => {
     if (validateCurrentStep()) {
-      if (currentStep === 5) {
-        handleCreateAvatar();
-      } else {
-        setCurrentStep(prev => prev + 1);
-      }
+      setCurrentStep(prev => prev + 1);
     }
   };
 
   const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
-    }
+    setCurrentStep(prev => prev - 1);
   };
 
-  const handleBackToMyAvatar = () => {
-    if (hasUnsavedData()) {
-      setShowExitDialog(true);
-    } else {
-      navigate('/dashboard', { state: { activeSection: 'my-avatar' } });
-    }
-  };
-
-  const handleCreateAvatar = () => {
-    const savedAvatars = JSON.parse(localStorage.getItem('myAvatars') || '[]');
-    
-    if (isEditing) {
-      // Update existing avatar
-      const updatedAvatars = savedAvatars.map((avatar: any) => 
-        avatar.id === avatarData.id ? avatarData : avatar
-      );
-      localStorage.setItem('myAvatars', JSON.stringify(updatedAvatars));
+  const handleCreateAvatar = async () => {
+    if (!user) {
       toast({
-        title: "Avatar Updated!",
-        description: `${avatarData.name} has been updated successfully.`,
+        title: "Authentication Error",
+        description: "You must be logged in to create an avatar.",
+        variant: "destructive"
       });
-    } else {
-      // Create new avatar
-      const newAvatar = {
-        id: Date.now().toString(),
-        ...avatarData,
-        progress: {
-          chatbot: false,
-          tts: false,
-          images: false,
-          avatar: false
-        },
-        createdAt: new Date().toISOString()
-      };
-      savedAvatars.push(newAvatar);
-      localStorage.setItem('myAvatars', JSON.stringify(savedAvatars));
+      return;
+    }
+
+    if (!validateCurrentStep()) {
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      // Upload avatar images to storage if any
+      const uploadedImages: string[] = [];
+      
+      for (const imageUrl of avatarData.avatarImages) {
+        if (imageUrl.startsWith('blob:')) {
+          // This is a local blob URL, we need to upload it
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          
+          const fileExt = blob.type.split('/')[1] || 'jpg';
+          const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, blob, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          const { data: urlData } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
+
+          uploadedImages.push(urlData.publicUrl);
+        } else {
+          // Already uploaded or external URL
+          uploadedImages.push(imageUrl);
+        }
+      }
+
+      // Save avatar to database
+      const { data, error } = await supabase
+        .from('avatars')
+        .insert({
+          user_id: user.id,
+          name: avatarData.name,
+          avatar_images: uploadedImages,
+          origin_country: avatarData.originCountry,
+          age: parseInt(avatarData.age),
+          gender: avatarData.gender,
+          primary_language: avatarData.primaryLanguage,
+          secondary_languages: avatarData.secondaryLanguages,
+          personality_traits: avatarData.personalityTraits,
+          backstory: avatarData.backstory || null,
+          knowledge_files: avatarData.knowledgeFiles,
+          hidden_rules: avatarData.hiddenRules || null
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
       toast({
-        title: "Avatar Created!",
-        description: `${avatarData.name} has been created successfully.`,
+        title: "Avatar Created Successfully!",
+        description: `${avatarData.name} has been created and saved.`,
       });
-    }
-    
-    navigate('/dashboard', { state: { activeSection: 'my-avatar' } });
-  };
 
-  const renderCurrentStep = () => {
-    switch (currentStep) {
-      case 1:
-        return <AvatarDetailStep data={avatarData} onUpdate={updateAvatarData} />;
-      case 2:
-        return <AvatarPersonaStep data={avatarData} onUpdate={updateAvatarData} />;
-      case 3:
-        return <BackstoryStep data={avatarData} onUpdate={updateAvatarData} />;
-      case 4:
-        return <KnowledgeBaseStep data={avatarData} onUpdate={updateAvatarData} />;
-      case 5:
-        return <HiddenRulesStep data={avatarData} onUpdate={updateAvatarData} />;
-      default:
-        return null;
+      // Navigate to the avatar detail page
+      navigate(`/avatar/${data.id}`);
+
+    } catch (error: any) {
+      console.error('Error creating avatar:', error);
+      toast({
+        title: "Creation Failed",
+        description: error.message || "Failed to create avatar. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  // Handle browser back button
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedData()) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-
-    const handlePopState = (e: PopStateEvent) => {
-      if (hasUnsavedData()) {
-        e.preventDefault();
-        setShowExitDialog(true);
-        window.history.pushState(null, '', window.location.pathname);
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('popstate', handlePopState);
-    
-    // Push initial state
-    window.history.pushState(null, '', window.location.pathname);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [avatarData]);
+  const CurrentStepComponent = steps[currentStep].component;
+  const progress = ((currentStep + 1) / steps.length) * 100;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              onClick={handleBackToMyAvatar}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back to My Avatar</span>
-              <span className="sm:hidden">Back</span>
-            </Button>
-            <h1 className="text-lg sm:text-2xl font-bold">
-              {isEditing ? 'Edit Avatar' : 'Create New Avatar'}
-            </h1>
-            <div className="w-16 sm:w-32" /> {/* Spacer */}
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/dashboard')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Create New Avatar</h1>
+            <p className="text-muted-foreground">Follow the steps to create your custom AI avatar</p>
           </div>
         </div>
-      </div>
 
-      {/* Progress Steps */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 sm:py-6">
-          {/* Mobile Progress - Simplified */}
-          <div className="sm:hidden">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium">
-                Step {currentStep} of {steps.length}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {steps[currentStep - 1].name}
-              </span>
+        {/* Progress */}
+        <Card className="mb-8">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">
+                Step {currentStep + 1} of {steps.length}: {steps[currentStep].title}
+              </CardTitle>
+              <Badge variant="outline">
+                {Math.round(progress)}% Complete
+              </Badge>
             </div>
-            <Progress value={(currentStep / steps.length) * 100} className="h-2" />
-          </div>
-
-          {/* Desktop/Tablet Progress - Full */}
-          <div className="hidden sm:block">
-            <div className="flex items-center justify-between mb-4">
+            <CardDescription>{steps[currentStep].description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Progress value={progress} className="w-full" />
+            
+            {/* Step indicators */}
+            <div className="flex justify-between mt-4">
               {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center">
-                  <div className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      currentStep > step.id 
-                        ? 'bg-primary text-primary-foreground' 
-                        : currentStep === step.id 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {currentStep > step.id ? <Check className="w-4 h-4" /> : step.id}
-                    </div>
-                    <div className="ml-3 text-left">
-                      <p className={`text-sm font-medium ${currentStep >= step.id ? 'text-foreground' : 'text-muted-foreground'}`}>
-                        {step.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{step.description}</p>
-                    </div>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className={`h-px w-12 mx-4 ${currentStep > step.id ? 'bg-primary' : 'bg-border'}`} />
+                <div
+                  key={index}
+                  className={`flex items-center gap-2 text-sm ${
+                    index <= currentStep ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  {index < currentStep ? (
+                    <CheckCircle className="h-4 w-4" />
+                  ) : index === currentStep ? (
+                    <User className="h-4 w-4" />
+                  ) : (
+                    <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30" />
                   )}
+                  <span className="hidden sm:inline">{step.title}</span>
                 </div>
               ))}
             </div>
-            <Progress value={(currentStep / steps.length) * 100} className="h-2" />
+          </CardContent>
+        </Card>
+
+        {/* Current Step Content */}
+        <CurrentStepComponent
+          data={avatarData}
+          onUpdate={updateAvatarData}
+        />
+
+        {/* Navigation Buttons */}
+        <div className="flex justify-between mt-8">
+          <Button
+            variant="outline"
+            onClick={handlePrevious}
+            disabled={currentStep === 0}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Previous
+          </Button>
+
+          <div className="flex gap-2">
+            {currentStep < steps.length - 1 ? (
+              <Button onClick={handleNext}>
+                Next
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleCreateAvatar}
+                disabled={isCreating}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {isCreating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Creating Avatar...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Create Avatar
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Content */}
-      <div className="container mx-auto px-4 py-4 sm:py-8">
-        <div className="max-w-4xl mx-auto">
-          {renderCurrentStep()}
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between">
-            <Button
-              variant="outline"
-              onClick={handlePrevious}
-              disabled={currentStep === 1}
-              className="text-sm px-4 py-2 sm:text-base sm:px-6 sm:py-2"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">Previous</span>
-              <span className="sm:hidden">Prev</span>
-            </Button>
-            <Button 
-              onClick={handleNext} 
-              className="btn-hero text-sm px-4 py-2 sm:text-base sm:px-6 sm:py-2"
-            >
-              {currentStep === 5 ? (isEditing ? 'Update Avatar' : 'Create Avatar') : 'Next'}
-              {currentStep < 5 && <ArrowRight className="ml-2 h-4 w-4" />}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Exit Confirmation Dialog */}
-      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <AlertDialogContent className="mx-4 max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your avatar {isEditing ? 'editing' : 'creation'} is not complete yet. All the details you've entered will be lost if you leave now. 
-              Are you sure you want to go back to My Avatar page?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="w-full sm:w-auto">Stay and Continue</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => navigate('/dashboard', { state: { activeSection: 'my-avatar' } })}
-              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Yes, Discard Changes
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Bottom padding to account for fixed navigation */}
-      <div className="h-20" />
     </div>
   );
 };

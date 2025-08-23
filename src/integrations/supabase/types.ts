@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      avatars: {
+        Row: {
+          age: number | null
+          avatar_images: string[] | null
+          backstory: string | null
+          created_at: string
+          gender: string | null
+          hidden_rules: string | null
+          id: string
+          knowledge_files: Json | null
+          name: string
+          origin_country: string
+          personality_traits: string[] | null
+          primary_language: string
+          secondary_languages: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age?: number | null
+          avatar_images?: string[] | null
+          backstory?: string | null
+          created_at?: string
+          gender?: string | null
+          hidden_rules?: string | null
+          id?: string
+          knowledge_files?: Json | null
+          name: string
+          origin_country?: string
+          personality_traits?: string[] | null
+          primary_language?: string
+          secondary_languages?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age?: number | null
+          avatar_images?: string[] | null
+          backstory?: string | null
+          created_at?: string
+          gender?: string | null
+          hidden_rules?: string | null
+          id?: string
+          knowledge_files?: Json | null
+          name?: string
+          origin_country?: string
+          personality_traits?: string[] | null
+          primary_language?: string
+          secondary_languages?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

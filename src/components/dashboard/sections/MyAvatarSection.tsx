@@ -1,377 +1,257 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { 
-  UserCircle, 
-  Plus, 
-  MessageSquare, 
-  Mic, 
-  Image, 
-  User,
-  Edit,
-  Trash2,
-  Eye
-} from 'lucide-react';
+import { Plus, User, Globe, Eye, Edit, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
-const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: string) => void }) => {
+interface Avatar {
+  id: string;
+  name: string;
+  avatar_images: string[];
+  primary_language: string;
+  secondary_languages: string[];
+  origin_country: string;
+  age: number;
+  gender: string;
+  created_at: string;
+}
+
+const MyAvatarSection = () => {
   const navigate = useNavigate();
-  const [myAvatars, setMyAvatars] = useState<any[]>([]);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [avatarToDelete, setAvatarToDelete] = useState<string | null>(null);
-  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
-  const [previewAvatar, setPreviewAvatar] = useState<any>(null);
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [avatars, setAvatars] = useState<Avatar[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Load avatars from localStorage on component mount
   useEffect(() => {
-    const savedAvatars = localStorage.getItem('myAvatars');
-    if (savedAvatars) {
-      try {
-        setMyAvatars(JSON.parse(savedAvatars));
-      } catch (error) {
-        console.error('Error loading avatars from localStorage:', error);
-      }
+    if (user) {
+      fetchAvatars();
     }
-  }, []);
+  }, [user]);
 
-  // Save avatars to localStorage whenever myAvatars changes
-  useEffect(() => {
-    localStorage.setItem('myAvatars', JSON.stringify(myAvatars));
-  }, [myAvatars]);
-
-  const handleCreateAvatar = () => {
-    navigate('/create-avatar');
-  };
-
-  const handleStartTraining = (avatarId: string, type: string) => {
-    // Store selected avatar in localStorage for other components to use
-    localStorage.setItem('selectedAvatarId', avatarId);
+  const fetchAvatars = async () => {
+    if (!user) return;
     
-    // Navigate to appropriate training section
-    switch (type) {
-      case 'chatbot':
-        onSectionChange('chatbot');
-        break;
-      case 'tts':
-      case 'avatar':
+    try {
+      const { data, error } = await supabase
+        .from('avatars')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching avatars:', error);
         toast({
-          title: "Coming Soon",
-          description: "This feature is currently under development and will be available soon!",
-          duration: 4000,
+          title: "Error",
+          description: "Failed to load your avatars.",
+          variant: "destructive"
         });
-        break;
-      case 'images':
-        onSectionChange('images');
-        break;
-    }
-    
-    if (type === 'chatbot' || type === 'images') {
-      toast({
-        title: "Training Started",
-        description: `Redirecting to ${type} training section...`,
-        duration: 4000,
-      });
+      } else {
+        setAvatars(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching avatars:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDeleteClick = (avatarId: string) => {
-    setAvatarToDelete(avatarId);
-    setDeleteDialogOpen(true);
-  };
+  const handleDeleteAvatar = async (avatarId: string) => {
+    setDeletingId(avatarId);
+    try {
+      const { error } = await supabase
+        .from('avatars')
+        .delete()
+        .eq('id', avatarId)
+        .eq('user_id', user?.id);
 
-  const handleDeleteConfirm = () => {
-    if (avatarToDelete) {
-      setMyAvatars(myAvatars.filter(avatar => avatar.id !== avatarToDelete));
+      if (error) {
+        throw error;
+      }
+
+      setAvatars(prev => prev.filter(avatar => avatar.id !== avatarId));
       toast({
         title: "Avatar Deleted",
-        description: "Avatar has been deleted successfully.",
-        duration: 4000,
+        description: "Avatar has been successfully deleted.",
       });
+    } catch (error: any) {
+      console.error('Error deleting avatar:', error);
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete avatar.",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingId(null);
     }
-    setDeleteDialogOpen(false);
-    setAvatarToDelete(null);
   };
 
-  const handlePreview = (avatar: any) => {
-    setPreviewAvatar(avatar);
-    setPreviewDialogOpen(true);
-  };
-
-  const handleEdit = (avatarId: string) => {
-    // Store avatar ID for editing
-    localStorage.setItem('editingAvatarId', avatarId);
-    navigate('/create-avatar');
-  };
+  if (isLoading) {
+    return (
+      <Card className="card-modern">
+        <CardContent className="p-6">
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-48 bg-gray-200 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            <UserCircle className="h-6 w-6" />
-            My Avatar
-          </h1>
-          <p className="text-muted-foreground">
-            Create and manage your AI avatars
-          </p>
+          <h2 className="text-2xl font-bold">My Avatars</h2>
+          <p className="text-muted-foreground">Manage your AI avatars</p>
         </div>
-        
-        <Button className="btn-hero" onClick={handleCreateAvatar}>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button onClick={() => navigate('/create-avatar')}>
+          <Plus className="h-4 w-4 mr-2" />
           Create New Avatar
         </Button>
       </div>
 
-      {/* Avatar List */}
-      {myAvatars.length === 0 ? (
-        <Card className="card-modern">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <UserCircle className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Avatars Yet</h3>
-            <p className="text-muted-foreground text-center mb-6">
-              Create your first AI avatar to get started with training and customization.
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Create New Avatar Card */}
+        <Card 
+          className="border-2 border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer group"
+          onClick={() => navigate('/create-avatar')}
+        >
+          <CardContent className="flex flex-col items-center justify-center h-64 text-center p-6">
+            <Plus className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors mb-4" />
+            <h3 className="font-medium text-lg mb-2">Create New Avatar</h3>
+            <p className="text-sm text-muted-foreground">
+              Build a custom AI avatar with your own personality and knowledge
             </p>
-            <Button onClick={handleCreateAvatar} className="btn-hero">
-              <Plus className="mr-2 h-4 w-4" />
+          </CardContent>
+        </Card>
+
+        {/* Existing Avatars */}
+        {avatars.map((avatar) => (
+          <Card key={avatar.id} className="card-modern overflow-hidden hover:shadow-lg transition-shadow">
+            <div className="aspect-square bg-muted relative overflow-hidden">
+              {avatar.avatar_images && avatar.avatar_images.length > 0 ? (
+                <img
+                  src={avatar.avatar_images[0]}
+                  alt={avatar.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <User className="h-16 w-16 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            
+            <CardContent className="p-4 space-y-3">
+              <div>
+                <h3 className="font-semibold text-lg truncate">{avatar.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {avatar.age} years old • {avatar.gender} • {avatar.origin_country}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  <Badge variant="outline" className="text-xs">
+                    {avatar.primary_language}
+                  </Badge>
+                </div>
+                
+                {avatar.secondary_languages && avatar.secondary_languages.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    +{avatar.secondary_languages.length} more languages
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => navigate(`/avatar/${avatar.id}`)}
+                >
+                  <Eye className="h-3 w-3 mr-1" />
+                  View
+                </Button>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive hover:text-destructive"
+                      disabled={deletingId === avatar.id}
+                    >
+                      {deletingId === avatar.id ? (
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-destructive" />
+                      ) : (
+                        <Trash2 className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Avatar</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{avatar.name}"? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDeleteAvatar(avatar.id)}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {avatars.length === 0 && (
+        <Card className="card-modern">
+          <CardContent className="text-center py-12">
+            <User className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No Avatars Yet</h3>
+            <p className="text-muted-foreground mb-6">
+              Create your first AI avatar to get started with personalized AI interactions.
+            </p>
+            <Button onClick={() => navigate('/create-avatar')}>
+              <Plus className="h-4 w-4 mr-2" />
               Create Your First Avatar
             </Button>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {myAvatars.map((avatar) => (
-            <Card key={avatar.id} className="card-modern overflow-hidden">
-              {/* Large Avatar Image */}
-              <div className="aspect-square relative">
-                {avatar.avatarImages && avatar.avatarImages.length > 0 ? (
-                  <img 
-                    src={avatar.avatarImages[0]} 
-                    alt={avatar.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                    <UserCircle className="h-20 w-20 text-muted-foreground" />
-                  </div>
-                )}
-                
-                {/* Action Buttons Overlay */}
-                <div className="absolute top-2 right-2 flex gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handlePreview(avatar)}
-                    title="Preview Avatar"
-                    className="bg-white/80 hover:bg-white/90 text-gray-700"
-                  >
-                    <Eye className="h-3 w-3" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleEdit(avatar.id)}
-                    title="Edit Avatar"
-                    className="bg-white/80 hover:bg-white/90 text-gray-700"
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => handleDeleteClick(avatar.id)}
-                    title="Delete Avatar"
-                    className="bg-white/80 hover:bg-white/90 text-red-600"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{avatar.name}</CardTitle>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <Badge variant="outline">{avatar.gender}</Badge>
-                  <Badge variant="outline">{avatar.age} years</Badge>
-                  <Badge variant="secondary">{avatar.mbti}</Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">Training Progress</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant={avatar.progress?.chatbot ? "default" : "outline"}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => handleStartTraining(avatar.id, 'chatbot')}
-                    >
-                      <MessageSquare className="mr-2 h-3 w-3" />
-                      Chatbot
-                    </Button>
-                    <Button
-                      variant={avatar.progress?.tts ? "default" : "outline"}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => handleStartTraining(avatar.id, 'tts')}
-                    >
-                      <Mic className="mr-2 h-3 w-3" />
-                      TTS Voice
-                    </Button>
-                    <Button
-                      variant={avatar.progress?.images ? "default" : "outline"}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => handleStartTraining(avatar.id, 'images')}
-                    >
-                      <Image className="mr-2 h-3 w-3" />
-                      AI Images
-                    </Button>
-                    <Button
-                      variant={avatar.progress?.avatar ? "default" : "outline"}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => handleStartTraining(avatar.id, 'avatar')}
-                    >
-                      <User className="mr-2 h-3 w-3" />
-                      AI Avatar
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="text-xs text-muted-foreground">
-                  Created: {new Date(avatar.createdAt).toLocaleDateString()}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
       )}
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Avatar</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this avatar? This action cannot be undone and all training data will be lost.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete Avatar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Preview Dialog */}
-      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {previewAvatar?.avatarImages && previewAvatar.avatarImages.length > 0 ? (
-                <img 
-                  src={previewAvatar.avatarImages[0]} 
-                  alt={previewAvatar.name}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-              ) : (
-                <UserCircle className="h-8 w-8" />
-              )}
-              {previewAvatar?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Avatar Preview - All Details
-            </DialogDescription>
-          </DialogHeader>
-          {previewAvatar && (
-            <div className="space-y-4">
-              {/* Avatar Images */}
-              {previewAvatar.avatarImages && previewAvatar.avatarImages.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Avatar Images</h4>
-                  <div className="grid grid-cols-4 gap-2">
-                    {previewAvatar.avatarImages.map((image: string, index: number) => (
-                      <img 
-                        key={index}
-                        src={image} 
-                        alt={`Avatar ${index + 1}`}
-                        className="w-full aspect-square rounded-lg object-cover"
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium">Basic Information</h4>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="font-medium">Age:</span> {previewAvatar.age} years</p>
-                    <p><span className="font-medium">Gender:</span> {previewAvatar.gender}</p>
-                    <p><span className="font-medium">Origin:</span> {previewAvatar.originCountry}</p>
-                    <p><span className="font-medium">MBTI:</span> {previewAvatar.mbti}</p>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-medium">Languages</h4>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="font-medium">Primary:</span> {previewAvatar.primaryLanguage}</p>
-                    {previewAvatar.secondaryLanguages && previewAvatar.secondaryLanguages.length > 0 && (
-                      <p><span className="font-medium">Secondary:</span> {previewAvatar.secondaryLanguages.join(', ')}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Favorites */}
-              {previewAvatar.favorites && previewAvatar.favorites.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Favorites</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {previewAvatar.favorites.map((favorite: string, index: number) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {favorite}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Backstory */}
-              {previewAvatar.backstory && (
-                <div>
-                  <h4 className="font-medium mb-2">Backstory</h4>
-                  <p className="text-sm text-muted-foreground">{previewAvatar.backstory}</p>
-                </div>
-              )}
-
-              {/* Hidden Rules */}
-              {previewAvatar.hiddenRules && (
-                <div>
-                  <h4 className="font-medium mb-2">Hidden Rules</h4>
-                  <p className="text-sm text-muted-foreground">{previewAvatar.hiddenRules}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
