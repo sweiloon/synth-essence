@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   UserCircle, 
   Plus, 
@@ -12,13 +14,19 @@ import {
   Image, 
   User,
   Edit,
-  Trash2
+  Trash2,
+  Eye
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: string) => void }) => {
   const navigate = useNavigate();
   const [myAvatars, setMyAvatars] = useState<any[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [avatarToDelete, setAvatarToDelete] = useState<string | null>(null);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [previewAvatar, setPreviewAvatar] = useState<any>(null);
+  const [comingSoonDialog, setComingSoonDialog] = useState(false);
   const { toast } = useToast();
 
   // Load avatars from localStorage on component mount
@@ -52,28 +60,48 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
         onSectionChange('chatbot');
         break;
       case 'tts':
-        onSectionChange('tts');
+      case 'avatar':
+        setComingSoonDialog(true);
         break;
       case 'images':
         onSectionChange('images');
         break;
-      case 'avatar':
-        onSectionChange('avatar');
-        break;
     }
     
-    toast({
-      title: "Training Started",
-      description: `Redirecting to ${type} training section...`,
-    });
+    if (type === 'chatbot' || type === 'images') {
+      toast({
+        title: "Training Started",
+        description: `Redirecting to ${type} training section...`,
+      });
+    }
   };
 
-  const handleDeleteAvatar = (avatarId: string) => {
-    setMyAvatars(myAvatars.filter(avatar => avatar.id !== avatarId));
-    toast({
-      title: "Avatar Deleted",
-      description: "Avatar has been deleted successfully.",
-    });
+  const handleDeleteClick = (avatarId: string) => {
+    setAvatarToDelete(avatarId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (avatarToDelete) {
+      setMyAvatars(myAvatars.filter(avatar => avatar.id !== avatarToDelete));
+      toast({
+        title: "Avatar Deleted",
+        description: "Avatar has been deleted successfully.",
+      });
+    }
+    setDeleteDialogOpen(false);
+    setAvatarToDelete(null);
+  };
+
+  const handlePreview = (avatar: any) => {
+    setPreviewAvatar(avatar);
+    setPreviewDialogOpen(true);
+  };
+
+  const handleEdit = (avatarId: string) => {
+    // Store avatar ID for editing
+    localStorage.setItem('editingAvatarId', avatarId);
+    navigate('/create-avatar');
   };
 
   return (
@@ -118,14 +146,40 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <UserCircle className="h-5 w-5" />
+                    {avatar.avatarImages && avatar.avatarImages.length > 0 ? (
+                      <img 
+                        src={avatar.avatarImages[0]} 
+                        alt={avatar.name}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <UserCircle className="h-5 w-5" />
+                    )}
                     <CardTitle className="text-lg">{avatar.name}</CardTitle>
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handlePreview(avatar)}
+                      title="Preview Avatar"
+                    >
+                      <Eye className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleEdit(avatar.id)}
+                      title="Edit Avatar"
+                    >
                       <Edit className="h-3 w-3" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDeleteAvatar(avatar.id)}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleDeleteClick(avatar.id)}
+                      title="Delete Avatar"
+                    >
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
@@ -142,7 +196,7 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
                   <h4 className="font-medium mb-2">Training Progress</h4>
                   <div className="grid grid-cols-2 gap-2">
                     <Button
-                      variant={avatar.progress.chatbot ? "default" : "outline"}
+                      variant={avatar.progress?.chatbot ? "default" : "outline"}
                       size="sm"
                       className="w-full justify-start"
                       onClick={() => handleStartTraining(avatar.id, 'chatbot')}
@@ -151,7 +205,7 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
                       Chatbot
                     </Button>
                     <Button
-                      variant={avatar.progress.tts ? "default" : "outline"}
+                      variant={avatar.progress?.tts ? "default" : "outline"}
                       size="sm"
                       className="w-full justify-start"
                       onClick={() => handleStartTraining(avatar.id, 'tts')}
@@ -160,7 +214,7 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
                       TTS Voice
                     </Button>
                     <Button
-                      variant={avatar.progress.images ? "default" : "outline"}
+                      variant={avatar.progress?.images ? "default" : "outline"}
                       size="sm"
                       className="w-full justify-start"
                       onClick={() => handleStartTraining(avatar.id, 'images')}
@@ -169,7 +223,7 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
                       AI Images
                     </Button>
                     <Button
-                      variant={avatar.progress.avatar ? "default" : "outline"}
+                      variant={avatar.progress?.avatar ? "default" : "outline"}
                       size="sm"
                       className="w-full justify-start"
                       onClick={() => handleStartTraining(avatar.id, 'avatar')}
@@ -188,6 +242,139 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Avatar</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this avatar? This action cannot be undone and all training data will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Avatar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {previewAvatar?.avatarImages && previewAvatar.avatarImages.length > 0 ? (
+                <img 
+                  src={previewAvatar.avatarImages[0]} 
+                  alt={previewAvatar.name}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <UserCircle className="h-8 w-8" />
+              )}
+              {previewAvatar?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Avatar Preview - All Details
+            </DialogDescription>
+          </DialogHeader>
+          {previewAvatar && (
+            <div className="space-y-4">
+              {/* Avatar Images */}
+              {previewAvatar.avatarImages && previewAvatar.avatarImages.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Avatar Images</h4>
+                  <div className="grid grid-cols-4 gap-2">
+                    {previewAvatar.avatarImages.map((image: string, index: number) => (
+                      <img 
+                        key={index}
+                        src={image} 
+                        alt={`Avatar ${index + 1}`}
+                        className="w-full aspect-square rounded-lg object-cover"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium">Basic Information</h4>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="font-medium">Age:</span> {previewAvatar.age} years</p>
+                    <p><span className="font-medium">Gender:</span> {previewAvatar.gender}</p>
+                    <p><span className="font-medium">Origin:</span> {previewAvatar.originCountry}</p>
+                    <p><span className="font-medium">MBTI:</span> {previewAvatar.mbti}</p>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium">Languages</h4>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="font-medium">Primary:</span> {previewAvatar.primaryLanguage}</p>
+                    {previewAvatar.secondaryLanguages && previewAvatar.secondaryLanguages.length > 0 && (
+                      <p><span className="font-medium">Secondary:</span> {previewAvatar.secondaryLanguages.join(', ')}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Favorites */}
+              {previewAvatar.favorites && previewAvatar.favorites.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Favorites</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {previewAvatar.favorites.map((favorite: string, index: number) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {favorite}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Backstory */}
+              {previewAvatar.backstory && (
+                <div>
+                  <h4 className="font-medium mb-2">Backstory</h4>
+                  <p className="text-sm text-muted-foreground">{previewAvatar.backstory}</p>
+                </div>
+              )}
+
+              {/* Hidden Rules */}
+              {previewAvatar.hiddenRules && (
+                <div>
+                  <h4 className="font-medium mb-2">Hidden Rules</h4>
+                  <p className="text-sm text-muted-foreground">{previewAvatar.hiddenRules}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Coming Soon Dialog */}
+      <Dialog open={comingSoonDialog} onOpenChange={setComingSoonDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Coming Soon</DialogTitle>
+            <DialogDescription>
+              This feature is currently under development and will be available soon. Stay tuned for updates!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button onClick={() => setComingSoonDialog(false)}>
+              Got it
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

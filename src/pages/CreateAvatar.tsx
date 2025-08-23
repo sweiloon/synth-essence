@@ -17,6 +17,7 @@ const CreateAvatar = () => {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [avatarData, setAvatarData] = useState({
     // Step 1: Avatar Detail
     avatarImages: [],
@@ -48,6 +49,20 @@ const CreateAvatar = () => {
     { id: 4, name: 'Knowledge Base', description: 'Upload documents' },
     { id: 5, name: 'Hidden Rules', description: 'Special instructions' }
   ];
+
+  // Check if editing existing avatar
+  useEffect(() => {
+    const editingAvatarId = localStorage.getItem('editingAvatarId');
+    if (editingAvatarId) {
+      const savedAvatars = JSON.parse(localStorage.getItem('myAvatars') || '[]');
+      const avatarToEdit = savedAvatars.find((avatar: any) => avatar.id === editingAvatarId);
+      if (avatarToEdit) {
+        setAvatarData(avatarToEdit);
+        setIsEditing(true);
+      }
+      localStorage.removeItem('editingAvatarId');
+    }
+  }, []);
 
   const hasUnsavedData = () => {
     return (
@@ -130,27 +145,38 @@ const CreateAvatar = () => {
   };
 
   const handleCreateAvatar = () => {
-    // Save avatar to localStorage (later will be replaced with Supabase)
     const savedAvatars = JSON.parse(localStorage.getItem('myAvatars') || '[]');
-    const newAvatar = {
-      id: Date.now().toString(),
-      ...avatarData,
-      progress: {
-        chatbot: false,
-        tts: false,
-        images: false,
-        avatar: false
-      },
-      createdAt: new Date().toISOString()
-    };
     
-    savedAvatars.push(newAvatar);
-    localStorage.setItem('myAvatars', JSON.stringify(savedAvatars));
-    
-    toast({
-      title: "Avatar Created!",
-      description: `${avatarData.name} has been created successfully.`,
-    });
+    if (isEditing) {
+      // Update existing avatar
+      const updatedAvatars = savedAvatars.map((avatar: any) => 
+        avatar.id === avatarData.id ? avatarData : avatar
+      );
+      localStorage.setItem('myAvatars', JSON.stringify(updatedAvatars));
+      toast({
+        title: "Avatar Updated!",
+        description: `${avatarData.name} has been updated successfully.`,
+      });
+    } else {
+      // Create new avatar
+      const newAvatar = {
+        id: Date.now().toString(),
+        ...avatarData,
+        progress: {
+          chatbot: false,
+          tts: false,
+          images: false,
+          avatar: false
+        },
+        createdAt: new Date().toISOString()
+      };
+      savedAvatars.push(newAvatar);
+      localStorage.setItem('myAvatars', JSON.stringify(savedAvatars));
+      toast({
+        title: "Avatar Created!",
+        description: `${avatarData.name} has been created successfully.`,
+      });
+    }
     
     navigate('/dashboard', { state: { activeSection: 'my-avatar' } });
   };
@@ -213,49 +239,68 @@ const CreateAvatar = () => {
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to My Avatar
+              <span className="hidden sm:inline">Back to My Avatar</span>
+              <span className="sm:hidden">Back</span>
             </Button>
-            <h1 className="text-2xl font-bold">Create New Avatar</h1>
-            <div className="w-32" /> {/* Spacer */}
+            <h1 className="text-lg sm:text-2xl font-bold">
+              {isEditing ? 'Edit Avatar' : 'Create New Avatar'}
+            </h1>
+            <div className="w-16 sm:w-32" /> {/* Spacer */}
           </div>
         </div>
       </div>
 
       {/* Progress Steps */}
       <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-4">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <div className="flex items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    currentStep > step.id 
-                      ? 'bg-primary text-primary-foreground' 
-                      : currentStep === step.id 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {currentStep > step.id ? <Check className="w-4 h-4" /> : step.id}
-                  </div>
-                  <div className="ml-3 text-left">
-                    <p className={`text-sm font-medium ${currentStep >= step.id ? 'text-foreground' : 'text-muted-foreground'}`}>
-                      {step.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{step.description}</p>
-                  </div>
-                </div>
-                {index < steps.length - 1 && (
-                  <div className={`h-px w-12 mx-4 ${currentStep > step.id ? 'bg-primary' : 'bg-border'}`} />
-                )}
-              </div>
-            ))}
+        <div className="container mx-auto px-4 py-4 sm:py-6">
+          {/* Mobile Progress - Simplified */}
+          <div className="sm:hidden">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium">
+                Step {currentStep} of {steps.length}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {steps[currentStep - 1].name}
+              </span>
+            </div>
+            <Progress value={(currentStep / steps.length) * 100} className="h-2" />
           </div>
-          <Progress value={(currentStep / steps.length) * 100} className="h-2" />
+
+          {/* Desktop/Tablet Progress - Full */}
+          <div className="hidden sm:block">
+            <div className="flex items-center justify-between mb-4">
+              {steps.map((step, index) => (
+                <div key={step.id} className="flex items-center">
+                  <div className="flex items-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      currentStep > step.id 
+                        ? 'bg-primary text-primary-foreground' 
+                        : currentStep === step.id 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {currentStep > step.id ? <Check className="w-4 h-4" /> : step.id}
+                    </div>
+                    <div className="ml-3 text-left">
+                      <p className={`text-sm font-medium ${currentStep >= step.id ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        {step.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{step.description}</p>
+                    </div>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div className={`h-px w-12 mx-4 ${currentStep > step.id ? 'bg-primary' : 'bg-border'}`} />
+                  )}
+                </div>
+              ))}
+            </div>
+            <Progress value={(currentStep / steps.length) * 100} className="h-2" />
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4 sm:py-8">
         <div className="max-w-4xl mx-auto">
           {renderCurrentStep()}
         </div>
@@ -269,12 +314,20 @@ const CreateAvatar = () => {
               variant="outline"
               onClick={handlePrevious}
               disabled={currentStep === 1}
+              size="sm"
+              className="sm:size-default"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Previous
+              <span className="hidden sm:inline">Previous</span>
+              <span className="sm:hidden">Prev</span>
             </Button>
-            <Button onClick={handleNext} className="btn-hero">
-              {currentStep === 5 ? 'Create Avatar' : 'Next'}
+            <Button 
+              onClick={handleNext} 
+              className="btn-hero"
+              size="sm"
+              className="sm:size-default btn-hero"
+            >
+              {currentStep === 5 ? (isEditing ? 'Update Avatar' : 'Create Avatar') : 'Next'}
               {currentStep < 5 && <ArrowRight className="ml-2 h-4 w-4" />}
             </Button>
           </div>
@@ -283,19 +336,19 @@ const CreateAvatar = () => {
 
       {/* Exit Confirmation Dialog */}
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="mx-4 max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
             <AlertDialogDescription>
-              Your avatar creation is not complete yet. All the details you've entered will be lost if you leave now. 
+              Your avatar {isEditing ? 'editing' : 'creation'} is not complete yet. All the details you've entered will be lost if you leave now. 
               Are you sure you want to go back to My Avatar page?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Stay and Continue</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">Stay and Continue</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => navigate('/dashboard', { state: { activeSection: 'my-avatar' } })}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Yes, Discard Changes
             </AlertDialogAction>

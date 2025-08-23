@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   User, 
   Palette, 
@@ -28,6 +29,7 @@ interface PersonalityTrait {
 const AvatarSection = () => {
   const [avatarName, setAvatarName] = useState('');
   const [personalityDescription, setPersonalityDescription] = useState('');
+  const [comingSoonDialog, setComingSoonDialog] = useState(false);
   const [personalityTraits, setPersonalityTraits] = useState<PersonalityTrait[]>([
     { name: 'Friendliness', value: [75] },
     { name: 'Professionalism', value: [85] },
@@ -44,11 +46,8 @@ const AvatarSection = () => {
     setPersonalityTraits(updatedTraits);
   };
 
-  const handleSaveAvatar = () => {
-    toast({
-      title: "Avatar Saved",
-      description: "Your AI avatar configuration has been saved successfully.",
-    });
+  const handleComingSoon = () => {
+    setComingSoonDialog(true);
   };
 
   return (
@@ -106,25 +105,25 @@ const AvatarSection = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Face Shape</Label>
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
                         Select Face Shape
                       </Button>
                     </div>
                     <div className="space-y-2">
                       <Label>Eye Color</Label>
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
                         Choose Eye Color
                       </Button>
                     </div>
                     <div className="space-y-2">
                       <Label>Hair Style</Label>
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
                         Select Hair Style
                       </Button>
                     </div>
                     <div className="space-y-2">
                       <Label>Hair Color</Label>
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
                         Choose Hair Color
                       </Button>
                     </div>
@@ -134,11 +133,11 @@ const AvatarSection = () => {
                 <div className="space-y-4">
                   <h4 className="font-medium">Style & Accessories</h4>
                   <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline" className="w-full">
+                    <Button variant="outline" className="w-full" onClick={handleComingSoon}>
                       <Upload className="mr-2 h-4 w-4" />
                       Upload Reference
                     </Button>
-                    <Button variant="outline" className="w-full">
+                    <Button variant="outline" className="w-full" onClick={handleComingSoon}>
                       <Sparkles className="mr-2 h-4 w-4" />
                       Generate Random
                     </Button>
@@ -169,16 +168,16 @@ const AvatarSection = () => {
                 </div>
                 
                 <div className="mt-6 space-y-2">
-                  <Button className="w-full btn-hero">
+                  <Button className="w-full btn-hero" onClick={handleComingSoon}>
                     <Sparkles className="mr-2 h-4 w-4" />
                     Generate Avatar
                   </Button>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={handleComingSoon}>
                       <Download className="mr-2 h-4 w-4" />
                       Export
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={handleComingSoon}>
                       <Save className="mr-2 h-4 w-4" />
                       Save
                     </Button>
@@ -324,7 +323,7 @@ const AvatarSection = () => {
               </div>
 
               <div className="pt-6 border-t">
-                <Button className="w-full btn-hero" onClick={handleSaveAvatar}>
+                <Button className="w-full btn-hero" onClick={handleComingSoon}>
                   <Save className="mr-2 h-4 w-4" />
                   Save Avatar Configuration
                 </Button>
@@ -333,6 +332,23 @@ const AvatarSection = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Coming Soon Dialog */}
+      <Dialog open={comingSoonDialog} onOpenChange={setComingSoonDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Coming Soon</DialogTitle>
+            <DialogDescription>
+              This feature is currently under development and will be available soon. Stay tuned for updates!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button onClick={() => setComingSoonDialog(false)}>
+              Got it
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
