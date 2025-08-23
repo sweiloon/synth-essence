@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 interface LoginFormProps {
   onSwitchToSignup: () => void;
   onSwitchToForgotPassword: () => void;
-  onLoginSuccess: () => void;
+  onLoginSuccess: (token: string) => void;
 }
 
 const LoginForm = ({
@@ -36,7 +36,8 @@ const LoginForm = ({
         title: "Welcome back!",
         description: "Successfully signed in to your account."
       });
-      onLoginSuccess();
+      // Call the onLoginSuccess callback with a token to trigger navigation
+      onLoginSuccess('placeholder-token-123');
     }, 1000);
   };
 

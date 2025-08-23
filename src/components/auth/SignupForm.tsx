@@ -10,22 +10,25 @@ import { useToast } from '@/hooks/use-toast';
 
 interface SignupFormProps {
   onSwitchToLogin: () => void;
-  onSignupSuccess: () => void;
+  onSignupSuccess: (token: string) => void;
 }
 
 const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
-  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: e.target.value
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,32 +43,33 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
       return;
     }
 
-    if (!acceptTerms) {
+    if (!agreeToTerms) {
       toast({
         title: "Terms Required",
-        description: "Please accept the terms and conditions to continue.",
+        description: "Please agree to the terms and conditions.",
         variant: "destructive"
       });
       return;
     }
 
     setIsLoading(true);
-    
+
     // Simulate signup
     setTimeout(() => {
       setIsLoading(false);
       toast({
-        title: "Account Created!",
-        description: "Welcome to AI Avatar Lab. Your account has been created successfully.",
+        title: "Welcome to AvatarHub!",
+        description: "Account created successfully. Welcome aboard!"
       });
-      onSignupSuccess();
+      // Call the onSignupSuccess callback with a token to trigger navigation
+      onSignupSuccess('placeholder-token-123');
     }, 1000);
   };
 
   const handleGoogleAuth = () => {
     toast({
       title: "Google Authentication",
-      description: "Google auth integration will be implemented with backend.",
+      description: "Google auth integration will be implemented with backend."
     });
   };
 
@@ -78,29 +82,29 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
             <div className="w-6 h-6 bg-white rounded-full"></div>
           </div>
         </div>
-        <h1 className="text-2xl font-bold">HiterraHub</h1>
-        <p className="text-muted-foreground">Scientific Reporting Platform</p>
+        <h1 className="text-2xl font-bold">AvatarHub</h1>
+        <p className="text-muted-foreground">Your AI Avatar Station</p>
       </div>
 
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Create Account</h2>
         <p className="text-muted-foreground text-sm">
-          Join us to start building your AI avatar
+          Join AvatarHub and start building your AI avatar
         </p>
       </div>
 
       {/* Signup Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Full Name</Label>
+          <Label htmlFor="fullName">Full Name</Label>
           <div className="relative">
             <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              id="name"
+              id="fullName"
               type="text"
               placeholder="Enter your full name"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
+              value={formData.fullName}
+              onChange={handleInputChange('fullName')}
               className="pl-10 input-modern"
               required
             />
@@ -116,7 +120,7 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
               type="email"
               placeholder="Enter your email"
               value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
+              onChange={handleInputChange('email')}
               className="pl-10 input-modern"
               required
             />
@@ -130,9 +134,9 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
             <Input
               id="password"
               type="password"
-              placeholder="Create a password"
+              placeholder="Create a strong password"
               value={formData.password}
-              onChange={(e) => handleInputChange('password', e.target.value)}
+              onChange={handleInputChange('password')}
               className="pl-10 input-modern"
               required
             />
@@ -148,7 +152,7 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
               type="password"
               placeholder="Confirm your password"
               value={formData.confirmPassword}
-              onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+              onChange={handleInputChange('confirmPassword')}
               className="pl-10 input-modern"
               required
             />
@@ -158,26 +162,22 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
         <div className="flex items-center space-x-2">
           <Checkbox
             id="terms"
-            checked={acceptTerms}
-            onCheckedChange={(checked) => setAcceptTerms(checked === true)}
+            checked={agreeToTerms}
+            onCheckedChange={(checked) => setAgreeToTerms(checked === true)}
           />
           <Label htmlFor="terms" className="text-sm">
             I agree to the{' '}
-            <a href="#" className="text-primary hover:underline">
+            <span className="text-primary hover:underline cursor-pointer">
               Terms of Service
-            </a>{' '}
-            and{' '}
-            <a href="#" className="text-primary hover:underline">
+            </span>
+            {' '}and{' '}
+            <span className="text-primary hover:underline cursor-pointer">
               Privacy Policy
-            </a>
+            </span>
           </Label>
         </div>
 
-        <Button
-          type="submit"
-          className="w-full btn-hero"
-          disabled={isLoading}
-        >
+        <Button type="submit" className="w-full btn-hero" disabled={isLoading}>
           {isLoading ? 'Creating Account...' : 'Create Account'}
         </Button>
       </form>
@@ -193,12 +193,7 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
       </div>
 
       {/* Google Auth */}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        onClick={handleGoogleAuth}
-      >
+      <Button type="button" variant="outline" className="w-full" onClick={handleGoogleAuth}>
         <Chrome className="mr-2 h-4 w-4" />
         Continue with Google
       </Button>

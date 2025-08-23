@@ -14,13 +14,9 @@ type AuthMode = 'login' | 'signup' | 'forgot-password';
 const Auth = ({ onLogin }: AuthProps) => {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
 
-  const handleAuthSuccess = (token?: string) => {
-    if (token) {
-      onLogin(token);
-    } else {
-      // For cases where token isn't provided, use a placeholder
-      onLogin('placeholder-token');
-    }
+  const handleAuthSuccess = (token: string) => {
+    // Call the onLogin function passed from App.tsx to trigger navigation
+    onLogin(token);
   };
 
   const renderAuthForm = () => {
@@ -37,7 +33,7 @@ const Auth = ({ onLogin }: AuthProps) => {
         return (
           <SignupForm
             onSwitchToLogin={() => setAuthMode('login')}
-            onSignupSuccess={() => handleAuthSuccess()}
+            onSignupSuccess={handleAuthSuccess}
           />
         );
       case 'forgot-password':
