@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Shield, Eye, Sparkles, ChevronDown } from 'lucide-react';
+import { Shield, Eye, Sparkles } from 'lucide-react';
 
 interface HiddenRulesStepProps {
   data: any;
@@ -12,8 +12,6 @@ interface HiddenRulesStepProps {
 }
 
 export const HiddenRulesStep: React.FC<HiddenRulesStepProps> = ({ data, onUpdate }) => {
-  const [visibleTemplates, setVisibleTemplates] = useState(8);
-
   const hiddenRulesTemplates = [
     {
       title: "Sales & Relationship Building",
@@ -103,76 +101,12 @@ Priority 6: Celebrate diverse perspectives and approaches. Recognize that differ
 Priority 7: Stay curious and open to learning from every collaboration. Each project is an opportunity to discover new techniques and approaches.
 
 Priority 8: Support the vision while contributing your unique perspective and expertise to enhance the final outcome.`
-    },
-    {
-      title: "Financial Advisory",
-      description: "For avatars providing financial guidance and planning advice",
-      template: `Priority 1: Always prioritize the client's best interests over product sales or commissions. Provide objective advice based on their unique financial situation and goals.
-
-Priority 2: Educate before recommending. Help clients understand financial concepts, risks, and opportunities so they can make informed decisions.
-
-Priority 3: Take a holistic approach to financial planning. Consider all aspects of their financial life, including income, expenses, debts, savings, and life goals.
-
-Priority 4: Be transparent about fees, costs, and potential conflicts of interest. Clear communication builds trust and long-term relationships.
-
-Priority 5: Regularly review and adjust strategies based on changing circumstances, market conditions, and life events.
-
-Priority 6: Encourage disciplined saving and investing habits while being realistic about market volatility and long-term expectations.
-
-Priority 7: Respect confidentiality and maintain the highest ethical standards in all client interactions.
-
-Priority 8: Stay current with financial regulations, market trends, and new products to provide the most relevant and accurate advice.`
-    },
-    {
-      title: "Life Coach & Wellness",
-      description: "For avatars supporting personal development and wellness goals",
-      template: `Priority 1: Create a safe, non-judgmental space where clients feel comfortable sharing their challenges, fears, and aspirations.
-
-Priority 2: Focus on empowering clients to find their own solutions rather than giving direct advice. Guide them through self-discovery and reflection.
-
-Priority 3: Set realistic, achievable goals and celebrate progress along the way. Small wins build momentum toward larger transformations.
-
-Priority 4: Practice active listening and ask powerful questions that help clients gain new perspectives and insights.
-
-Priority 5: Respect each client's unique journey and timeline. Avoid imposing your own values or experiences on their process.
-
-Priority 6: Encourage accountability while maintaining compassion for setbacks and challenges.
-
-Priority 7: Integrate holistic wellness approaches that consider physical, mental, emotional, and spiritual well-being.
-
-Priority 8: Maintain appropriate boundaries and refer to other professionals when issues are outside your scope of practice.`
-    },
-    {
-      title: "Technical Support Specialist",
-      description: "For avatars providing technical assistance and troubleshooting",
-      template: `Priority 1: Assume positive intent and never make users feel inadequate about their technical knowledge level.
-
-Priority 2: Use clear, jargon-free language and provide step-by-step instructions. Confirm understanding before moving to the next step.
-
-Priority 3: Be patient and encouraging, especially with users who are frustrated or anxious about technology.
-
-Priority 4: Focus on solving the immediate problem while also teaching users how to prevent similar issues in the future.
-
-Priority 5: Document common issues and solutions to improve response time and consistency for future similar cases.
-
-Priority 6: Know when to escalate issues to higher-level support or specialized teams rather than prolonging unsuccessful troubleshooting.
-
-Priority 7: Follow up to ensure the solution worked and the user is satisfied with the outcome.
-
-Priority 8: Stay updated on product changes, common bugs, and new features to provide accurate and current information.`
     }
   ];
 
   const handleTemplateSelect = (template: string) => {
     onUpdate('hiddenRules', template);
   };
-
-  const handleViewMore = () => {
-    const newVisible = Math.min(visibleTemplates + 8, hiddenRulesTemplates.length);
-    setVisibleTemplates(newVisible);
-  };
-
-  const canViewMore = visibleTemplates < hiddenRulesTemplates.length;
 
   return (
     <div className="space-y-6">
@@ -231,7 +165,7 @@ Priority 8: Stay updated on product changes, common bugs, and new features to pr
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {hiddenRulesTemplates.slice(0, visibleTemplates).map((template, index) => (
+            {hiddenRulesTemplates.map((template, index) => (
               <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer" onClick={() => handleTemplateSelect(template.template)}>
                 <h4 className="font-semibold mb-2">{template.title}</h4>
                 <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
@@ -244,21 +178,6 @@ Priority 8: Stay updated on product changes, common bugs, and new features to pr
               </div>
             ))}
           </div>
-          
-          {canViewMore && (
-            <div className="mt-6 text-center">
-              <Button variant="outline" onClick={handleViewMore} className="flex items-center gap-2">
-                <ChevronDown className="h-4 w-4" />
-                View More Templates
-              </Button>
-            </div>
-          )}
-          
-          {!canViewMore && hiddenRulesTemplates.length > 8 && (
-            <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">No more templates to view</p>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
