@@ -66,6 +66,11 @@ const MyAvatarSection = () => {
     navigate(`/avatar/${avatarId}`);
   };
 
+  const handleChatWithAvatar = (avatarId: string) => {
+    // Navigate to chatbot training page with the selected avatar
+    navigate(`/chatbot-training?avatar=${avatarId}`);
+  };
+
   const handleDeleteAvatar = async (avatarId: string, avatarName: string) => {
     if (!confirm(`Are you sure you want to delete "${avatarName}"? This action cannot be undone.`)) {
       return;
@@ -202,7 +207,7 @@ const MyAvatarSection = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate('/chatbot-training')}
+                    onClick={() => handleChatWithAvatar(avatar.id)}
                     className="flex-1"
                   >
                     <MessageCircle className="h-3 w-3 mr-1" />

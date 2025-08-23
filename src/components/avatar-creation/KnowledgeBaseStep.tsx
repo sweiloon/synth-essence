@@ -4,6 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Upload, FileText, X, Database } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface KnowledgeBaseStepProps {
   data: any;
@@ -12,26 +15,119 @@ interface KnowledgeBaseStepProps {
 
 export const KnowledgeBaseStep: React.FC<KnowledgeBaseStepProps> = ({ data, onUpdate }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    if (files.length === 0 || !user) return;
 
     const pdfFiles = files.filter(file => file.type === 'application/pdf');
     if (pdfFiles.length !== files.length) {
-      // Show error for non-PDF files
+      toast({
+        title: "Invalid File Type",
+        description: "Only PDF files are allowed.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check file sizes (max 10MB each)
+    const oversizedFiles = pdfFiles.filter(file => file.size > 10 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      toast({
+        title: "File Too Large",
+        description: "Each PDF file must be under 10MB.",
+        variant: "destructive"
+      });
       return;
     }
 
     const currentFiles = data.knowledgeFiles || [];
-    const updatedFiles = [...currentFiles, ...pdfFiles];
+    const updatedFiles = [...currentFiles];
+
+    for (const file of pdfFiles) {
+      try {
+        // Create a unique filename for each file
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+
+        // Upload to Supabase storage
+        const { error: uploadError } = await supabase.storage
+          .from('knowledge-base')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // Get the public URL (even though bucket is private, we need the path)
+        const { data: urlData } = supabase.storage
+          .from('knowledge-base')
+          .getPublicUrl(fileName);
+
+        // Add file info to the array
+        updatedFiles.push({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          path: fileName,
+          url: urlData.publicUrl,
+          uploadedAt: new Date().toISOString()
+        });
+
+        toast({
+          title: "File Uploaded",
+          description: `${file.name} has been uploaded successfully.`,
+        });
+
+      } catch (error: any) {
+        console.error('Error uploading file:', error);
+        toast({
+          title: "Upload Failed",
+          description: `Failed to upload ${file.name}: ${error.message}`,
+          variant: "destructive"
+        });
+      }
+    }
+
     onUpdate('knowledgeFiles', updatedFiles);
+    
+    // Clear the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  const removeFile = (index: number) => {
+  const removeFile = async (index: number) => {
     const currentFiles = data.knowledgeFiles || [];
+    const fileToRemove = currentFiles[index];
+
+    // Remove from storage if it has a path
+    if (fileToRemove?.path && user) {
+      try {
+        const { error } = await supabase.storage
+          .from('knowledge-base')
+          .remove([fileToRemove.path]);
+
+        if (error) {
+          console.error('Error removing file from storage:', error);
+        }
+      } catch (error) {
+        console.error('Error removing file:', error);
+      }
+    }
+
     const updatedFiles = currentFiles.filter((_: any, i: number) => i !== index);
     onUpdate('knowledgeFiles', updatedFiles);
+
+    toast({
+      title: "File Removed",
+      description: `${fileToRemove?.name || 'File'} has been removed.`,
+    });
   };
 
   const formatFileSize = (bytes: number) => {
@@ -113,7 +209,7 @@ export const KnowledgeBaseStep: React.FC<KnowledgeBaseStepProps> = ({ data, onUp
               Uploaded Documents ({data.knowledgeFiles.length})
             </h4>
             <div className="space-y-2">
-              {data.knowledgeFiles.map((file: File, index: number) => (
+              {data.knowledgeFiles.map((file: any, index: number) => (
                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3 flex-1">
                     <FileText className="h-5 w-5 text-primary flex-shrink-0" />
@@ -124,6 +220,11 @@ export const KnowledgeBaseStep: React.FC<KnowledgeBaseStepProps> = ({ data, onUp
                         <span className="text-xs text-muted-foreground">
                           {formatFileSize(file.size)}
                         </span>
+                        {file.uploadedAt && (
+                          <span className="text-xs text-muted-foreground">
+                            Uploaded: {new Date(file.uploadedAt).toLocaleDateString()}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -145,10 +246,11 @@ export const KnowledgeBaseStep: React.FC<KnowledgeBaseStepProps> = ({ data, onUp
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h4 className="font-medium text-blue-900 mb-2">How Knowledge Base Works</h4>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Documents are processed and stored securely</li>
+            <li>• Documents are processed and stored securely in your personal knowledge base</li>
             <li>• Your avatar can reference this information during conversations</li>
             <li>• Knowledge is indexed for quick and accurate retrieval</li>
             <li>• You can add more documents anytime after creation</li>
+            <li>• Each avatar has its own separate knowledge base pool</li>
           </ul>
         </div>
       </CardContent>

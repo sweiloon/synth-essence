@@ -34,6 +34,7 @@ export const useAuth = () => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      phone: phone, // Save phone to auth.users table
       options: {
         emailRedirectTo: redirectUrl,
         data: {

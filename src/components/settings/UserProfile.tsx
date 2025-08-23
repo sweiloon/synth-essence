@@ -1,143 +1,114 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  User, 
-  Edit,
-  Save,
-  Camera
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { User, Mail, Phone, Save, Upload, Copy, Check } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { PhoneInput } from '@/components/ui/phone-input';
-import ReferralSection from './ReferralSection';
+import { useToast } from '@/hooks/use-toast';
+
+interface UserData {
+  name: string;
+  email: string;
+  phone: string;
+  avatar_url: string;
+  referral_code: string;
+}
 
 const UserProfile = () => {
-  const [profileData, setProfileData] = useState({
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [userData, setUserData] = useState<UserData>({
     name: '',
     email: '',
-    countryCode: '+60',
-    phoneNumber: '',
-    avatarUrl: '',
-    referralCode: '',
-    referrerCode: ''
+    phone: '',
+    avatar_url: '',
+    referral_code: ''
   });
-  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
-  const { toast } = useToast();
-  const { user } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (user) {
-      fetchUserProfile();
+      fetchUserData();
     }
   }, [user]);
 
-  const fetchUserProfile = async () => {
+  const fetchUserData = async () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      // Get profile data
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load profile data.",
-          variant: "destructive"
-        });
-      } else if (data) {
-        // Parse phone number into country code and number
-        let countryCode = '+60';
-        let phoneNumber = '';
-        
-        if (data.phone) {
-          const phone = data.phone;
-          console.log('Full phone from database:', phone);
-          
-          // Find the country code (assuming it starts with +)
-          const countryCodeMatch = phone.match(/^\+\d+/);
-          if (countryCodeMatch) {
-            countryCode = countryCodeMatch[0];
-            phoneNumber = phone.replace(countryCode, '').replace(/^0+/, ''); // Remove leading zeros
-          } else {
-            // If no + found, treat as local number
-            phoneNumber = phone.replace(/^0+/, ''); // Remove leading zeros
-          }
-        }
-
-        console.log('Parsed country code:', countryCode);
-        console.log('Parsed phone number:', phoneNumber);
-
-        setProfileData({
-          name: data.name || '',
-          email: data.email || user.email || '',
-          countryCode: countryCode,
-          phoneNumber: phoneNumber,
-          avatarUrl: data.avatar_url || '',
-          referralCode: data.referral_code || '',
-          referrerCode: data.referrer_code || ''
-        });
+      if (profileError && profileError.code !== 'PGRST116') {
+        throw profileError;
       }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+
+      // Get phone from auth.users metadata or profile
+      const phoneFromAuth = user.phone || user.user_metadata?.phone || '';
+      const phoneFromProfile = profile?.phone || '';
+      const phone = phoneFromAuth || phoneFromProfile;
+
+      setUserData({
+        name: profile?.name || user.user_metadata?.name || user.user_metadata?.full_name || '',
+        email: profile?.email || user.email || '',
+        phone: phone,
+        avatar_url: profile?.avatar_url || '',
+        referral_code: profile?.referral_code || ''
+      });
+    } catch (error: any) {
+      console.error('Error fetching user data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load user profile.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleProfileSave = async () => {
+  const handleSave = async () => {
     if (!user) return;
     
-    setIsLoading(true);
+    setIsSaving(true);
     try {
-      const fullPhoneNumber = profileData.phoneNumber ? 
-        `${profileData.countryCode}${profileData.phoneNumber}` : '';
-
-      console.log('Saving full phone number:', fullPhoneNumber);
-
       const { error } = await supabase
         .from('profiles')
-        .update({
-          name: profileData.name,
-          phone: fullPhoneNumber,
-          avatar_url: profileData.avatarUrl,
+        .upsert({
+          id: user.id,
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone,
+          avatar_url: userData.avatar_url,
           updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
+        });
 
-      if (error) {
-        toast({
-          title: "Update Failed",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        setIsEditing(false);
-        toast({
-          title: "Profile Updated",
-          description: "Your profile has been successfully updated.",
-        });
-        // Refresh the profile data
-        fetchUserProfile();
-      }
-    } catch (error) {
+      if (error) throw error;
+
       toast({
-        title: "Update Error",
-        description: "An unexpected error occurred while updating your profile.",
+        title: "Profile Updated",
+        description: "Your profile has been successfully updated.",
+      });
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update profile. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -145,156 +116,92 @@ const UserProfile = () => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
-    // Check file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "File Too Large",
-        description: "Please select an image smaller than 2MB.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid File Type",
-        description: "Please select an image file.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsUploading(true);
     try {
-      // Create a unique filename with user folder structure
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        .upload(fileName, file);
 
-      if (uploadError) {
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
-      const avatarUrl = urlData.publicUrl;
-
-      // Update profile with new avatar URL
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: avatarUrl })
-        .eq('id', user.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      setProfileData(prev => ({ ...prev, avatarUrl }));
+      setUserData(prev => ({ ...prev, avatar_url: urlData.publicUrl }));
+      
       toast({
-        title: "Avatar Updated",
-        description: "Your profile picture has been updated successfully.",
+        title: "Avatar Uploaded",
+        description: "Your avatar has been uploaded successfully.",
       });
-
     } catch (error: any) {
-      console.error('Avatar upload error:', error);
+      console.error('Error uploading avatar:', error);
       toast({
         title: "Upload Failed",
-        description: error.message || "Failed to upload avatar. Please try again.",
+        description: error.message || "Failed to upload avatar.",
         variant: "destructive"
       });
-    } finally {
-      setIsUploading(false);
-      // Reset the file input
-      event.target.value = '';
+    }
+  };
+
+  const copyReferralCode = () => {
+    if (userData.referral_code) {
+      navigator.clipboard.writeText(userData.referral_code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({
+        title: "Copied!",
+        description: "Referral code copied to clipboard.",
+      });
     }
   };
 
   const getInitials = (name: string) => {
-    if (!name) return 'U';
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const handleReferralUpdate = (data: { referrerCode: string }) => {
-    setProfileData(prev => ({ ...prev, referrerCode: data.referrerCode }));
-  };
-
-  if (isLoading && !profileData.name) {
+  if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Card className="card-modern">
-          <CardContent className="p-6">
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-              <div className="space-y-3">
-                <div className="h-4 bg-gray-200 rounded"></div>
-                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="space-y-4">
+            <div className="h-32 bg-gray-200 rounded-lg"></div>
+            <div className="h-64 bg-gray-200 rounded-lg"></div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Personal Information */}
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Profile Settings</h1>
+        <p className="text-sm text-muted-foreground">
+          Manage your personal information and preferences
+        </p>
+      </div>
+
+      {/* Profile Picture */}
       <Card className="card-modern">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <User className="h-5 w-5" />
-              Personal Information
-            </CardTitle>
-            <CardDescription>
-              Update your personal details
-            </CardDescription>
-          </div>
-          <Button
-            variant={isEditing ? "default" : "outline"}
-            size="sm"
-            onClick={isEditing ? handleProfileSave : () => setIsEditing(true)}
-            disabled={isLoading}
-          >
-            {isEditing ? (
-              <>
-                <Save className="h-4 w-4 mr-1" />
-                {isLoading ? 'Saving...' : 'Save'}
-              </>
-            ) : (
-              <>
-                <Edit className="h-4 w-4 mr-1" />
-                Edit
-              </>
-            )}
-          </Button>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Profile Picture
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
+        <CardContent>
+          <div className="flex items-center gap-6">
             <Avatar className="h-20 w-20">
-              {profileData.avatarUrl ? (
-                <AvatarImage src={profileData.avatarUrl} alt="Profile" />
-              ) : (
-                <AvatarFallback className="text-lg">{getInitials(profileData.name || 'User')}</AvatarFallback>
-              )}
+              <AvatarImage src={userData.avatar_url} alt={userData.name} />
+              <AvatarFallback className="text-lg">
+                {getInitials(userData.name) || 'U'}
+              </AvatarFallback>
             </Avatar>
-            <div className="space-y-2">
+            <div>
               <input
                 type="file"
                 id="avatar-upload"
@@ -302,64 +209,142 @@ const UserProfile = () => {
                 onChange={handleAvatarUpload}
                 className="hidden"
               />
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => document.getElementById('avatar-upload')?.click()}
-                disabled={isUploading}
-              >
-                <Camera className="h-4 w-4 mr-1" />
-                {isUploading ? 'Uploading...' : 'Change Photo'}
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                value={profileData.name}
-                onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                disabled={!isEditing}
-                className="input-modern"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                value={profileData.email}
-                disabled={true}
-                className="input-modern bg-muted"
-              />
-              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <PhoneInput
-                countryCode={profileData.countryCode}
-                phoneNumber={profileData.phoneNumber}
-                onCountryCodeChange={(value) => setProfileData({...profileData, countryCode: value})}
-                onPhoneNumberChange={(value) => setProfileData({...profileData, phoneNumber: value})}
-                disabled={!isEditing}
-              />
+              <label htmlFor="avatar-upload">
+                <Button variant="outline" className="cursor-pointer" asChild>
+                  <span>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Change Avatar
+                  </span>
+                </Button>
+              </label>
+              <p className="text-xs text-muted-foreground mt-2">
+                Recommended: Square image, at least 400x400px
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Referral Section */}
-      <ReferralSection 
-        profileData={{
-          referralCode: profileData.referralCode,
-          referrerCode: profileData.referrerCode
-        }}
-        onUpdate={handleReferralUpdate}
-      />
+      {/* Personal Information */}
+      <Card className="card-modern">
+        <CardHeader>
+          <CardTitle>Personal Information</CardTitle>
+          <CardDescription>
+            Update your personal details and contact information
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                value={userData.name}
+                onChange={(e) => setUserData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter your full name"
+                className="input-modern"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email Address
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={userData.email}
+                onChange={(e) => setUserData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="Enter your email"
+                className="input-modern"
+                disabled
+              />
+              <p className="text-xs text-muted-foreground">
+                Email cannot be changed here. Contact support if needed.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone" className="flex items-center gap-2">
+              <Phone className="h-4 w-4" />
+              Phone Number
+            </Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={userData.phone}
+              onChange={(e) => setUserData(prev => ({ ...prev, phone: e.target.value }))}
+              placeholder="Enter your phone number"
+              className="input-modern"
+            />
+          </div>
+
+          <Button 
+            onClick={handleSave} 
+            disabled={isSaving}
+            className="btn-hero"
+          >
+            {isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Referral Code */}
+      {userData.referral_code && (
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle>Referral Program</CardTitle>
+            <CardDescription>
+              Share your referral code with friends and earn rewards
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <Label>Your Referral Code</Label>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" className="text-lg px-4 py-2 font-mono">
+                    {userData.referral_code}
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyReferralCode}
+                    className="flex items-center gap-2"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                When someone signs up using your referral code, you'll both receive special benefits.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
