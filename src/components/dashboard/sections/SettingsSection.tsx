@@ -4,21 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Settings, 
-  User, 
   Key, 
   Eye, 
   EyeOff, 
   Plus, 
-  Trash2,
-  Edit,
-  Save,
-  Camera
+  Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import UserProfile from '@/components/settings/UserProfile';
 
 interface ApiKey {
   id: string;
@@ -30,14 +26,6 @@ interface ApiKey {
 }
 
 const SettingsSection = () => {
-  const [profileData, setProfileData] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    bio: 'AI Avatar enthusiast and creator',
-    company: 'Tech Solutions Inc.',
-    website: 'https://johndoe-ai.com'
-  });
-
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([
     {
       id: '1',
@@ -66,17 +54,8 @@ const SettingsSection = () => {
   ]);
 
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
-  const [isEditing, setIsEditing] = useState(false);
   const [newApiKey, setNewApiKey] = useState({ name: '', service: '', key: '' });
   const { toast } = useToast();
-
-  const handleProfileSave = () => {
-    setIsEditing(false);
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been successfully updated.",
-    });
-  };
 
   const handleAddApiKey = () => {
     if (newApiKey.name && newApiKey.service && newApiKey.key) {
@@ -130,108 +109,7 @@ const SettingsSection = () => {
 
         {/* Profile Management Tab */}
         <TabsContent value="profile" className="space-y-4">
-          <Card className="card-modern">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <User className="h-5 w-5" />
-                  Personal Information
-                </CardTitle>
-                <CardDescription>
-                  Update your personal details and preferences
-                </CardDescription>
-              </div>
-              <Button
-                variant={isEditing ? "default" : "outline"}
-                size="sm"
-                onClick={isEditing ? handleProfileSave : () => setIsEditing(true)}
-              >
-                {isEditing ? (
-                  <>
-                    <Save className="h-4 w-4 mr-1" />
-                    Save
-                  </>
-                ) : (
-                  <>
-                    <Edit className="h-4 w-4 mr-1" />
-                    Edit
-                  </>
-                )}
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src="/lovable-uploads/1fab5331-8802-41ed-b1c5-5d8aab9b3268.png" alt="Profile" />
-                  <AvatarFallback>JD</AvatarFallback>
-                </Avatar>
-                {isEditing && (
-                  <Button variant="outline" size="sm">
-                    <Camera className="h-4 w-4 mr-1" />
-                    Change Photo
-                  </Button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={profileData.name}
-                    onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                    disabled={!isEditing}
-                    className="input-modern"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profileData.email}
-                    onChange={(e) => setProfileData({...profileData, email: e.target.value})}
-                    disabled={!isEditing}
-                    className="input-modern"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company</Label>
-                  <Input
-                    id="company"
-                    value={profileData.company}
-                    onChange={(e) => setProfileData({...profileData, company: e.target.value})}
-                    disabled={!isEditing}
-                    className="input-modern"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website</Label>
-                  <Input
-                    id="website"
-                    value={profileData.website}
-                    onChange={(e) => setProfileData({...profileData, website: e.target.value})}
-                    disabled={!isEditing}
-                    className="input-modern"
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Input
-                  id="bio"
-                  value={profileData.bio}
-                  onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
-                  disabled={!isEditing}
-                  className="input-modern"
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <UserProfile />
         </TabsContent>
 
         {/* API Management Tab */}

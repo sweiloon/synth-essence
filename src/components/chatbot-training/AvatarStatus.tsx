@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { 
   User, 
   Globe, 
@@ -10,7 +11,10 @@ import {
   Database, 
   ShieldAlert,
   MessageSquare,
-  Settings
+  Settings,
+  Edit,
+  Save,
+  X
 } from 'lucide-react';
 
 interface Avatar {
@@ -28,12 +32,17 @@ interface AvatarStatusProps {
 }
 
 export const AvatarStatus: React.FC<AvatarStatusProps> = ({ avatar }) => {
+  const [isEditingSystem, setIsEditingSystem] = useState(false);
+  const [isEditingUser, setIsEditingUser] = useState(false);
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [userPrompt, setUserPrompt] = useState('');
+
   // Generate dummy system and user prompts based on avatar data
   const generateSystemPrompt = () => {
     return `You are ${avatar.name}, an AI avatar with the following characteristics:
 
 PRIMARY LANGUAGE: ${avatar.primaryLanguage}
-SECONDARY LANGUAGES: ${avatar.secondaryLanguages.join(', ') || 'None'}
+SECONDARY LANGUAGES: ${(avatar.secondaryLanguages || []).join(', ') || 'None'}
 
 BACKSTORY: ${avatar.backstory || 'No backstory provided'}
 
@@ -42,7 +51,7 @@ PERSONALITY GUIDELINES:
 - Respond in your primary language unless specifically asked to use another language
 - Reference your backstory when relevant to the conversation
 
-KNOWLEDGE BASE: ${avatar.knowledgeFiles.length} documents available for reference
+KNOWLEDGE BASE: ${(avatar.knowledgeFiles || []).length} documents available for reference
 
 ${avatar.hiddenRules ? `SPECIAL INSTRUCTIONS: ${avatar.hiddenRules}` : ''}
 
@@ -51,6 +60,31 @@ Always stay in character and provide helpful, engaging responses.`;
 
   const generateUserPrompt = () => {
     return `Hello ${avatar.name}! I'm looking forward to our conversation. Please introduce yourself briefly and let me know how you can help me today. Remember to stay true to your character and use your knowledge base when relevant.`;
+  };
+
+  React.useEffect(() => {
+    setSystemPrompt(generateSystemPrompt());
+    setUserPrompt(generateUserPrompt());
+  }, [avatar]);
+
+  const handleSaveSystemPrompt = () => {
+    setIsEditingSystem(false);
+    // Here you would typically save to backend or localStorage
+  };
+
+  const handleSaveUserPrompt = () => {
+    setIsEditingUser(false);
+    // Here you would typically save to backend or localStorage
+  };
+
+  const handleCancelSystemEdit = () => {
+    setSystemPrompt(generateSystemPrompt());
+    setIsEditingSystem(false);
+  };
+
+  const handleCancelUserEdit = () => {
+    setUserPrompt(generateUserPrompt());
+    setIsEditingUser(false);
   };
 
   return (
@@ -79,8 +113,8 @@ Always stay in character and provide helpful, engaging responses.`;
                 <span className="text-sm font-medium">Secondary Languages</span>
               </div>
               <div className="flex flex-wrap gap-1">
-                {avatar.secondaryLanguages.length > 0 ? (
-                  avatar.secondaryLanguages.map((lang, index) => (
+                {(avatar.secondaryLanguages || []).length > 0 ? (
+                  (avatar.secondaryLanguages || []).map((lang, index) => (
                     <Badge key={index} variant="secondary" className="text-xs">
                       {lang}
                     </Badge>
@@ -97,7 +131,7 @@ Always stay in character and provide helpful, engaging responses.`;
                 <span className="text-sm font-medium">Knowledge Base</span>
               </div>
               <Badge variant="outline">
-                {avatar.knowledgeFiles.length} documents
+                {(avatar.knowledgeFiles || []).length} documents
               </Badge>
             </div>
 
@@ -136,26 +170,70 @@ Always stay in character and provide helpful, engaging responses.`;
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              <span className="text-sm font-medium">System Prompt</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                <span className="text-sm font-medium">System Prompt</span>
+              </div>
+              <div className="flex gap-2">
+                {isEditingSystem ? (
+                  <>
+                    <Button size="sm" onClick={handleSaveSystemPrompt}>
+                      <Save className="h-3 w-3 mr-1" />
+                      Save
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleCancelSystemEdit}>
+                      <X className="h-3 w-3 mr-1" />
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={() => setIsEditingSystem(true)}>
+                    <Edit className="h-3 w-3 mr-1" />
+                    Edit
+                  </Button>
+                )}
+              </div>
             </div>
             <Textarea
-              value={generateSystemPrompt()}
-              readOnly
-              className="min-h-[200px] bg-muted/20 text-sm"
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              readOnly={!isEditingSystem}
+              className={`min-h-[200px] text-sm ${!isEditingSystem ? 'bg-muted/20' : ''}`}
             />
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              <span className="text-sm font-medium">User Prompt</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span className="text-sm font-medium">User Prompt</span>
+              </div>
+              <div className="flex gap-2">
+                {isEditingUser ? (
+                  <>
+                    <Button size="sm" onClick={handleSaveUserPrompt}>
+                      <Save className="h-3 w-3 mr-1" />
+                      Save
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleCancelUserEdit}>
+                      <X className="h-3 w-3 mr-1" />
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={() => setIsEditingUser(true)}>
+                    <Edit className="h-3 w-3 mr-1" />
+                    Edit
+                  </Button>
+                )}
+              </div>
             </div>
             <Textarea
-              value={generateUserPrompt()}
-              readOnly
-              className="min-h-[100px] bg-muted/20 text-sm"
+              value={userPrompt}
+              onChange={(e) => setUserPrompt(e.target.value)}
+              readOnly={!isEditingUser}
+              className={`min-h-[100px] text-sm ${!isEditingUser ? 'bg-muted/20' : ''}`}
             />
           </div>
         </CardContent>
