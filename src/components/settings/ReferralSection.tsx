@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Gift, Users, Save } from 'lucide-react';
+import { Copy, Gift, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,14 +34,51 @@ const ReferralSection: React.FC<ReferralSectionProps> = ({ profileData, onUpdate
     }
   };
 
+  const validateReferrerCode = async (code: string): Promise<boolean> => {
+    if (!code.trim()) return true; // Empty code is allowed
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('referral_code', code.trim())
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+        console.error('Error validating referrer code:', error);
+        return false;
+      }
+
+      return !!data; // Return true if referrer exists
+    } catch (error) {
+      console.error('Error validating referrer code:', error);
+      return false;
+    }
+  };
+
   const handleSaveReferrer = async () => {
     if (!user) return;
     
+    const trimmedCode = referrerCode.trim();
+    
+    // Validate the referrer code exists in database
     setIsLoading(true);
+    const isValid = await validateReferrerCode(trimmedCode);
+    
+    if (!isValid && trimmedCode !== '') {
+      setIsLoading(false);
+      toast({
+        title: "Invalid Referrer Code",
+        description: "The referrer code doesn't exist. Please check and try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ referrer_code: referrerCode })
+        .update({ referrer_code: trimmedCode })
         .eq('id', user.id);
 
       if (error) {
@@ -51,10 +88,10 @@ const ReferralSection: React.FC<ReferralSectionProps> = ({ profileData, onUpdate
           variant: "destructive"
         });
       } else {
-        onUpdate({ referrerCode });
+        onUpdate({ referrerCode: trimmedCode });
         toast({
           title: "Referrer Updated",
-          description: "Your referrer code has been saved successfully.",
+          description: trimmedCode ? "Your referrer code has been saved successfully." : "Referrer code has been cleared.",
         });
       }
     } catch (error) {
@@ -67,6 +104,8 @@ const ReferralSection: React.FC<ReferralSectionProps> = ({ profileData, onUpdate
       setIsLoading(false);
     }
   };
+
+  const hasExistingReferrer = profileData.referrerCode && profileData.referrerCode.trim() !== '';
 
   return (
     <Card className="card-modern">
@@ -105,29 +144,35 @@ const ReferralSection: React.FC<ReferralSectionProps> = ({ profileData, onUpdate
         {/* Your Referrer */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Your Referrer Code</Label>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter referrer's code (optional)"
-              value={referrerCode}
-              onChange={(e) => setReferrerCode(e.target.value)}
-              className="input-modern"
-            />
-            <Button
-              onClick={handleSaveReferrer}
-              disabled={isLoading}
-              size="sm"
-            >
-              <Save className="h-4 w-4 mr-1" />
-              {isLoading ? 'Saving...' : 'Save'}
-            </Button>
-          </div>
-          {profileData.referrerCode && (
+          {hasExistingReferrer ? (
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">Current: {profileData.referrerCode}</Badge>
+              <Badge variant="secondary" className="text-base px-3 py-1">
+                {profileData.referrerCode}
+              </Badge>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter referrer's code (optional)"
+                value={referrerCode}
+                onChange={(e) => setReferrerCode(e.target.value)}
+                className="input-modern"
+              />
+              <Button
+                onClick={handleSaveReferrer}
+                disabled={isLoading}
+                size="sm"
+              >
+                <Save className="h-4 w-4 mr-1" />
+                {isLoading ? 'Saving...' : 'Save'}
+              </Button>
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            If someone referred you, enter their referral code here.
+            {hasExistingReferrer 
+              ? "Your referrer has been set and cannot be changed."
+              : "If someone referred you, enter their referral code here. This can only be set once."
+            }
           </p>
         </div>
       </CardContent>

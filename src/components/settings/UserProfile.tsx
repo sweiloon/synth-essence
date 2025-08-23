@@ -14,19 +14,22 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { PhoneInput } from '@/components/ui/phone-input';
 import ReferralSection from './ReferralSection';
 
 const UserProfile = () => {
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
-    phone: '',
+    countryCode: '+60',
+    phoneNumber: '',
     avatarUrl: '',
     referralCode: '',
     referrerCode: ''
   });
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -54,10 +57,27 @@ const UserProfile = () => {
           variant: "destructive"
         });
       } else if (data) {
+        // Parse phone number into country code and number
+        let countryCode = '+60';
+        let phoneNumber = '';
+        
+        if (data.phone) {
+          const phone = data.phone;
+          // Find the country code (assuming it starts with +)
+          const countryCodeMatch = phone.match(/^\+\d+/);
+          if (countryCodeMatch) {
+            countryCode = countryCodeMatch[0];
+            phoneNumber = phone.replace(countryCode, '');
+          } else {
+            phoneNumber = phone;
+          }
+        }
+
         setProfileData({
           name: data.name || '',
           email: data.email || user.email || '',
-          phone: data.phone || '',
+          countryCode: countryCode,
+          phoneNumber: phoneNumber,
           avatarUrl: data.avatar_url || '',
           referralCode: data.referral_code || '',
           referrerCode: data.referrer_code || ''
@@ -75,10 +95,14 @@ const UserProfile = () => {
     
     setIsLoading(true);
     try {
+      const fullPhoneNumber = profileData.phoneNumber ? 
+        `${profileData.countryCode}${profileData.phoneNumber}` : '';
+
       const { error } = await supabase
         .from('profiles')
         .update({
           name: profileData.name,
+          phone: fullPhoneNumber,
           avatar_url: profileData.avatarUrl,
           updated_at: new Date().toISOString()
         })
@@ -105,6 +129,83 @@ const UserProfile = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please select an image smaller than 2MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please select an image file.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      const avatarUrl = urlData.publicUrl;
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      setProfileData(prev => ({ ...prev, avatarUrl }));
+      toast({
+        title: "Avatar Updated",
+        description: "Your profile picture has been updated successfully.",
+      });
+
+    } catch (error: any) {
+      console.error('Avatar upload error:', error);
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload avatar. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -181,12 +282,24 @@ const UserProfile = () => {
                 <AvatarFallback>{getInitials(profileData.name || 'User')}</AvatarFallback>
               )}
             </Avatar>
-            {isEditing && (
-              <Button variant="outline" size="sm">
+            <div className="space-y-2">
+              <input
+                type="file"
+                id="avatar-upload"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => document.getElementById('avatar-upload')?.click()}
+                disabled={isUploading}
+              >
                 <Camera className="h-4 w-4 mr-1" />
-                Change Photo
+                {isUploading ? 'Uploading...' : 'Change Photo'}
               </Button>
-            )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
@@ -215,13 +328,13 @@ const UserProfile = () => {
 
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                value={profileData.phone}
-                disabled={true}
-                className="input-modern bg-muted"
+              <PhoneInput
+                countryCode={profileData.countryCode}
+                phoneNumber={profileData.phoneNumber}
+                onCountryCodeChange={(value) => setProfileData({...profileData, countryCode: value})}
+                onPhoneNumberChange={(value) => setProfileData({...profileData, phoneNumber: value})}
+                disabled={!isEditing}
               />
-              <p className="text-xs text-muted-foreground">Phone number is set during registration</p>
             </div>
           </div>
         </CardContent>
