@@ -14,26 +14,62 @@ import {
   UserCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DashboardOverviewProps {
   onSectionChange: (section: string) => void;
 }
 
-const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
-  const [myAvatars, setMyAvatars] = useState<any[]>([]);
-  const { toast } = useToast();
+interface Avatar {
+  id: string;
+  name: string;
+  avatar_images: string[];
+  age: number;
+  gender: string;
+  created_at: string;
+}
 
-  // Load avatars from localStorage on component mount
+const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
+  const [avatars, setAvatars] = useState<Avatar[]>([]);
+  const [isLoadingAvatars, setIsLoadingAvatars] = useState(true);
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Load avatars from Supabase
   useEffect(() => {
-    const savedAvatars = localStorage.getItem('myAvatars');
-    if (savedAvatars) {
-      try {
-        setMyAvatars(JSON.parse(savedAvatars));
-      } catch (error) {
-        console.error('Error loading avatars from localStorage:', error);
-      }
+    if (user) {
+      fetchAvatars();
     }
-  }, []);
+  }, [user]);
+
+  const fetchAvatars = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('avatars')
+        .select('id, name, avatar_images, age, gender, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (error) {
+        console.error('Error fetching avatars:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load your avatars.",
+          variant: "destructive"
+        });
+      } else {
+        setAvatars(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching avatars:', error);
+    } finally {
+      setIsLoadingAvatars(false);
+    }
+  };
 
   const handleComingSoon = () => {
     toast({
@@ -44,9 +80,8 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
   };
 
   const handleAvatarClick = (avatarId: string) => {
-    // Store selected avatar and navigate to My Avatar section
-    localStorage.setItem('selectedAvatarId', avatarId);
-    onSectionChange('my-avatar');
+    // Navigate to avatar detail page
+    window.location.href = `/avatar/${avatarId}`;
   };
 
   return (
@@ -120,9 +155,9 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{myAvatars.length > 0 ? '25%' : '0%'}</div>
+            <div className="text-2xl font-bold">{avatars.length > 0 ? '25%' : '0%'}</div>
             <p className="text-xs text-muted-foreground">
-              {myAvatars.length > 0 ? 'Avatar created' : 'Create your first avatar'}
+              {avatars.length > 0 ? 'Avatar created' : 'Create your first avatar'}
             </p>
           </CardContent>
         </Card>
@@ -187,7 +222,19 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {myAvatars.length === 0 ? (
+            {isLoadingAvatars ? (
+              <div className="animate-pulse space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-1"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : avatars.length === 0 ? (
               <div className="text-center py-8">
                 <Bot className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Avatars Yet</h3>
@@ -200,15 +247,15 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
               </div>
             ) : (
               <div className="space-y-3">
-                {myAvatars.slice(0, 3).map((avatar) => (
+                {avatars.map((avatar) => (
                   <div 
                     key={avatar.id}
                     className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
                     onClick={() => handleAvatarClick(avatar.id)}
                   >
-                    {avatar.avatarImages && avatar.avatarImages.length > 0 ? (
+                    {avatar.avatar_images && avatar.avatar_images.length > 0 ? (
                       <img 
-                        src={avatar.avatarImages[0]} 
+                        src={avatar.avatar_images[0]} 
                         alt={avatar.name}
                         className="w-10 h-10 rounded-full object-cover"
                       />
@@ -218,20 +265,18 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
                     <div className="flex-1">
                       <p className="font-medium">{avatar.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {avatar.gender} • {avatar.age} years • {avatar.mbti}
+                        {avatar.gender} • {avatar.age} years • Created {new Date(avatar.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                 ))}
-                {myAvatars.length > 3 && (
-                  <Button 
-                    variant="ghost" 
-                    className="w-full"
-                    onClick={() => onSectionChange('my-avatar')}
-                  >
-                    View All Avatars ({myAvatars.length})
-                  </Button>
-                )}
+                <Button 
+                  variant="ghost" 
+                  className="w-full"
+                  onClick={() => onSectionChange('my-avatar')}
+                >
+                  View All Avatars
+                </Button>
               </div>
             )}
           </CardContent>

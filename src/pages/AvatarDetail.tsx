@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, User, Globe, Calendar, FileText, BookOpen, Shield } from 'lucide-react';
+import { ArrowLeft, User, Globe, Calendar, FileText, BookOpen, Shield, Edit } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -88,10 +88,14 @@ const AvatarDetail = () => {
         description: "Failed to load avatar details.",
         variant: "destructive"
       });
-      navigate('/dashboard?section=my-avatars');
+      navigate('/dashboard?section=my-avatar');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEditAvatar = () => {
+    navigate(`/create-avatar?edit=${id}`);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -124,7 +128,7 @@ const AvatarDetail = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Avatar Not Found</h1>
-            <Button onClick={() => navigate('/dashboard?section=my-avatars')}>
+            <Button onClick={() => navigate('/dashboard?section=my-avatar')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to My Avatars
             </Button>
@@ -138,21 +142,27 @@ const AvatarDetail = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/dashboard?section=my-avatars')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to My Avatars
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{avatar.name}</h1>
-            <p className="text-muted-foreground">
-              {avatar.age} years old • {avatar.gender} • {avatar.origin_country}
-            </p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/dashboard?section=my-avatar')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to My Avatars
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">{avatar.name}</h1>
+              <p className="text-muted-foreground">
+                {avatar.age} years old • {avatar.gender} • {avatar.origin_country}
+              </p>
+            </div>
           </div>
+          <Button onClick={handleEditAvatar} className="btn-hero">
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Avatar
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

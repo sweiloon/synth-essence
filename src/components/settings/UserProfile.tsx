@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, Save, Upload, Copy, Check } from 'lucide-react';
+import { User, Mail, Phone, Save, Upload, Copy, Check, Edit, X, Gift } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +17,7 @@ interface UserData {
   phone: string;
   avatar_url: string;
   referral_code: string;
+  referrer_code: string;
 }
 
 const UserProfile = () => {
@@ -27,11 +28,14 @@ const UserProfile = () => {
     email: '',
     phone: '',
     avatar_url: '',
-    referral_code: ''
+    referral_code: '',
+    referrer_code: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [referrerCodeInput, setReferrerCodeInput] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -59,13 +63,17 @@ const UserProfile = () => {
       const phoneFromProfile = profile?.phone || '';
       const phone = phoneFromAuth || phoneFromProfile;
 
-      setUserData({
+      const profileData = {
         name: profile?.name || user.user_metadata?.name || user.user_metadata?.full_name || '',
         email: profile?.email || user.email || '',
         phone: phone,
         avatar_url: profile?.avatar_url || '',
-        referral_code: profile?.referral_code || ''
-      });
+        referral_code: profile?.referral_code || '',
+        referrer_code: profile?.referrer_code || ''
+      };
+
+      setUserData(profileData);
+      setReferrerCodeInput(profileData.referrer_code);
     } catch (error: any) {
       console.error('Error fetching user data:', error);
       toast({
@@ -96,6 +104,7 @@ const UserProfile = () => {
 
       if (error) throw error;
 
+      setIsEditMode(false);
       toast({
         title: "Profile Updated",
         description: "Your profile has been successfully updated.",
@@ -109,6 +118,77 @@ const UserProfile = () => {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveReferrerCode = async () => {
+    if (!user) return;
+    
+    const trimmedCode = referrerCodeInput.trim();
+    
+    // Validate the referrer code exists in database if it's not empty
+    if (trimmedCode !== '') {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('referral_code', trimmedCode)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error validating referrer code:', error);
+          toast({
+            title: "Validation Error",
+            description: "Failed to validate referrer code. Please try again.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        if (!data) {
+          toast({
+            title: "Invalid Referrer Code",
+            description: "The referrer code doesn't exist. Please check and try again.",
+            variant: "destructive"
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Error validating referrer code:', error);
+        toast({
+          title: "Validation Error",
+          description: "An unexpected error occurred while validating the referrer code.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ referrer_code: trimmedCode })
+        .eq('id', user.id);
+
+      if (error) {
+        toast({
+          title: "Update Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        setUserData(prev => ({ ...prev, referrer_code: trimmedCode }));
+        toast({
+          title: "Referrer Updated",
+          description: trimmedCode ? "Your referrer code has been saved successfully." : "Referrer code has been cleared.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Update Error",
+        description: "An unexpected error occurred while updating your referrer.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -176,6 +256,8 @@ const UserProfile = () => {
     );
   }
 
+  const hasExistingReferrer = userData.referrer_code && userData.referrer_code.trim() !== '';
+
   return (
     <div className="space-y-6">
       <div>
@@ -228,10 +310,56 @@ const UserProfile = () => {
       {/* Personal Information */}
       <Card className="card-modern">
         <CardHeader>
-          <CardTitle>Personal Information</CardTitle>
-          <CardDescription>
-            Update your personal details and contact information
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Personal Information</CardTitle>
+              <CardDescription>
+                Update your personal details and contact information
+              </CardDescription>
+            </div>
+            {!isEditMode ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditMode(true)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsEditMode(false);
+                    fetchUserData(); // Reset changes
+                  }}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="btn-hero"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -243,6 +371,7 @@ const UserProfile = () => {
                 onChange={(e) => setUserData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Enter your full name"
                 className="input-modern"
+                disabled={!isEditMode}
               />
             </div>
             
@@ -255,7 +384,6 @@ const UserProfile = () => {
                 id="email"
                 type="email"
                 value={userData.email}
-                onChange={(e) => setUserData(prev => ({ ...prev, email: e.target.value }))}
                 placeholder="Enter your email"
                 className="input-modern"
                 disabled
@@ -278,73 +406,91 @@ const UserProfile = () => {
               onChange={(e) => setUserData(prev => ({ ...prev, phone: e.target.value }))}
               placeholder="Enter your phone number"
               className="input-modern"
+              disabled={!isEditMode}
             />
           </div>
-
-          <Button 
-            onClick={handleSave} 
-            disabled={isSaving}
-            className="btn-hero"
-          >
-            {isSaving ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Save Changes
-              </>
-            )}
-          </Button>
         </CardContent>
       </Card>
 
-      {/* Referral Code */}
-      {userData.referral_code && (
-        <Card className="card-modern">
-          <CardHeader>
-            <CardTitle>Referral Program</CardTitle>
-            <CardDescription>
-              Share your referral code with friends and earn rewards
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label>Your Referral Code</Label>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge variant="outline" className="text-lg px-4 py-2 font-mono">
-                    {userData.referral_code}
-                  </Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={copyReferralCode}
-                    className="flex items-center gap-2"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                When someone signs up using your referral code, you'll both receive special benefits.
-              </p>
+      {/* Referral Program */}
+      <Card className="card-modern">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Gift className="h-5 w-5" />
+            Referral Program
+          </CardTitle>
+          <CardDescription>
+            Share your referral code with friends and earn rewards
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Your Referral Code */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Your Referral Code</Label>
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+              <code className="flex-1 text-lg font-mono tracking-wider">
+                {userData.referral_code || 'Loading...'}
+              </code>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyReferralCode}
+                disabled={!userData.referral_code}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-1" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy
+                  </>
+                )}
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <p className="text-xs text-muted-foreground">
+              Share this code with friends to earn referral rewards when they sign up.
+            </p>
+          </div>
+
+          {/* Your Referrer Code */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Your Referrer Code</Label>
+            {hasExistingReferrer ? (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-base px-3 py-1">
+                  {userData.referrer_code}
+                </Badge>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter referrer's code (optional)"
+                  value={referrerCodeInput}
+                  onChange={(e) => setReferrerCodeInput(e.target.value)}
+                  className="input-modern"
+                />
+                <Button
+                  onClick={handleSaveReferrerCode}
+                  size="sm"
+                  className="btn-hero"
+                >
+                  <Save className="h-4 w-4 mr-1" />
+                  Save
+                </Button>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {hasExistingReferrer 
+                ? "Your referrer has been set and cannot be changed."
+                : "If someone referred you, enter their referral code here. This can only be set once."
+              }
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

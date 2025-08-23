@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 
 interface Avatar {
   id: string;
@@ -24,6 +25,15 @@ const MyAvatarSection = () => {
   const { toast } = useToast();
   const [avatars, setAvatars] = useState<Avatar[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    avatarId: string;
+    avatarName: string;
+  }>({
+    open: false,
+    avatarId: '',
+    avatarName: ''
+  });
 
   useEffect(() => {
     if (user) {
@@ -71,16 +81,20 @@ const MyAvatarSection = () => {
     navigate(`/chatbot-training?avatar=${avatarId}`);
   };
 
-  const handleDeleteAvatar = async (avatarId: string, avatarName: string) => {
-    if (!confirm(`Are you sure you want to delete "${avatarName}"? This action cannot be undone.`)) {
-      return;
-    }
+  const openDeleteDialog = (avatarId: string, avatarName: string) => {
+    setDeleteDialog({
+      open: true,
+      avatarId,
+      avatarName
+    });
+  };
 
+  const handleDeleteAvatar = async () => {
     try {
       const { error } = await supabase
         .from('avatars')
         .delete()
-        .eq('id', avatarId);
+        .eq('id', deleteDialog.avatarId);
 
       if (error) {
         throw error;
@@ -88,7 +102,7 @@ const MyAvatarSection = () => {
 
       toast({
         title: "Avatar Deleted",
-        description: `${avatarName} has been successfully deleted.`,
+        description: `${deleteDialog.avatarName} has been successfully deleted.`,
       });
 
       // Refresh the avatars list
@@ -100,6 +114,8 @@ const MyAvatarSection = () => {
         description: error.message || "Failed to delete avatar. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setDeleteDialog({ open: false, avatarId: '', avatarName: '' });
     }
   };
 
@@ -216,7 +232,7 @@ const MyAvatarSection = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDeleteAvatar(avatar.id, avatar.name)}
+                    onClick={() => openDeleteDialog(avatar.id, avatar.name)}
                     className="text-destructive hover:text-destructive"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -227,6 +243,16 @@ const MyAvatarSection = () => {
           ))
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog(prev => ({ ...prev, open }))}
+        onConfirm={handleDeleteAvatar}
+        title="Delete Avatar"
+        description="Are you sure you want to delete"
+        itemName={deleteDialog.avatarName}
+      />
     </div>
   );
 };
