@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Index from '@/pages/Index';
 import Auth from '@/pages/Auth';
 import Dashboard from '@/pages/Dashboard';
 import NotFound from '@/pages/NotFound';
 import AvatarDetail from '@/pages/AvatarDetail';
+import { Toaster } from "@/components/ui/toaster"
+import { Toaster as SonnerToaster, toast } from "@/components/ui/sonner"
 import CreateAvatar from '@/pages/CreateAvatar';
 
 function App() {
@@ -28,7 +30,7 @@ function App() {
   };
 
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route path="/" element={<Index isAuthenticated={isAuthenticated} onLogin={handleLogin} onLogout={handleLogout} />} />
         <Route path="/auth" element={<Auth onLogin={handleLogin} />} />
@@ -37,7 +39,9 @@ function App() {
         <Route path="/avatar/:id" element={isAuthenticated ? <AvatarDetail /> : <Navigate to="/auth" />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </BrowserRouter>
+      <Toaster />
+      <SonnerToaster />
+    </Router>
   );
 }
 
