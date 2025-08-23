@@ -37,29 +37,10 @@ const TTSSection = () => {
     { id: 'alex', name: 'Alex', description: 'Versatile, neutral voice', accent: 'Canadian', sample: 'alex_sample.mp3' },
   ];
 
-  const handlePlayTest = () => {
-    setIsPlaying(true);
+  const showComingSoon = () => {
     toast({
-      title: "Playing Voice Sample",
-      description: `Testing ${voiceOptions.find(v => v.id === selectedVoice)?.name} voice with current settings.`,
-    });
-    
-    setTimeout(() => {
-      setIsPlaying(false);
-    }, 3000);
-  };
-
-  const handlePlayVoiceSample = (voiceName: string) => {
-    toast({
-      title: "Playing Voice Sample",
-      description: `Playing ${voiceName} voice sample`,
-    });
-  };
-
-  const handleVoiceCloning = () => {
-    toast({
-      title: "Voice Cloning",
-      description: "Voice cloning feature will be available with full backend integration.",
+      title: "Coming Soon",
+      description: "This feature will be available with full backend integration.",
     });
   };
 
@@ -158,21 +139,11 @@ const TTSSection = () => {
 
                 <Button 
                   className="w-full btn-hero h-9"
-                  onClick={handlePlayTest}
-                  disabled={isPlaying}
+                  onClick={showComingSoon}
                   size="sm"
                 >
-                  {isPlaying ? (
-                    <>
-                      <Pause className="mr-2 h-3 w-3" />
-                      Playing...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="mr-2 h-3 w-3" />
-                      Test Voice
-                    </>
-                  )}
+                  <Play className="mr-2 h-3 w-3" />
+                  Test Voice
                 </Button>
               </CardContent>
             </Card>
@@ -215,11 +186,11 @@ const TTSSection = () => {
                 </div>
 
                 <div className="pt-3 border-t space-y-2">
-                  <Button variant="outline" className="w-full h-8 text-xs">
+                  <Button variant="outline" className="w-full h-8 text-xs" onClick={showComingSoon}>
                     <Download className="mr-2 h-3 w-3" />
                     Export Voice Sample
                   </Button>
-                  <Button variant="outline" className="w-full h-8 text-xs">
+                  <Button variant="outline" className="w-full h-8 text-xs" onClick={showComingSoon}>
                     <Upload className="mr-2 h-3 w-3" />
                     Upload Audio Reference
                   </Button>
@@ -245,7 +216,7 @@ const TTSSection = () => {
                 <p className="text-sm text-muted-foreground mb-3">
                   Upload high-quality audio recordings (minimum 10 minutes recommended)
                 </p>
-                <Button className="btn-hero h-9 text-sm" onClick={handleVoiceCloning}>
+                <Button className="btn-hero h-9 text-sm" onClick={showComingSoon}>
                   <Upload className="mr-2 h-3 w-3" />
                   Choose Audio Files
                 </Button>
@@ -292,7 +263,7 @@ const TTSSection = () => {
                         variant="outline" 
                         size="sm" 
                         className="flex-1 h-8 text-xs"
-                        onClick={() => handlePlayVoiceSample(voice.name)}
+                        onClick={showComingSoon}
                       >
                         <Play className="mr-1 h-3 w-3" />
                         Preview

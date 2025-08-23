@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { 
   UserCircle, 
@@ -13,24 +12,13 @@ import {
   Image, 
   User,
   Edit,
-  Trash2,
-  Settings
+  Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ImageUpload } from '@/components/ui/image-upload';
 
 const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: string) => void }) => {
+  const navigate = useNavigate();
   const [myAvatars, setMyAvatars] = useState<any[]>([]);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [newAvatar, setNewAvatar] = useState({
-    name: '',
-    gender: '',
-    age: '',
-    mbti: '',
-    images: [] as File[]
-  });
   const { toast } = useToast();
 
   // Load avatars from localStorage on component mount
@@ -50,58 +38,8 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
     localStorage.setItem('myAvatars', JSON.stringify(myAvatars));
   }, [myAvatars]);
 
-  const mbtiTypes = [
-    'INTJ', 'INTP', 'ENTJ', 'ENTP',
-    'INFJ', 'INFP', 'ENFJ', 'ENFP',
-    'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
-    'ISTP', 'ISFP', 'ESTP', 'ESFP'
-  ];
-
   const handleCreateAvatar = () => {
-    if (!newAvatar.name || !newAvatar.gender || !newAvatar.age || !newAvatar.mbti) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Convert images to base64 URLs for storage
-    const imagePromises = newAvatar.images.map(file => {
-      return new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(imagePromises).then(imageUrls => {
-      const avatar = {
-        id: Date.now().toString(),
-        name: newAvatar.name,
-        gender: newAvatar.gender,
-        age: newAvatar.age,
-        mbti: newAvatar.mbti,
-        images: imageUrls,
-        progress: {
-          chatbot: false,
-          tts: false,
-          images: false,
-          avatar: false
-        },
-        createdAt: new Date().toISOString()
-      };
-
-      setMyAvatars([...myAvatars, avatar]);
-      setNewAvatar({ name: '', gender: '', age: '', mbti: '', images: [] });
-      setIsCreateDialogOpen(false);
-      
-      toast({
-        title: "Avatar Created!",
-        description: `${avatar.name} has been created successfully. Start training now!`,
-      });
-    });
+    navigate('/create-avatar');
   };
 
   const handleStartTraining = (avatarId: string, type: string) => {
@@ -152,87 +90,10 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
           </p>
         </div>
         
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="btn-hero">
-              <Plus className="mr-2 h-4 w-4" />
-              Create New Avatar
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create New Avatar</DialogTitle>
-              <DialogDescription>
-                Set up your avatar's basic information and upload profile images to get started.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Avatar Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="Enter avatar name"
-                  value={newAvatar.name}
-                  onChange={(e) => setNewAvatar({...newAvatar, name: e.target.value})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="gender">Gender *</Label>
-                <Select onValueChange={(value) => setNewAvatar({...newAvatar, gender: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="non-binary">Non-binary</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="age">Starting Age *</Label>
-                <Input
-                  id="age"
-                  type="number"
-                  placeholder="Enter age"
-                  value={newAvatar.age}
-                  onChange={(e) => setNewAvatar({...newAvatar, age: e.target.value})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="mbti">Preferred MBTI *</Label>
-                <Select onValueChange={(value) => setNewAvatar({...newAvatar, mbti: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select MBTI type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mbtiTypes.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <ImageUpload
-                onImagesChange={(images) => setNewAvatar({...newAvatar, images})}
-                maxImages={5}
-                label="Profile Images (optional)"
-              />
-              
-              <div className="flex gap-2 pt-4">
-                <Button onClick={handleCreateAvatar} className="flex-1">
-                  Create Avatar
-                </Button>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button className="btn-hero" onClick={handleCreateAvatar}>
+          <Plus className="mr-2 h-4 w-4" />
+          Create New Avatar
+        </Button>
       </div>
 
       {/* Avatar List */}
@@ -244,7 +105,7 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
             <p className="text-muted-foreground text-center mb-6">
               Create your first AI avatar to get started with training and customization.
             </p>
-            <Button onClick={() => setIsCreateDialogOpen(true)} className="btn-hero">
+            <Button onClick={handleCreateAvatar} className="btn-hero">
               <Plus className="mr-2 h-4 w-4" />
               Create Your First Avatar
             </Button>
@@ -255,22 +116,6 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
           {myAvatars.map((avatar) => (
             <Card key={avatar.id} className="card-modern">
               <CardHeader className="pb-3">
-                {/* Avatar Image Display */}
-                {avatar.images && avatar.images.length > 0 && (
-                  <div className="relative aspect-square mb-3 overflow-hidden rounded-lg">
-                    <img
-                      src={avatar.images[0]}
-                      alt={avatar.name}
-                      className="w-full h-full object-cover"
-                    />
-                    {avatar.images.length > 1 && (
-                      <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                        +{avatar.images.length - 1} more
-                      </div>
-                    )}
-                  </div>
-                )}
-                
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <UserCircle className="h-5 w-5" />

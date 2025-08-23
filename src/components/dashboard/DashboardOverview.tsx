@@ -2,7 +2,6 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { 
   Bot, 
   MessageSquare, 
@@ -29,7 +28,7 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
             Manage and train your AI Avatar
           </p>
         </div>
-        <Button className="btn-hero">
+        <Button className="btn-hero" onClick={() => onSectionChange('my-avatar')}>
           <Bot className="mr-2 h-4 w-4" />
           Create New Avatar
         </Button>
@@ -45,9 +44,9 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              +12% from last month
+              No training sessions yet
             </p>
           </CardContent>
         </Card>
@@ -60,9 +59,9 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
             <Mic className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              2 Active, 1 Training
+              No voice models created
             </p>
           </CardContent>
         </Card>
@@ -75,9 +74,9 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
             <Image className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">157</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              +23 this week
+              No images generated
             </p>
           </CardContent>
         </Card>
@@ -90,9 +89,9 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">78%</div>
+            <div className="text-2xl font-bold">0%</div>
             <p className="text-xs text-muted-foreground">
-              +5% this week
+              Create your first avatar
             </p>
           </CardContent>
         </Card>
@@ -107,10 +106,18 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
               Quick Actions
             </CardTitle>
             <CardDescription>
-              Jump into training your AI avatar
+              Get started with your AI avatar journey
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => onSectionChange('my-avatar')}
+            >
+              <Bot className="mr-2 h-4 w-4" />
+              Create Your First Avatar
+            </Button>
             <Button 
               variant="outline" 
               className="w-full justify-start"
@@ -135,14 +142,6 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
               <Image className="mr-2 h-4 w-4" />
               Generate Images
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => onSectionChange('avatar')}
-            >
-              <User className="mr-2 h-4 w-4" />
-              Design Avatar
-            </Button>
           </CardContent>
         </Card>
 
@@ -150,40 +149,22 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Training Progress
+              Getting Started
             </CardTitle>
             <CardDescription>
-              Your avatar's learning journey
+              Your avatar creation journey
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Language Processing</span>
-                <span>85%</span>
-              </div>
-              <Progress value={85} className="h-2" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Voice Training</span>
-                <span>72%</span>
-              </div>
-              <Progress value={72} className="h-2" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Visual Identity</span>
-                <span>90%</span>
-              </div>
-              <Progress value={90} className="h-2" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Personality Model</span>
-                <span>65%</span>
-              </div>
-              <Progress value={65} className="h-2" />
+            <div className="text-center py-8">
+              <Bot className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Welcome to AI Avatar</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Create your first avatar to see progress tracking here
+              </p>
+              <Button onClick={() => onSectionChange('my-avatar')} className="btn-hero">
+                Get Started
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -197,32 +178,15 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
             Recent Activity
           </CardTitle>
           <CardDescription>
-            Latest updates to your AI avatar
+            Your latest avatar activities will appear here
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-              <div className="w-2 h-2 bg-success rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Voice model training completed</p>
-                <p className="text-xs text-muted-foreground">2 hours ago</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-              <div className="w-2 h-2 bg-warning rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Language dataset updated</p>
-                <p className="text-xs text-muted-foreground">5 hours ago</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-              <div className="w-2 h-2 bg-primary rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">New avatar image generated</p>
-                <p className="text-xs text-muted-foreground">1 day ago</p>
-              </div>
-            </div>
+          <div className="text-center py-8">
+            <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">
+              No recent activity yet. Start by creating your first avatar!
+            </p>
           </div>
         </CardContent>
       </Card>
