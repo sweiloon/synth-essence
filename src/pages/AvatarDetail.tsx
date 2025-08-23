@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -88,7 +87,7 @@ const AvatarDetail = () => {
         description: "Failed to load avatar details.",
         variant: "destructive"
       });
-      navigate('/dashboard?section=my-avatar');
+      navigate('/dashboard?section=my-avatars');
     } finally {
       setIsLoading(false);
     }
@@ -128,7 +127,7 @@ const AvatarDetail = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Avatar Not Found</h1>
-            <Button onClick={() => navigate('/dashboard?section=my-avatar')}>
+            <Button onClick={() => navigate('/dashboard?section=my-avatars')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to My Avatars
             </Button>
@@ -147,7 +146,7 @@ const AvatarDetail = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/dashboard?section=my-avatar')}
+              onClick={() => navigate('/dashboard?section=my-avatars')}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to My Avatars

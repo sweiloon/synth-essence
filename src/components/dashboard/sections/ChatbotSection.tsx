@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,14 +19,24 @@ import { useToast } from '@/hooks/use-toast';
 import { AvatarSelectorDropdown } from '@/components/chatbot-training/AvatarSelectorDropdown';
 import { AvatarStatus } from '@/components/chatbot-training/AvatarStatus';
 import { TrainingInterface } from '@/components/chatbot-training/TrainingInterface';
+import { useSearchParams } from 'react-router-dom';
 
 const ChatbotSection = () => {
-  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const avatarFromUrl = searchParams.get('avatar');
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(avatarFromUrl);
   const [conversationHistory, setConversationHistory] = useState([
     { id: 1, type: 'user', message: 'Hello, how are you today?' },
     { id: 2, type: 'avatar', message: 'Hello! I\'m doing well, thank you for asking. I\'m always excited to learn and chat with you.' },
   ]);
   const { toast } = useToast();
+
+  // Update selected avatar when URL param changes
+  useEffect(() => {
+    if (avatarFromUrl) {
+      setSelectedAvatarId(avatarFromUrl);
+    }
+  }, [avatarFromUrl]);
 
   const savedAvatars = JSON.parse(localStorage.getItem('myAvatars') || '[]');
   const selectedAvatar = savedAvatars.find((avatar: any) => avatar.id === selectedAvatarId);

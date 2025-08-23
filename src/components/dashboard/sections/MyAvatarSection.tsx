@@ -77,8 +77,8 @@ const MyAvatarSection = () => {
   };
 
   const handleChatWithAvatar = (avatarId: string) => {
-    // Navigate to chatbot training page with the selected avatar
-    navigate(`/chatbot-training?avatar=${avatarId}`);
+    // Navigate to dashboard with chatbot section and pre-selected avatar
+    navigate(`/dashboard?section=chatbot&avatar=${avatarId}`);
   };
 
   const openDeleteDialog = (avatarId: string, avatarName: string) => {

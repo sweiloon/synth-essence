@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ArrowRight, CheckCircle, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,8 +20,11 @@ const CreateAvatar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const editAvatarId = searchParams.get('edit');
   const [currentStep, setCurrentStep] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [avatarData, setAvatarData] = useState({
     // Step 1: Avatar Detail
@@ -46,6 +49,58 @@ const CreateAvatar = () => {
     // Step 5: Hidden Rules
     hiddenRules: ''
   });
+
+  // Load existing avatar data if editing
+  useEffect(() => {
+    if (editAvatarId && user) {
+      loadAvatarForEditing();
+    }
+  }, [editAvatarId, user]);
+
+  const loadAvatarForEditing = async () => {
+    if (!user || !editAvatarId) return;
+    
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('avatars')
+        .select('*')
+        .eq('id', editAvatarId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Populate the form with existing data
+      setAvatarData({
+        name: data.name || '',
+        avatarImages: data.avatar_images || [],
+        originCountry: data.origin_country || 'Malaysia',
+        age: data.age?.toString() || '',
+        gender: data.gender || '',
+        primaryLanguage: data.primary_language || 'English',
+        secondaryLanguages: data.secondary_languages || [],
+        personalityTraits: data.personality_traits || [],
+        mbtiType: data.mbti_type || '',
+        backstory: data.backstory || '',
+        knowledgeFiles: data.knowledge_files || [],
+        hiddenRules: data.hidden_rules || ''
+      });
+
+    } catch (error: any) {
+      console.error('Error loading avatar for editing:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load avatar data for editing.",
+        variant: "destructive"
+      });
+      navigate('/dashboard?section=my-avatars');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const steps = [
     {
@@ -216,43 +271,67 @@ const CreateAvatar = () => {
         }
       }
 
-      // Save avatar to database
-      const { data, error } = await supabase
-        .from('avatars')
-        .insert({
-          user_id: user.id,
-          name: avatarData.name,
-          avatar_images: uploadedImages,
-          origin_country: avatarData.originCountry,
-          age: parseInt(avatarData.age),
-          gender: avatarData.gender,
-          primary_language: avatarData.primaryLanguage,
-          secondary_languages: avatarData.secondaryLanguages,
-          personality_traits: avatarData.personalityTraits,
-          backstory: avatarData.backstory || null,
-          knowledge_files: avatarData.knowledgeFiles,
-          hidden_rules: avatarData.hiddenRules || null
-        })
-        .select()
-        .single();
+      const avatarDataToSave = {
+        user_id: user.id,
+        name: avatarData.name,
+        avatar_images: uploadedImages,
+        origin_country: avatarData.originCountry,
+        age: parseInt(avatarData.age),
+        gender: avatarData.gender,
+        primary_language: avatarData.primaryLanguage,
+        secondary_languages: avatarData.secondaryLanguages,
+        personality_traits: avatarData.personalityTraits,
+        backstory: avatarData.backstory || null,
+        knowledge_files: avatarData.knowledgeFiles,
+        hidden_rules: avatarData.hiddenRules || null
+      };
+
+      let data, error;
+
+      if (editAvatarId) {
+        // Update existing avatar
+        const updateData = { ...avatarDataToSave };
+        delete updateData.user_id; // Don't update user_id
+        
+        const result = await supabase
+          .from('avatars')
+          .update(updateData)
+          .eq('id', editAvatarId)
+          .eq('user_id', user.id)
+          .select()
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      } else {
+        // Create new avatar
+        const result = await supabase
+          .from('avatars')
+          .insert(avatarDataToSave)
+          .select()
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         throw error;
       }
 
       toast({
-        title: "Avatar Created Successfully!",
-        description: `${avatarData.name} has been created and saved.`,
+        title: editAvatarId ? "Avatar Updated Successfully!" : "Avatar Created Successfully!",
+        description: `${avatarData.name} has been ${editAvatarId ? 'updated' : 'created'} and saved.`,
       });
 
       // Navigate to the avatar detail page
       navigate(`/avatar/${data.id}`);
 
     } catch (error: any) {
-      console.error('Error creating avatar:', error);
+      console.error('Error saving avatar:', error);
       toast({
-        title: "Creation Failed",
-        description: error.message || "Failed to create avatar. Please try again.",
+        title: editAvatarId ? "Update Failed" : "Creation Failed",
+        description: error.message || `Failed to ${editAvatarId ? 'update' : 'create'} avatar. Please try again.`,
         variant: "destructive"
       });
     } finally {
@@ -263,6 +342,22 @@ const CreateAvatar = () => {
   const CurrentStepComponent = steps[currentStep].component;
   const progress = ((currentStep + 1) / steps.length) * 100;
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+            <div className="space-y-4">
+              <div className="h-64 bg-gray-200 rounded-lg"></div>
+              <div className="h-32 bg-gray-200 rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -271,14 +366,18 @@ const CreateAvatar = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/dashboard?section=my-avatars')}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
+            Back to My Avatars
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Create New Avatar</h1>
-            <p className="text-muted-foreground">Follow the steps to create your custom AI avatar</p>
+            <h1 className="text-3xl font-bold">
+              {editAvatarId ? 'Edit Avatar' : 'Create New Avatar'}
+            </h1>
+            <p className="text-muted-foreground">
+              {editAvatarId ? 'Update your avatar details' : 'Follow the steps to create your custom AI avatar'}
+            </p>
           </div>
         </div>
 
@@ -353,12 +452,12 @@ const CreateAvatar = () => {
                 {isCreating ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creating Avatar...
+                    {editAvatarId ? 'Updating Avatar...' : 'Creating Avatar...'}
                   </>
                 ) : (
                   <>
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    Create Avatar
+                    {editAvatarId ? 'Update Avatar' : 'Create Avatar'}
                   </>
                 )}
               </Button>
