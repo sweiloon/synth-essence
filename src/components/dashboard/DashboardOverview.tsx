@@ -2,16 +2,16 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { 
-  LayoutDashboard, 
+  Bot, 
   MessageSquare, 
   Mic, 
   Image, 
   User, 
-  ShoppingBag,
-  UserCircle,
-  Plus,
-  ArrowRight
+  TrendingUp, 
+  Clock, 
+  Zap 
 } from 'lucide-react';
 
 interface DashboardOverviewProps {
@@ -19,107 +19,208 @@ interface DashboardOverviewProps {
 }
 
 const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
-  const quickActions = [
-    {
-      title: 'Create New Avatar',
-      description: 'Build your personalized AI avatar from scratch',
-      icon: UserCircle,
-      action: () => onSectionChange('my-avatar'),
-      color: 'bg-blue-500'
-    },
-    {
-      title: 'Browse Marketplace',
-      description: 'Discover pre-made avatars from the community',
-      icon: ShoppingBag,
-      action: () => onSectionChange('marketplace'),
-      color: 'bg-green-500'
-    },
-    {
-      title: 'Train Chatbot',
-      description: 'Enhance your avatar\'s conversation abilities',
-      icon: MessageSquare,
-      action: () => onSectionChange('chatbot'),
-      color: 'bg-purple-500'
-    },
-    {
-      title: 'Generate Images',
-      description: 'Create visual content with AI',
-      icon: Image,
-      action: () => onSectionChange('images'),
-      color: 'bg-pink-500'
-    }
-  ];
-
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
-        <div className="flex items-center gap-3 mb-2">
-          <LayoutDashboard className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">Welcome to AvatarHub</h1>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Manage and train your AI Avatar
+          </p>
         </div>
-        <p className="text-blue-100">
-          Create, customize, and deploy AI avatars for your projects
-        </p>
+        <Button className="btn-hero">
+          <Bot className="mr-2 h-4 w-4" />
+          Create New Avatar
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="card-modern">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Training Sessions
+            </CardTitle>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">24</div>
+            <p className="text-xs text-muted-foreground">
+              +12% from last month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-modern">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Voice Models
+            </CardTitle>
+            <Mic className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">3</div>
+            <p className="text-xs text-muted-foreground">
+              2 Active, 1 Training
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-modern">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Generated Images
+            </CardTitle>
+            <Image className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">157</div>
+            <p className="text-xs text-muted-foreground">
+              +23 this week
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-modern">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Avatar Completeness
+            </CardTitle>
+            <User className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">78%</div>
+            <p className="text-xs text-muted-foreground">
+              +5% this week
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Quick Actions */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon;
-            return (
-              <Card key={index} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={action.action}>
-                <CardHeader className="pb-3">
-                  <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center mb-2`}>
-                    <Icon className="h-5 w-5 text-white" />
-                  </div>
-                  <CardTitle className="text-lg">{action.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="mb-3">
-                    {action.description}
-                  </CardDescription>
-                  <Button variant="outline" size="sm" className="w-full">
-                    Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              Quick Actions
+            </CardTitle>
+            <CardDescription>
+              Jump into training your AI avatar
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => onSectionChange('chatbot')}
+            >
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Train Language Model
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => onSectionChange('tts')}
+            >
+              <Mic className="mr-2 h-4 w-4" />
+              Configure Voice
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => onSectionChange('images')}
+            >
+              <Image className="mr-2 h-4 w-4" />
+              Generate Images
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => onSectionChange('avatar')}
+            >
+              <User className="mr-2 h-4 w-4" />
+              Design Avatar
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Training Progress
+            </CardTitle>
+            <CardDescription>
+              Your avatar's learning journey
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Language Processing</span>
+                <span>85%</span>
+              </div>
+              <Progress value={85} className="h-2" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Voice Training</span>
+                <span>72%</span>
+              </div>
+              <Progress value={72} className="h-2" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Visual Identity</span>
+                <span>90%</span>
+              </div>
+              <Progress value={90} className="h-2" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Personality Model</span>
+                <span>65%</span>
+              </div>
+              <Progress value={65} className="h-2" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Getting Started Guide */}
-      <Card>
+      {/* Recent Activity */}
+      <Card className="card-modern">
         <CardHeader>
-          <CardTitle>Getting Started</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Recent Activity
+          </CardTitle>
           <CardDescription>
-            Follow these steps to create your first AI avatar
+            Latest updates to your AI avatar
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-              <div>
-                <h4 className="font-medium">Create Your Avatar</h4>
-                <p className="text-sm text-muted-foreground">Set up basic information and personality traits</p>
+            <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+              <div className="w-2 h-2 bg-success rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Voice model training completed</p>
+                <p className="text-xs text-muted-foreground">2 hours ago</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-              <div>
-                <h4 className="font-medium">Train & Customize</h4>
-                <p className="text-sm text-muted-foreground">Add knowledge, voice, and visual elements</p>
+            <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+              <div className="w-2 h-2 bg-warning rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Language dataset updated</p>
+                <p className="text-xs text-muted-foreground">5 hours ago</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
-              <div>
-                <h4 className="font-medium">Deploy & Use</h4>
-                <p className="text-sm text-muted-foreground">Start interacting with your AI avatar</p>
+            <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+              <div className="w-2 h-2 bg-primary rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">New avatar image generated</p>
+                <p className="text-xs text-muted-foreground">1 day ago</p>
               </div>
             </div>
           </div>

@@ -1,160 +1,318 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mic, Play, Upload, Settings, Volume2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Mic, 
+  Play, 
+  Pause, 
+  Upload, 
+  Download, 
+  Volume2,
+  Settings,
+  AudioLines
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const TTSSection = () => {
+  const [selectedVoice, setSelectedVoice] = useState('aria');
+  const [pitch, setPitch] = useState([1.0]);
+  const [speed, setSpeed] = useState([1.0]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [testText, setTestText] = useState('Hello, this is your AI avatar speaking. How do you like my voice?');
   const { toast } = useToast();
 
-  const handleComingSoon = () => {
+  const voiceOptions = [
+    { id: 'aria', name: 'Aria', description: 'Natural, professional female voice', accent: 'American', sample: 'aria_sample.mp3' },
+    { id: 'roger', name: 'Roger', description: 'Clear, confident male voice', accent: 'British', sample: 'roger_sample.mp3' },
+    { id: 'sarah', name: 'Sarah', description: 'Warm, friendly female voice', accent: 'Australian', sample: 'sarah_sample.mp3' },
+    { id: 'liam', name: 'Liam', description: 'Casual, energetic male voice', accent: 'Irish', sample: 'liam_sample.mp3' },
+    { id: 'maya', name: 'Maya', description: 'Soft, calming female voice', accent: 'Indian', sample: 'maya_sample.mp3' },
+    { id: 'alex', name: 'Alex', description: 'Versatile, neutral voice', accent: 'Canadian', sample: 'alex_sample.mp3' },
+  ];
+
+  const handlePlayTest = () => {
+    setIsPlaying(true);
     toast({
-      title: "Coming Soon!",
-      description: "This feature is currently under development and will be available soon.",
+      title: "Playing Voice Sample",
+      description: `Testing ${voiceOptions.find(v => v.id === selectedVoice)?.name} voice with current settings.`,
+    });
+    
+    setTimeout(() => {
+      setIsPlaying(false);
+    }, 3000);
+  };
+
+  const handlePlayVoiceSample = (voiceName: string) => {
+    toast({
+      title: "Playing Voice Sample",
+      description: `Playing ${voiceName} voice sample`,
+    });
+  };
+
+  const handleVoiceCloning = () => {
+    toast({
+      title: "Voice Cloning",
+      description: "Voice cloning feature will be available with full backend integration.",
     });
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-3">
-          <Mic className="h-6 w-6" />
-          TTS Voice Training
-        </h1>
-        <p className="text-muted-foreground">
-          Train your avatar's voice using text-to-speech technology
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Mic className="h-6 w-6" />
+            TTS Voice Configuration
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Configure and train your avatar's voice characteristics
+          </p>
+        </div>
+        <Badge variant="outline" className="learning-path-gradient text-white text-xs">
+          Voice Model v3.2
+        </Badge>
       </div>
 
-      {/* Voice Upload Section */}
-      <Card className="card-modern">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            Voice Sample Upload
-          </CardTitle>
-          <CardDescription>
-            Upload voice samples to train your avatar's unique voice
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center">
-            <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Upload Voice Samples</h3>
-            <p className="text-muted-foreground mb-4">
-              Drag and drop audio files or click to browse
-            </p>
-            <Button onClick={handleComingSoon}>
-              Choose Audio Files
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="configure" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="configure">Configure Voice</TabsTrigger>
+          <TabsTrigger value="clone">Clone Voice</TabsTrigger>
+          <TabsTrigger value="library">Voice Library</TabsTrigger>
+        </TabsList>
 
-      {/* Voice Settings */}
-      <Card className="card-modern">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Voice Configuration
-          </CardTitle>
-          <CardDescription>
-            Customize voice parameters and settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Voice Speed</label>
-              <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
-                Adjust Speed
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Voice Pitch</label>
-              <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
-                Adjust Pitch
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Voice Tone</label>
-              <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
-                Select Tone
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Language Accent</label>
-              <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
-                Choose Accent
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Configure Tab */}
+        <TabsContent value="configure" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card className="card-modern">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Settings className="h-4 w-4" />
+                  Voice Settings
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Customize your avatar's voice parameters
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">Voice Selection</Label>
+                  <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                    <SelectTrigger className="input-modern h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {voiceOptions.map((voice) => (
+                        <SelectItem key={voice.id} value={voice.id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-sm">{voice.name}</span>
+                            <span className="text-xs text-muted-foreground">{voice.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-      {/* Voice Preview */}
-      <Card className="card-modern">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Volume2 className="h-5 w-5" />
-            Voice Preview
-          </CardTitle>
-          <CardDescription>
-            Test and preview your avatar's voice
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Sample Text</label>
-            <textarea
-              className="w-full p-3 border rounded-md"
-              rows={3}
-              placeholder="Enter text to test voice synthesis..."
-              disabled
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleComingSoon}>
-              <Play className="mr-2 h-4 w-4" />
-              Preview Voice
-            </Button>
-            <Button variant="outline" onClick={handleComingSoon}>
-              Generate Sample
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+                <div className="space-y-2">
+                  <Label className="text-sm">Pitch: {pitch[0].toFixed(1)}</Label>
+                  <Slider
+                    value={pitch}
+                    onValueChange={setPitch}
+                    max={2}
+                    min={0.5}
+                    step={0.1}
+                    className="w-full"
+                  />
+                </div>
 
-      {/* Training Progress */}
-      <Card className="card-modern">
-        <CardHeader>
-          <CardTitle>Training Progress</CardTitle>
-          <CardDescription>
-            Track your voice training progress
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between text-sm">
-              <span>Voice Samples</span>
-              <span>0/10</span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div className="bg-primary h-2 rounded-full" style={{ width: '0%' }}></div>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleComingSoon}>
-                Start Training
-              </Button>
-              <Button variant="outline" onClick={handleComingSoon}>
-                View Training History
-              </Button>
-            </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Speed: {speed[0].toFixed(1)}x</Label>
+                  <Slider
+                    value={speed}
+                    onValueChange={setSpeed}
+                    max={2}
+                    min={0.5}
+                    step={0.1}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="test-text" className="text-sm">Test Text</Label>
+                  <Input
+                    id="test-text"
+                    value={testText}
+                    onChange={(e) => setTestText(e.target.value)}
+                    className="input-modern h-9 text-sm"
+                    placeholder="Enter text to test voice..."
+                  />
+                </div>
+
+                <Button 
+                  className="w-full btn-hero h-9"
+                  onClick={handlePlayTest}
+                  disabled={isPlaying}
+                  size="sm"
+                >
+                  {isPlaying ? (
+                    <>
+                      <Pause className="mr-2 h-3 w-3" />
+                      Playing...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-3 w-3" />
+                      Test Voice
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="card-modern">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <AudioLines className="h-4 w-4" />
+                  Voice Preview
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Real-time voice visualization and analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="h-24 bg-muted/20 rounded-lg flex items-center justify-center">
+                  <div className="text-muted-foreground text-center">
+                    <Volume2 className="h-6 w-6 mx-auto mb-1" />
+                    <p className="text-xs">Voice waveform will appear here</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs">Current Voice</span>
+                    <span className="text-xs font-medium capitalize">{selectedVoice}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs">Quality</span>
+                    <Badge variant="outline" className="text-xs">High Definition</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs">Language</span>
+                    <span className="text-xs font-medium">English (US)</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs">Sample Rate</span>
+                    <span className="text-xs font-medium">48kHz</span>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t space-y-2">
+                  <Button variant="outline" className="w-full h-8 text-xs">
+                    <Download className="mr-2 h-3 w-3" />
+                    Export Voice Sample
+                  </Button>
+                  <Button variant="outline" className="w-full h-8 text-xs">
+                    <Upload className="mr-2 h-3 w-3" />
+                    Upload Audio Reference
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        </TabsContent>
+
+        {/* Clone Voice Tab */}
+        <TabsContent value="clone" className="space-y-4">
+          <Card className="card-modern">
+            <CardHeader>
+              <CardTitle className="text-base">Voice Cloning</CardTitle>
+              <CardDescription className="text-sm">
+                Create a custom voice model based on your voice samples
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center p-6 border-2 border-dashed border-border rounded-lg">
+                <Mic className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+                <h3 className="text-base font-medium mb-2">Upload Voice Samples</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Upload high-quality audio recordings (minimum 10 minutes recommended)
+                </p>
+                <Button className="btn-hero h-9 text-sm" onClick={handleVoiceCloning}>
+                  <Upload className="mr-2 h-3 w-3" />
+                  Choose Audio Files
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="text-center p-3 bg-muted/20 rounded-lg">
+                  <h4 className="font-medium mb-1 text-sm">Recording Quality</h4>
+                  <p className="text-xs text-muted-foreground">Clear, noise-free audio</p>
+                </div>
+                <div className="text-center p-3 bg-muted/20 rounded-lg">
+                  <h4 className="font-medium mb-1 text-sm">Duration</h4>
+                  <p className="text-xs text-muted-foreground">10+ minutes recommended</p>
+                </div>
+                <div className="text-center p-3 bg-muted/20 rounded-lg">
+                  <h4 className="font-medium mb-1 text-sm">Format</h4>
+                  <p className="text-xs text-muted-foreground">WAV, MP3, or FLAC</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Voice Library Tab */}
+        <TabsContent value="library" className="space-y-4">
+          <Card className="card-modern">
+            <CardHeader>
+              <CardTitle className="text-base">Voice Library</CardTitle>
+              <CardDescription className="text-sm">
+                Browse and test available voice models
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {voiceOptions.map((voice) => (
+                  <div key={voice.id} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-sm">{voice.name}</h4>
+                      <Badge variant="outline" className="text-xs">{voice.accent}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{voice.description}</p>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 h-8 text-xs"
+                        onClick={() => handlePlayVoiceSample(voice.name)}
+                      >
+                        <Play className="mr-1 h-3 w-3" />
+                        Preview
+                      </Button>
+                      <Button 
+                        variant={selectedVoice === voice.id ? "default" : "outline"} 
+                        size="sm" 
+                        className="flex-1 h-8 text-xs"
+                        onClick={() => setSelectedVoice(voice.id)}
+                      >
+                        {selectedVoice === voice.id ? 'Selected' : 'Select'}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
