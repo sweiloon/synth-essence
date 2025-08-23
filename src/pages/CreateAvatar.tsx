@@ -35,6 +35,7 @@ const CreateAvatar = () => {
 
     // Step 2: Avatar Persona
     personalityTraits: [],
+    mbtiType: '',
 
     // Step 3: Backstory
     backstory: '',
@@ -75,6 +76,7 @@ const CreateAvatar = () => {
   ];
 
   const updateAvatarData = (field: string, value: any) => {
+    console.log('Updating avatar data:', field, value);
     setAvatarData(prev => ({
       ...prev,
       [field]: value
@@ -82,6 +84,9 @@ const CreateAvatar = () => {
   };
 
   const validateCurrentStep = () => {
+    console.log('Validating step:', currentStep);
+    console.log('Current avatar data:', avatarData);
+    
     switch (currentStep) {
       case 0: // Avatar Detail
         if (!avatarData.name.trim()) {
@@ -126,10 +131,21 @@ const CreateAvatar = () => {
         }
         return true;
       case 1: // Avatar Persona
-        if (!avatarData.personalityTraits || avatarData.personalityTraits.length === 0) {
+        console.log('Validating persona step. Personality traits:', avatarData.personalityTraits);
+        console.log('MBTI Type:', avatarData.mbtiType);
+        
+        if (!avatarData.personalityTraits || avatarData.personalityTraits.length < 5) {
           toast({
             title: "Validation Error",
-            description: "At least one personality trait is required.",
+            description: "At least 5 personality traits are required.",
+            variant: "destructive"
+          });
+          return false;
+        }
+        if (!avatarData.mbtiType) {
+          toast({
+            title: "Validation Error",
+            description: "MBTI type selection is required.",
             variant: "destructive"
           });
           return false;

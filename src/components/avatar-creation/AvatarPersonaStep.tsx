@@ -146,13 +146,13 @@ export const AvatarPersonaStep: React.FC<AvatarPersonaStepProps> = ({ data, onUp
   ];
 
   const handleFavoriteToggle = (tag: string) => {
-    const currentFavorites = data.favorites || [];
+    const currentFavorites = data.personalityTraits || [];
     const updatedFavorites = currentFavorites.includes(tag)
       ? currentFavorites.filter((fav: string) => fav !== tag)
       : currentFavorites.length < 25 
         ? [...currentFavorites, tag]
         : currentFavorites;
-    onUpdate('favorites', updatedFavorites);
+    onUpdate('personalityTraits', updatedFavorites);
   };
 
   return (
@@ -172,10 +172,10 @@ export const AvatarPersonaStep: React.FC<AvatarPersonaStepProps> = ({ data, onUp
           {/* Selected Favorites Counter */}
           <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
             <span className="text-sm font-medium">
-              Selected: {data.favorites?.length || 0} / 25
+              Selected: {data.personalityTraits?.length || 0} / 25
             </span>
-            <Badge variant={data.favorites?.length >= 5 ? "default" : "destructive"}>
-              {data.favorites?.length >= 5 ? "Minimum met" : `Need ${5 - (data.favorites?.length || 0)} more`}
+            <Badge variant={data.personalityTraits?.length >= 5 ? "default" : "destructive"}>
+              {data.personalityTraits?.length >= 5 ? "Minimum met" : `Need ${5 - (data.personalityTraits?.length || 0)} more`}
             </Badge>
           </div>
 
@@ -197,8 +197,8 @@ export const AvatarPersonaStep: React.FC<AvatarPersonaStepProps> = ({ data, onUp
               <TabsContent key={key} value={key} className="space-y-3">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
                   {category.tags.map((tag) => {
-                    const isSelected = data.favorites?.includes(tag);
-                    const canSelect = (data.favorites?.length || 0) < 25;
+                    const isSelected = data.personalityTraits?.includes(tag);
+                    const canSelect = (data.personalityTraits?.length || 0) < 25;
                     return (
                       <Button
                         key={tag}
@@ -218,11 +218,11 @@ export const AvatarPersonaStep: React.FC<AvatarPersonaStepProps> = ({ data, onUp
           </Tabs>
 
           {/* Selected Favorites Display */}
-          {data.favorites && data.favorites.length > 0 && (
+          {data.personalityTraits && data.personalityTraits.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Selected Favorites:</h4>
               <div className="flex flex-wrap gap-2">
-                {data.favorites.map((favorite: string) => (
+                {data.personalityTraits.map((favorite: string) => (
                   <Badge key={favorite} variant="secondary" className="cursor-pointer" onClick={() => handleFavoriteToggle(favorite)}>
                     {favorite} ×
                   </Badge>
@@ -250,16 +250,16 @@ export const AvatarPersonaStep: React.FC<AvatarPersonaStepProps> = ({ data, onUp
               <div
                 key={mbti.type}
                 className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                  data.mbti === mbti.type 
+                  data.mbtiType === mbti.type 
                     ? 'border-primary bg-primary/5' 
                     : 'border-border hover:border-primary/50'
                 }`}
-                onClick={() => onUpdate('mbti', mbti.type)}
+                onClick={() => onUpdate('mbtiType', mbti.type)}
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h4 className="font-bold text-lg">{mbti.type}</h4>
-                    {data.mbti === mbti.type && (
+                    {data.mbtiType === mbti.type && (
                       <Badge variant="default">Selected</Badge>
                     )}
                   </div>

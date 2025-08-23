@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,15 +62,21 @@ const UserProfile = () => {
         
         if (data.phone) {
           const phone = data.phone;
+          console.log('Full phone from database:', phone);
+          
           // Find the country code (assuming it starts with +)
           const countryCodeMatch = phone.match(/^\+\d+/);
           if (countryCodeMatch) {
             countryCode = countryCodeMatch[0];
-            phoneNumber = phone.replace(countryCode, '');
+            phoneNumber = phone.replace(countryCode, '').replace(/^0+/, ''); // Remove leading zeros
           } else {
-            phoneNumber = phone;
+            // If no + found, treat as local number
+            phoneNumber = phone.replace(/^0+/, ''); // Remove leading zeros
           }
         }
+
+        console.log('Parsed country code:', countryCode);
+        console.log('Parsed phone number:', phoneNumber);
 
         setProfileData({
           name: data.name || '',
@@ -98,6 +103,8 @@ const UserProfile = () => {
       const fullPhoneNumber = profileData.phoneNumber ? 
         `${profileData.countryCode}${profileData.phoneNumber}` : '';
 
+      console.log('Saving full phone number:', fullPhoneNumber);
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -120,6 +127,8 @@ const UserProfile = () => {
           title: "Profile Updated",
           description: "Your profile has been successfully updated.",
         });
+        // Refresh the profile data
+        fetchUserProfile();
       }
     } catch (error) {
       toast({
