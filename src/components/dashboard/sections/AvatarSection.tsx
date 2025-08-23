@@ -1,53 +1,30 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Slider } from '@/components/ui/slider';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
-  User, 
+  Bot, 
+  Wand2, 
   Palette, 
-  Brain, 
-  Sparkles, 
-  Save,
+  Settings, 
+  Zap, 
   Upload,
+  Play,
   Download,
-  Eye
+  Share2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface PersonalityTrait {
-  name: string;
-  value: number[];
-}
-
 const AvatarSection = () => {
-  const [avatarName, setAvatarName] = useState('');
-  const [personalityDescription, setPersonalityDescription] = useState('');
-  const [comingSoonDialog, setComingSoonDialog] = useState(false);
-  const [personalityTraits, setPersonalityTraits] = useState<PersonalityTrait[]>([
-    { name: 'Friendliness', value: [75] },
-    { name: 'Professionalism', value: [85] },
-    { name: 'Creativity', value: [60] },
-    { name: 'Humor', value: [45] },
-    { name: 'Empathy', value: [80] },
-    { name: 'Assertiveness', value: [65] },
-  ]);
   const { toast } = useToast();
 
-  const handleTraitChange = (index: number, value: number[]) => {
-    const updatedTraits = [...personalityTraits];
-    updatedTraits[index].value = value;
-    setPersonalityTraits(updatedTraits);
-  };
-
   const handleComingSoon = () => {
-    setComingSoonDialog(true);
+    toast({
+      title: "Coming Soon",
+      description: "This feature is currently under development and will be available soon!",
+      duration: 4000,
+    });
   };
 
   return (
@@ -55,300 +32,184 @@ const AvatarSection = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <User className="h-8 w-8" />
+          <h1 className="text-2xl font-bold flex items-center gap-3">
+            <Bot className="h-6 w-6" />
             AI Avatar Designer
           </h1>
           <p className="text-muted-foreground">
-            Design your avatar's appearance and personality
+            Create and customize your AI avatar appearance
           </p>
         </div>
-        <Badge variant="outline" className="learning-path-gradient text-white">
-          Avatar v1.0
-        </Badge>
+        
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleComingSoon}>
+            <Upload className="mr-2 h-4 w-4" />
+            Import Model
+          </Button>
+          <Button className="btn-hero" onClick={handleComingSoon}>
+            <Wand2 className="mr-2 h-4 w-4" />
+            Generate Avatar
+          </Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="appearance" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
-          <TabsTrigger value="personality">Personality</TabsTrigger>
-          <TabsTrigger value="behavior">Behavior</TabsTrigger>
-        </TabsList>
+      {/* Avatar Creation Tools */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Wand2 className="h-5 w-5" />
+              AI Generator
+            </CardTitle>
+            <CardDescription>
+              Generate avatars using AI from text descriptions
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-center py-4">
+              <Wand2 className="h-12 w-12 text-primary mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground mb-4">
+                Describe your ideal avatar and let AI create it for you
+              </p>
+            </div>
+            <Button className="w-full" onClick={handleComingSoon}>
+              <Zap className="mr-2 h-4 w-4" />
+              Start AI Generation
+            </Button>
+          </CardContent>
+        </Card>
 
-        {/* Appearance Tab */}
-        <TabsContent value="appearance" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="card-modern">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Palette className="h-5 w-5" />
-                  Visual Design
-                </CardTitle>
-                <CardDescription>
-                  Customize your avatar's visual appearance
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="avatar-name">Avatar Name</Label>
-                  <Input
-                    id="avatar-name"
-                    value={avatarName}
-                    onChange={(e) => setAvatarName(e.target.value)}
-                    placeholder="Enter your avatar's name..."
-                    className="input-modern"
-                  />
-                </div>
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Palette className="h-5 w-5" />
+              Style Editor
+            </CardTitle>
+            <CardDescription>
+              Customize appearance, clothing, and accessories
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
+                Face & Hair
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
+                Clothing Style
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
+                Accessories
+              </Button>
+            </div>
+            <Button className="w-full" onClick={handleComingSoon}>
+              <Palette className="mr-2 h-4 w-4" />
+              Open Style Editor
+            </Button>
+          </CardContent>
+        </Card>
 
-                <div className="space-y-4">
-                  <h4 className="font-medium">Facial Features</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Face Shape</Label>
-                      <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
-                        Select Face Shape
-                      </Button>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Eye Color</Label>
-                      <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
-                        Choose Eye Color
-                      </Button>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Hair Style</Label>
-                      <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
-                        Select Hair Style
-                      </Button>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Hair Color</Label>
-                      <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
-                        Choose Hair Color
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium">Style & Accessories</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline" className="w-full" onClick={handleComingSoon}>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Reference
-                    </Button>
-                    <Button variant="outline" className="w-full" onClick={handleComingSoon}>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Random
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="card-modern">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="h-5 w-5" />
-                  Avatar Preview
-                </CardTitle>
-                <CardDescription>
-                  Real-time preview of your avatar
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="aspect-square bg-muted/20 rounded-lg flex items-center justify-center avatar-glow">
-                  <div className="text-center text-muted-foreground">
-                    <User className="h-16 w-16 mx-auto mb-4" />
-                    <p className="text-sm">Avatar preview will appear here</p>
-                    <p className="text-xs mt-2">
-                      {avatarName || 'Unnamed Avatar'}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="mt-6 space-y-2">
-                  <Button className="w-full btn-hero" onClick={handleComingSoon}>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Generate Avatar
-                  </Button>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" size="sm" onClick={handleComingSoon}>
-                      <Download className="mr-2 h-4 w-4" />
-                      Export
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleComingSoon}>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Personality Tab */}
-        <TabsContent value="personality" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="card-modern">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5" />
-                  Personality Traits
-                </CardTitle>
-                <CardDescription>
-                  Define your avatar's personality characteristics
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {personalityTraits.map((trait, index) => (
-                  <div key={trait.name} className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="font-medium">{trait.name}</Label>
-                      <span className="text-sm text-muted-foreground">
-                        {trait.value[0]}%
-                      </span>
-                    </div>
-                    <Slider
-                      value={trait.value}
-                      onValueChange={(value) => handleTraitChange(index, value)}
-                      max={100}
-                      min={0}
-                      step={5}
-                      className="w-full"
-                    />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card className="card-modern">
-              <CardHeader>
-                <CardTitle>Personality Description</CardTitle>
-                <CardDescription>
-                  Describe your avatar's personality in detail
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="personality-desc">Personality Overview</Label>
-                  <Textarea
-                    id="personality-desc"
-                    value={personalityDescription}
-                    onChange={(e) => setPersonalityDescription(e.target.value)}
-                    placeholder="Describe your avatar's personality, quirks, and characteristics..."
-                    className="min-h-[200px] input-modern"
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium">Personality Summary</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center p-2 bg-muted/20 rounded">
-                      <span className="text-sm">Dominant Trait</span>
-                      <Badge variant="outline">
-                        {personalityTraits.reduce((max, trait) => 
-                          trait.value[0] > max.value[0] ? trait : max
-                        ).name}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center p-2 bg-muted/20 rounded">
-                      <span className="text-sm">Communication Style</span>
-                      <Badge variant="outline">
-                        {personalityTraits.find(t => t.name === 'Professionalism')?.value[0]! > 70 
-                          ? 'Professional' : 'Casual'}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center p-2 bg-muted/20 rounded">
-                      <span className="text-sm">Interaction Level</span>
-                      <Badge variant="outline">
-                        {personalityTraits.find(t => t.name === 'Friendliness')?.value[0]! > 70 
-                          ? 'High' : 'Moderate'}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Behavior Tab */}
-        <TabsContent value="behavior" className="space-y-6">
-          <Card className="card-modern">
-            <CardHeader>
-              <CardTitle>Behavioral Settings</CardTitle>
-              <CardDescription>
-                Configure how your avatar behaves and responds
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Response Style</h4>
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label>Response Length</Label>
-                      <Slider defaultValue={[60]} max={100} min={0} step={10} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Formality Level</Label>
-                      <Slider defaultValue={[70]} max={100} min={0} step={10} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Emotional Expression</Label>
-                      <Slider defaultValue={[80]} max={100} min={0} step={10} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium">Interaction Preferences</h4>
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label>Proactivity</Label>
-                      <Slider defaultValue={[55]} max={100} min={0} step={10} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Question Asking</Label>
-                      <Slider defaultValue={[65]} max={100} min={0} step={10} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Topic Switching</Label>
-                      <Slider defaultValue={[40]} max={100} min={0} step={10} />
-                    </div>
-                  </div>
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Settings className="h-5 w-5" />
+              Advanced Settings
+            </CardTitle>
+            <CardDescription>
+              Fine-tune avatar parameters and quality
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium">Resolution</label>
+                <div className="flex gap-2 mt-1">
+                  <Badge variant="secondary">1024x1024</Badge>
+                  <Badge variant="outline">2048x2048</Badge>
                 </div>
               </div>
-
-              <div className="pt-6 border-t">
-                <Button className="w-full btn-hero" onClick={handleComingSoon}>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Avatar Configuration
-                </Button>
+              <div>
+                <label className="text-sm font-medium">Style</label>
+                <div className="flex gap-2 mt-1">
+                  <Badge variant="secondary">Realistic</Badge>
+                  <Badge variant="outline">Anime</Badge>
+                  <Badge variant="outline">Cartoon</Badge>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+            <Button className="w-full" onClick={handleComingSoon}>
+              <Settings className="mr-2 h-4 w-4" />
+              Configure Settings
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Coming Soon Dialog */}
-      <Dialog open={comingSoonDialog} onOpenChange={setComingSoonDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Coming Soon</DialogTitle>
-            <DialogDescription>
-              This feature is currently under development and will be available soon. Stay tuned for updates!
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end">
-            <Button onClick={() => setComingSoonDialog(false)}>
-              Got it
+      {/* Avatar Gallery */}
+      <Card className="card-modern">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            Avatar Gallery
+          </CardTitle>
+          <CardDescription>
+            Your generated and customized avatars
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-12">
+            <Bot className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No Avatars Generated Yet</h3>
+            <p className="text-muted-foreground mb-6">
+              Start by generating your first AI avatar using the tools above
+            </p>
+            <Button onClick={handleComingSoon} className="btn-hero">
+              <Wand2 className="mr-2 h-4 w-4" />
+              Generate Your First Avatar
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle>Animation Tools</CardTitle>
+            <CardDescription>
+              Bring your avatar to life with animations
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
+              <Play className="mr-2 h-4 w-4" />
+              Create Animations
+            </Button>
+            <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
+              <Zap className="mr-2 h-4 w-4" />
+              Motion Capture
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle>Export & Share</CardTitle>
+            <CardDescription>
+              Export your avatar for use in other applications
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
+              <Download className="mr-2 h-4 w-4" />
+              Export Avatar
+            </Button>
+            <Button variant="outline" className="w-full justify-start" onClick={handleComingSoon}>
+              <Share2 className="mr-2 h-4 w-4" />
+              Share Avatar
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

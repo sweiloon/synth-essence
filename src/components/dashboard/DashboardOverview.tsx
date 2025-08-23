@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -10,14 +10,45 @@ import {
   User, 
   TrendingUp, 
   Clock, 
-  Zap 
+  Zap,
+  UserCircle
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface DashboardOverviewProps {
   onSectionChange: (section: string) => void;
 }
 
 const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
+  const [myAvatars, setMyAvatars] = useState<any[]>([]);
+  const { toast } = useToast();
+
+  // Load avatars from localStorage on component mount
+  useEffect(() => {
+    const savedAvatars = localStorage.getItem('myAvatars');
+    if (savedAvatars) {
+      try {
+        setMyAvatars(JSON.parse(savedAvatars));
+      } catch (error) {
+        console.error('Error loading avatars from localStorage:', error);
+      }
+    }
+  }, []);
+
+  const handleComingSoon = () => {
+    toast({
+      title: "Coming Soon",
+      description: "This feature is currently under development and will be available soon!",
+      duration: 4000,
+    });
+  };
+
+  const handleAvatarClick = (avatarId: string) => {
+    // Store selected avatar and navigate to My Avatar section
+    localStorage.setItem('selectedAvatarId', avatarId);
+    onSectionChange('my-avatar');
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -89,9 +120,9 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0%</div>
+            <div className="text-2xl font-bold">{myAvatars.length > 0 ? '25%' : '0%'}</div>
             <p className="text-xs text-muted-foreground">
-              Create your first avatar
+              {myAvatars.length > 0 ? 'Avatar created' : 'Create your first avatar'}
             </p>
           </CardContent>
         </Card>
@@ -129,7 +160,7 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
             <Button 
               variant="outline" 
               className="w-full justify-start"
-              onClick={() => onSectionChange('tts')}
+              onClick={handleComingSoon}
             >
               <Mic className="mr-2 h-4 w-4" />
               Configure Voice
@@ -148,24 +179,61 @@ const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
         <Card className="card-modern">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Getting Started
+              <User className="h-5 w-5" />
+              My Avatar
             </CardTitle>
             <CardDescription>
-              Your avatar creation journey
+              Your created avatars
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-center py-8">
-              <Bot className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Welcome to AI Avatar</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Create your first avatar to see progress tracking here
-              </p>
-              <Button onClick={() => onSectionChange('my-avatar')} className="btn-hero">
-                Get Started
-              </Button>
-            </div>
+            {myAvatars.length === 0 ? (
+              <div className="text-center py-8">
+                <Bot className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Avatars Yet</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Create your first avatar to see it here
+                </p>
+                <Button onClick={() => onSectionChange('my-avatar')} className="btn-hero">
+                  Create New Avatar
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {myAvatars.slice(0, 3).map((avatar) => (
+                  <div 
+                    key={avatar.id}
+                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+                    onClick={() => handleAvatarClick(avatar.id)}
+                  >
+                    {avatar.avatarImages && avatar.avatarImages.length > 0 ? (
+                      <img 
+                        src={avatar.avatarImages[0]} 
+                        alt={avatar.name}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <UserCircle className="h-10 w-10 text-muted-foreground" />
+                    )}
+                    <div className="flex-1">
+                      <p className="font-medium">{avatar.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {avatar.gender} • {avatar.age} years • {avatar.mbti}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {myAvatars.length > 3 && (
+                  <Button 
+                    variant="ghost" 
+                    className="w-full"
+                    onClick={() => onSectionChange('my-avatar')}
+                  >
+                    View All Avatars ({myAvatars.length})
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

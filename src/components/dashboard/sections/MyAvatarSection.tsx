@@ -26,7 +26,6 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
   const [avatarToDelete, setAvatarToDelete] = useState<string | null>(null);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [previewAvatar, setPreviewAvatar] = useState<any>(null);
-  const [comingSoonDialog, setComingSoonDialog] = useState(false);
   const { toast } = useToast();
 
   // Load avatars from localStorage on component mount
@@ -61,7 +60,11 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
         break;
       case 'tts':
       case 'avatar':
-        setComingSoonDialog(true);
+        toast({
+          title: "Coming Soon",
+          description: "This feature is currently under development and will be available soon!",
+          duration: 4000,
+        });
         break;
       case 'images':
         onSectionChange('images');
@@ -72,6 +75,7 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
       toast({
         title: "Training Started",
         description: `Redirecting to ${type} training section...`,
+        duration: 4000,
       });
     }
   };
@@ -87,6 +91,7 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
       toast({
         title: "Avatar Deleted",
         description: "Avatar has been deleted successfully.",
+        duration: 4000,
       });
     }
     setDeleteDialogOpen(false);
@@ -142,47 +147,56 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {myAvatars.map((avatar) => (
-            <Card key={avatar.id} className="card-modern">
+            <Card key={avatar.id} className="card-modern overflow-hidden">
+              {/* Large Avatar Image */}
+              <div className="aspect-square relative">
+                {avatar.avatarImages && avatar.avatarImages.length > 0 ? (
+                  <img 
+                    src={avatar.avatarImages[0]} 
+                    alt={avatar.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                    <UserCircle className="h-20 w-20 text-muted-foreground" />
+                  </div>
+                )}
+                
+                {/* Action Buttons Overlay */}
+                <div className="absolute top-2 right-2 flex gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handlePreview(avatar)}
+                    title="Preview Avatar"
+                    className="bg-white/80 hover:bg-white/90 text-gray-700"
+                  >
+                    <Eye className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleEdit(avatar.id)}
+                    title="Edit Avatar"
+                    className="bg-white/80 hover:bg-white/90 text-gray-700"
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleDeleteClick(avatar.id)}
+                    title="Delete Avatar"
+                    className="bg-white/80 hover:bg-white/90 text-red-600"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {avatar.avatarImages && avatar.avatarImages.length > 0 ? (
-                      <img 
-                        src={avatar.avatarImages[0]} 
-                        alt={avatar.name}
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <UserCircle className="h-5 w-5" />
-                    )}
-                    <CardTitle className="text-lg">{avatar.name}</CardTitle>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handlePreview(avatar)}
-                      title="Preview Avatar"
-                    >
-                      <Eye className="h-3 w-3" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleEdit(avatar.id)}
-                      title="Edit Avatar"
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleDeleteClick(avatar.id)}
-                      title="Delete Avatar"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  <CardTitle className="text-lg">{avatar.name}</CardTitle>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <Badge variant="outline">{avatar.gender}</Badge>
@@ -356,23 +370,6 @@ const MyAvatarSection = ({ onSectionChange }: { onSectionChange: (section: strin
               )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Coming Soon Dialog */}
-      <Dialog open={comingSoonDialog} onOpenChange={setComingSoonDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Coming Soon</DialogTitle>
-            <DialogDescription>
-              This feature is currently under development and will be available soon. Stay tuned for updates!
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end">
-            <Button onClick={() => setComingSoonDialog(false)}>
-              Got it
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
     </div>
