@@ -1,19 +1,24 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useLocation } from 'react-router-dom';
 import Auth from './Auth';
 import Dashboard from './Dashboard';
 
-const Index = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+interface IndexProps {
+  isAuthenticated: boolean;
+  onLogin: () => void;
+  onLogout: () => void;
+}
+
+const Index = ({ isAuthenticated, onLogin, onLogout }: IndexProps) => {
   const location = useLocation();
 
   const handleAuthSuccess = () => {
-    setIsAuthenticated(true);
+    onLogin();
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    onLogout();
   };
 
   // Check if we're on an avatar detail route
