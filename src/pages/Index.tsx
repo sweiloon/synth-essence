@@ -4,17 +4,14 @@ import { useLocation } from 'react-router-dom';
 import Auth from './Auth';
 import Dashboard from './Dashboard';
 
-const Index = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+interface IndexProps {
+  isAuthenticated: boolean;
+  onLogin: (token: string) => void;
+  onLogout: () => void;
+}
+
+const Index = ({ isAuthenticated, onLogin, onLogout }: IndexProps) => {
   const location = useLocation();
-
-  const handleAuthSuccess = () => {
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-  };
 
   // Check if we're on an avatar detail route
   if (location.pathname.startsWith('/avatar/')) {
@@ -24,10 +21,10 @@ const Index = () => {
 
   // Always render either Auth or Dashboard - never a blank state
   if (isAuthenticated) {
-    return <Dashboard onLogout={handleLogout} />;
+    return <Dashboard onLogout={onLogout} />;
   }
 
-  return <Auth onAuthSuccess={handleAuthSuccess} />;
+  return <Auth onLogin={onLogin} />;
 };
 
 export default Index;
