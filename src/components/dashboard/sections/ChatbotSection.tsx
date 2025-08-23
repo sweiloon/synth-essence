@@ -16,7 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AvatarSelectorDropdown } from '@/components/chatbot-training/AvatarSelectorDropdown';
+import { AvatarSelector } from '@/components/chatbot-training/AvatarSelector';
 import { AvatarStatus } from '@/components/chatbot-training/AvatarStatus';
 import { TrainingInterface } from '@/components/chatbot-training/TrainingInterface';
 
@@ -47,42 +47,13 @@ const ChatbotSection = () => {
     });
   };
 
-  // Get real knowledge files from selected avatar with proper null checking
-  const getKnowledgeFiles = () => {
-    if (!selectedAvatar) return [];
-    
-    // Ensure knowledgeFiles exists and is an array
-    const knowledgeFiles = selectedAvatar.knowledgeFiles || [];
-    
-    return knowledgeFiles.map((file: any, index: number) => ({
-      id: file.id || `file-${index}`,
-      name: file.name || `Document ${index + 1}.pdf`,
-      size: file.size || 'Unknown size',
-      linked: file.linked !== undefined ? file.linked : true,
-      url: file.url || null
-    }));
-  };
+  const mockKnowledgeFiles = [
+    { id: '1', name: 'Product Manual.pdf', size: '2.4 MB', linked: true },
+    { id: '2', name: 'FAQ Document.pdf', size: '1.8 MB', linked: false },
+    { id: '3', name: 'User Guide.pdf', size: '3.2 MB', linked: true },
+  ];
 
   const toggleLinkStatus = (fileId: string) => {
-    if (!selectedAvatar) return;
-    
-    // Update the avatar's knowledge files in localStorage
-    const updatedAvatars = savedAvatars.map((avatar: any) => {
-      if (avatar.id === selectedAvatarId) {
-        const currentFiles = avatar.knowledgeFiles || [];
-        const updatedFiles = currentFiles.map((file: any) => {
-          if (file.id === fileId) {
-            return { ...file, linked: !file.linked };
-          }
-          return file;
-        });
-        return { ...avatar, knowledgeFiles: updatedFiles };
-      }
-      return avatar;
-    });
-    
-    localStorage.setItem('myAvatars', JSON.stringify(updatedAvatars));
-    
     toast({
       title: "Knowledge Base Updated",
       description: "File link status has been updated successfully.",
@@ -90,27 +61,11 @@ const ChatbotSection = () => {
   };
 
   const removeFile = (fileId: string) => {
-    if (!selectedAvatar) return;
-    
-    // Remove file from avatar's knowledge files in localStorage
-    const updatedAvatars = savedAvatars.map((avatar: any) => {
-      if (avatar.id === selectedAvatarId) {
-        const currentFiles = avatar.knowledgeFiles || [];
-        const updatedFiles = currentFiles.filter((file: any) => file.id !== fileId);
-        return { ...avatar, knowledgeFiles: updatedFiles };
-      }
-      return avatar;
-    });
-    
-    localStorage.setItem('myAvatars', JSON.stringify(updatedAvatars));
-    
     toast({
       title: "File Removed",
       description: "The file has been removed from knowledge base.",
     });
   };
-
-  const knowledgeFiles = getKnowledgeFiles();
 
   return (
     <div className="space-y-6">
@@ -130,8 +85,8 @@ const ChatbotSection = () => {
         </Badge>
       </div>
 
-      {/* Avatar Selection - Now using dropdown */}
-      <AvatarSelectorDropdown 
+      {/* Avatar Selection */}
+      <AvatarSelector 
         selectedAvatarId={selectedAvatarId}
         onSelectAvatar={handleAvatarSelection}
       />
@@ -158,7 +113,7 @@ const ChatbotSection = () => {
                 <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Avatar Selected</h3>
                 <p className="text-muted-foreground text-center mb-4">
-                  Please select an avatar from the dropdown above to start training
+                  Please select an avatar from the list above to start training
                 </p>
               </CardContent>
             </Card>
@@ -233,71 +188,56 @@ const ChatbotSection = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h4 className="font-medium">Uploaded Documents</h4>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={selectedAvatar ? undefined : handleActionWithoutAvatar}>
                       <Plus className="mr-2 h-4 w-4" />
                       Upload PDF
                     </Button>
                   </div>
                   
-                  {knowledgeFiles.length > 0 ? (
-                    <div className="space-y-3">
-                      {knowledgeFiles.map((file) => (
-                        <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center gap-3 flex-1">
-                            <div>
-                              <p className="font-medium">{file.name}</p>
-                              <p className="text-sm text-muted-foreground">{file.size}</p>
-                            </div>
-                            <Badge variant={file.linked ? "default" : "secondary"}>
-                              {file.linked ? "Linked" : "Not Linked"}
-                            </Badge>
+                  <div className="space-y-3">
+                    {mockKnowledgeFiles.map((file) => (
+                      <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div>
+                            <p className="font-medium">{file.name}</p>
+                            <p className="text-sm text-muted-foreground">{file.size}</p>
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleLinkStatus(file.id)}
-                            >
-                              {file.linked ? (
-                                <>
-                                  <Unlink className="h-4 w-4" />
-                                  <span className="hidden sm:inline ml-2">Unlink</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Link className="h-4 w-4" />
-                                  <span className="hidden sm:inline ml-2">Link to KB</span>
-                                </>
-                              )}
-                            </Button>
-                            {file.url && (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => window.open(file.url, '_blank')}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => removeFile(file.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <Badge variant={file.linked ? "default" : "secondary"}>
+                            {file.linked ? "Linked" : "Not Linked"}
+                          </Badge>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">No documents uploaded yet.</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Upload PDF files when creating or training your avatar.
-                      </p>
-                    </div>
-                  )}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleLinkStatus(file.id)}
+                          >
+                            {file.linked ? (
+                              <>
+                                <Unlink className="h-4 w-4" />
+                                <span className="hidden sm:inline ml-2">Unlink</span>
+                              </>
+                            ) : (
+                              <>
+                                <Link className="h-4 w-4" />
+                                <span className="hidden sm:inline ml-2">Link to KB</span>
+                              </>
+                            )}
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => removeFile(file.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
