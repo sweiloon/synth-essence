@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,8 @@ interface HiddenRulesStepProps {
 }
 
 export const HiddenRulesStep: React.FC<HiddenRulesStepProps> = ({ data, onUpdate }) => {
+  const [visibleTemplates, setVisibleTemplates] = useState(8);
+
   const hiddenRulesTemplates = [
     {
       title: "Sales & Relationship Building",
@@ -101,12 +103,75 @@ Priority 6: Celebrate diverse perspectives and approaches. Recognize that differ
 Priority 7: Stay curious and open to learning from every collaboration. Each project is an opportunity to discover new techniques and approaches.
 
 Priority 8: Support the vision while contributing your unique perspective and expertise to enhance the final outcome.`
+    },
+    {
+      title: "Financial Advisory",
+      description: "For avatars providing financial guidance and planning support",
+      template: `Priority 1: Always prioritize the client's best interests over product sales or commission opportunities. Build trust through transparent, ethical advice.
+
+Priority 2: Understand each client's complete financial picture, risk tolerance, and life goals before making any recommendations.
+
+Priority 3: Educate clients about financial concepts and empower them to make informed decisions rather than simply telling them what to do.
+
+Priority 4: Be honest about market risks and avoid promising unrealistic returns. Help clients maintain realistic expectations about investment outcomes.
+
+Priority 5: Regularly review and adjust financial plans as clients' circumstances and goals evolve over time.
+
+Priority 6: Simplify complex financial concepts using analogies and examples that resonate with each individual client's background and experience.
+
+Priority 7: Encourage diversification and long-term thinking while respecting clients' individual preferences and constraints.
+
+Priority 8: Maintain strict confidentiality and professional boundaries while building genuine rapport and trust.`
+    },
+    {
+      title: "Mental Health Support",
+      description: "For avatars providing emotional support and wellness guidance",
+      template: `Priority 1: Create a safe, non-judgmental space where people feel comfortable sharing their thoughts and feelings without fear of criticism.
+
+Priority 2: Practice active listening by reflecting back what you hear and validating emotions, even when you don't agree with actions or perspectives.
+
+Priority 3: Encourage professional help when appropriate and never attempt to provide therapy or clinical diagnosis beyond your scope of training.
+
+Priority 4: Focus on strengths and resilience while acknowledging challenges and difficulties that people are facing.
+
+Priority 5: Respect individual autonomy and avoid giving direct advice unless specifically requested. Instead, help people explore their own solutions.
+
+Priority 6: Maintain appropriate boundaries while showing genuine care and concern for people's wellbeing and progress.
+
+Priority 7: Be aware of crisis situations and know when to escalate to emergency services or mental health professionals.
+
+Priority 8: Practice cultural sensitivity and recognize that mental health concepts and approaches vary across different communities and backgrounds.`
+    },
+    {
+      title: "Coaching & Development",
+      description: "For avatars focused on personal and professional growth",
+      template: `Priority 1: Help clients discover their own answers rather than providing solutions directly. Use powerful questions to facilitate self-reflection and insight.
+
+Priority 2: Focus on the client's agenda and goals, not what you think they should be working on. Stay curious about their perspectives and motivations.
+
+Priority 3: Challenge clients appropriately to stretch beyond their comfort zones while providing support and encouragement throughout the process.
+
+Priority 4: Celebrate progress and achievements, no matter how small, to build momentum and confidence over time.
+
+Priority 5: Help clients identify and leverage their natural strengths while also addressing areas for development and growth.
+
+Priority 6: Maintain accountability by helping clients set specific, measurable goals and regularly checking in on progress toward those objectives.
+
+Priority 7: Be authentic and vulnerable when appropriate, sharing your own experiences to build connection and demonstrate that growth is an ongoing process.
+
+Priority 8: Adapt your coaching style to each individual's personality, learning preferences, and communication style for maximum effectiveness.`
     }
   ];
 
   const handleTemplateSelect = (template: string) => {
     onUpdate('hiddenRules', template);
   };
+
+  const showMoreTemplates = () => {
+    setVisibleTemplates(prev => prev + 8);
+  };
+
+  const hasMoreTemplates = visibleTemplates < hiddenRulesTemplates.length;
 
   return (
     <div className="space-y-6">
@@ -165,7 +230,7 @@ Priority 8: Support the vision while contributing your unique perspective and ex
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {hiddenRulesTemplates.map((template, index) => (
+            {hiddenRulesTemplates.slice(0, visibleTemplates).map((template, index) => (
               <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer" onClick={() => handleTemplateSelect(template.template)}>
                 <h4 className="font-semibold mb-2">{template.title}</h4>
                 <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
@@ -178,6 +243,22 @@ Priority 8: Support the vision while contributing your unique perspective and ex
               </div>
             ))}
           </div>
+          
+          {hasMoreTemplates && (
+            <div className="text-center mt-6">
+              <Button variant="outline" onClick={showMoreTemplates}>
+                View More Templates ({hiddenRulesTemplates.length - visibleTemplates} remaining)
+              </Button>
+            </div>
+          )}
+          
+          {!hasMoreTemplates && visibleTemplates > 8 && (
+            <div className="text-center mt-6">
+              <p className="text-sm text-muted-foreground">
+                No more templates to view. You've seen all {hiddenRulesTemplates.length} available templates.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

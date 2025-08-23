@@ -149,7 +149,7 @@ export const AvatarPersonaStep: React.FC<AvatarPersonaStepProps> = ({ data, onUp
     const currentFavorites = data.favorites || [];
     const updatedFavorites = currentFavorites.includes(tag)
       ? currentFavorites.filter((fav: string) => fav !== tag)
-      : currentFavorites.length < 15 
+      : currentFavorites.length < 25 
         ? [...currentFavorites, tag]
         : currentFavorites;
     onUpdate('favorites', updatedFavorites);
@@ -165,14 +165,14 @@ export const AvatarPersonaStep: React.FC<AvatarPersonaStepProps> = ({ data, onUp
             Pick Favorites
           </CardTitle>
           <CardDescription>
-            Select 5-15 tags that represent your avatar's interests and personality
+            Select 5-25 tags that represent your avatar's interests and personality
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Selected Favorites Counter */}
           <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
             <span className="text-sm font-medium">
-              Selected: {data.favorites?.length || 0} / 15
+              Selected: {data.favorites?.length || 0} / 25
             </span>
             <Badge variant={data.favorites?.length >= 5 ? "default" : "destructive"}>
               {data.favorites?.length >= 5 ? "Minimum met" : `Need ${5 - (data.favorites?.length || 0)} more`}
@@ -198,7 +198,7 @@ export const AvatarPersonaStep: React.FC<AvatarPersonaStepProps> = ({ data, onUp
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
                   {category.tags.map((tag) => {
                     const isSelected = data.favorites?.includes(tag);
-                    const canSelect = (data.favorites?.length || 0) < 15;
+                    const canSelect = (data.favorites?.length || 0) < 25;
                     return (
                       <Button
                         key={tag}
