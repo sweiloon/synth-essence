@@ -16,32 +16,44 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          avatar_url: string | null
           bio: string | null
           company: string | null
           created_at: string
           email: string | null
           id: string
           name: string | null
+          phone: string | null
+          referral_code: string | null
+          referrer_code: string | null
           updated_at: string
           website: string | null
         }
         Insert: {
+          avatar_url?: string | null
           bio?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
           id: string
           name?: string | null
+          phone?: string | null
+          referral_code?: string | null
+          referrer_code?: string | null
           updated_at?: string
           website?: string | null
         }
         Update: {
+          avatar_url?: string | null
           bio?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name?: string | null
+          phone?: string | null
+          referral_code?: string | null
+          referrer_code?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -52,7 +64,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_referral_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

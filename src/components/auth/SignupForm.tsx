@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Mail, Lock, User, Chrome } from 'lucide-react';
+import { Mail, Lock, User, Chrome, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 interface SignupFormProps {
   onSwitchToLogin: () => void;
@@ -19,7 +20,10 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    countryCode: '+60',
+    phoneNumber: '',
+    referrerCode: ''
   });
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +58,15 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
     setIsLoading(true);
     
     try {
-      const { error } = await signUp(formData.email, formData.password, formData.name);
+      const phoneNumber = formData.phoneNumber ? `${formData.countryCode}${formData.phoneNumber}` : '';
+      
+      const { error } = await signUp(
+        formData.email, 
+        formData.password, 
+        formData.name,
+        phoneNumber,
+        formData.referrerCode
+      );
       
       if (error) {
         toast({
@@ -67,7 +79,10 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
           title: "Account Created!",
           description: "Welcome to AvatarHub. Please check your email to verify your account.",
         });
-        onSignupSuccess();
+        // Auto redirect to login page after successful signup
+        setTimeout(() => {
+          onSwitchToLogin();
+        }, 2000);
       }
     } catch (error) {
       toast({
@@ -142,6 +157,16 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="phone">Phone Number</Label>
+          <PhoneInput
+            countryCode={formData.countryCode}
+            phoneNumber={formData.phoneNumber}
+            onCountryCodeChange={(value) => handleInputChange('countryCode', value)}
+            onPhoneNumberChange={(value) => handleInputChange('phoneNumber', value)}
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -171,6 +196,18 @@ const SignupForm = ({ onSwitchToLogin, onSignupSuccess }: SignupFormProps) => {
               required
             />
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="referrerCode">Referrer Code (Optional)</Label>
+          <Input
+            id="referrerCode"
+            type="text"
+            placeholder="Enter referrer code if you have one"
+            value={formData.referrerCode}
+            onChange={(e) => handleInputChange('referrerCode', e.target.value)}
+            className="input-modern"
+          />
         </div>
 
         <div className="flex items-center space-x-2">
