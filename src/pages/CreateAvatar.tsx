@@ -39,7 +39,17 @@ const CreateAvatar = () => {
     knowledgeFiles: [],
     
     // Step 5: Hidden Rules
-    hiddenRules: ''
+    hiddenRules: '',
+    
+    // Additional fields for editing
+    id: '',
+    progress: {
+      chatbot: false,
+      tts: false,
+      images: false,
+      avatar: false
+    },
+    createdAt: ''
   });
 
   const steps = [
@@ -314,8 +324,7 @@ const CreateAvatar = () => {
               variant="outline"
               onClick={handlePrevious}
               disabled={currentStep === 1}
-              size="sm"
-              className="sm:size-default"
+              className="text-sm px-4 py-2 sm:text-base sm:px-6 sm:py-2"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               <span className="hidden sm:inline">Previous</span>
@@ -323,9 +332,7 @@ const CreateAvatar = () => {
             </Button>
             <Button 
               onClick={handleNext} 
-              className="btn-hero"
-              size="sm"
-              className="sm:size-default btn-hero"
+              className="btn-hero text-sm px-4 py-2 sm:text-base sm:px-6 sm:py-2"
             >
               {currentStep === 5 ? (isEditing ? 'Update Avatar' : 'Create Avatar') : 'Next'}
               {currentStep < 5 && <ArrowRight className="ml-2 h-4 w-4" />}
