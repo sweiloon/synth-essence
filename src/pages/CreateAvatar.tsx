@@ -17,6 +17,8 @@ const CreateAvatar = () => {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingAvatarId, setEditingAvatarId] = useState<string | null>(null);
   const [avatarData, setAvatarData] = useState({
     // Step 1: Avatar Detail
     avatarImages: [],
@@ -48,6 +50,25 @@ const CreateAvatar = () => {
     { id: 4, name: 'Knowledge Base', description: 'Upload documents' },
     { id: 5, name: 'Hidden Rules', description: 'Special instructions' }
   ];
+
+  // Check if editing mode on component mount
+  useEffect(() => {
+    const editId = localStorage.getItem('editingAvatarId');
+    if (editId) {
+      setIsEditing(true);
+      setEditingAvatarId(editId);
+      
+      // Load existing avatar data
+      const savedAvatars = JSON.parse(localStorage.getItem('myAvatars') || '[]');
+      const avatarToEdit = savedAvatars.find((avatar: any) => avatar.id === editId);
+      if (avatarToEdit) {
+        setAvatarData(avatarToEdit);
+      }
+      
+      // Clear the editing flag
+      localStorage.removeItem('editingAvatarId');
+    }
+  }, []);
 
   const hasUnsavedData = () => {
     return (
@@ -130,27 +151,43 @@ const CreateAvatar = () => {
   };
 
   const handleCreateAvatar = () => {
-    // Save avatar to localStorage (later will be replaced with Supabase)
     const savedAvatars = JSON.parse(localStorage.getItem('myAvatars') || '[]');
-    const newAvatar = {
-      id: Date.now().toString(),
-      ...avatarData,
-      progress: {
-        chatbot: false,
-        tts: false,
-        images: false,
-        avatar: false
-      },
-      createdAt: new Date().toISOString()
-    };
     
-    savedAvatars.push(newAvatar);
-    localStorage.setItem('myAvatars', JSON.stringify(savedAvatars));
-    
-    toast({
-      title: "Avatar Created!",
-      description: `${avatarData.name} has been created successfully.`,
-    });
+    if (isEditing && editingAvatarId) {
+      // Update existing avatar
+      const updatedAvatars = savedAvatars.map((avatar: any) =>
+        avatar.id === editingAvatarId
+          ? { ...avatarData, id: editingAvatarId }
+          : avatar
+      );
+      localStorage.setItem('myAvatars', JSON.stringify(updatedAvatars));
+      
+      toast({
+        title: "Avatar Updated!",
+        description: `${avatarData.name} has been updated successfully.`,
+      });
+    } else {
+      // Create new avatar
+      const newAvatar = {
+        id: Date.now().toString(),
+        ...avatarData,
+        progress: {
+          chatbot: false,
+          tts: false,
+          images: false,
+          avatar: false
+        },
+        createdAt: new Date().toISOString()
+      };
+      
+      savedAvatars.push(newAvatar);
+      localStorage.setItem('myAvatars', JSON.stringify(savedAvatars));
+      
+      toast({
+        title: "Avatar Created!",
+        description: `${avatarData.name} has been created successfully.`,
+      });
+    }
     
     navigate('/dashboard', { state: { activeSection: 'my-avatar' } });
   };
@@ -205,77 +242,92 @@ const CreateAvatar = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-3 py-3">
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
               onClick={handleBackToMyAvatar}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-sm h-8 px-3"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-3 w-3" />
               Back to My Avatar
             </Button>
-            <h1 className="text-2xl font-bold">Create New Avatar</h1>
-            <div className="w-32" /> {/* Spacer */}
+            <h1 className="text-xl font-bold">
+              {isEditing ? 'Edit Avatar' : 'Create New Avatar'}
+            </h1>
+            <div className="w-28" />
           </div>
         </div>
       </div>
 
       {/* Progress Steps */}
       <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="container mx-auto px-3 py-4">
+          {/* Mobile Progress */}
+          <div className="block md:hidden mb-3">
+            <div className="flex items-center justify-between text-sm">
+              <span>Step {currentStep} of {steps.length}</span>
+              <span className="text-muted-foreground">{steps[currentStep - 1]?.name}</span>
+            </div>
+            <Progress value={(currentStep / steps.length) * 100} className="h-2 mt-2" />
+          </div>
+
+          {/* Desktop Progress */}
+          <div className="hidden md:flex items-center justify-between mb-3">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 <div className="flex items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
                     currentStep > step.id 
                       ? 'bg-primary text-primary-foreground' 
                       : currentStep === step.id 
                         ? 'bg-primary text-primary-foreground' 
                         : 'bg-muted text-muted-foreground'
                   }`}>
-                    {currentStep > step.id ? <Check className="w-4 h-4" /> : step.id}
+                    {currentStep > step.id ? <Check className="w-3 h-3" /> : step.id}
                   </div>
-                  <div className="ml-3 text-left">
-                    <p className={`text-sm font-medium ${currentStep >= step.id ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  <div className="ml-2 text-left">
+                    <p className={`text-xs font-medium ${currentStep >= step.id ? 'text-foreground' : 'text-muted-foreground'}`}>
                       {step.name}
                     </p>
                     <p className="text-xs text-muted-foreground">{step.description}</p>
                   </div>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`h-px w-12 mx-4 ${currentStep > step.id ? 'bg-primary' : 'bg-border'}`} />
+                  <div className={`h-px w-8 mx-3 ${currentStep > step.id ? 'bg-primary' : 'bg-border'}`} />
                 )}
               </div>
             ))}
           </div>
-          <Progress value={(currentStep / steps.length) * 100} className="h-2" />
+          <div className="hidden md:block">
+            <Progress value={(currentStep / steps.length) * 100} className="h-2" />
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="container mx-auto px-3 py-6">
+        <div className="max-w-3xl mx-auto">
           {renderCurrentStep()}
         </div>
       </div>
 
       {/* Navigation */}
       <div className="fixed bottom-0 left-0 right-0 border-t bg-card">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-3 py-3">
           <div className="flex justify-between">
             <Button
               variant="outline"
               onClick={handlePrevious}
               disabled={currentStep === 1}
+              className="text-sm h-9 px-4"
             >
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <ArrowLeft className="mr-2 h-3 w-3" />
               Previous
             </Button>
-            <Button onClick={handleNext} className="btn-hero">
-              {currentStep === 5 ? 'Create Avatar' : 'Next'}
-              {currentStep < 5 && <ArrowRight className="ml-2 h-4 w-4" />}
+            <Button onClick={handleNext} className="btn-hero text-sm h-9 px-4">
+              {currentStep === 5 ? (isEditing ? 'Update Avatar' : 'Create Avatar') : 'Next'}
+              {currentStep < 5 && <ArrowRight className="ml-2 h-3 w-3" />}
             </Button>
           </div>
         </div>
@@ -285,17 +337,17 @@ const CreateAvatar = () => {
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your avatar creation is not complete yet. All the details you've entered will be lost if you leave now. 
+            <AlertDialogTitle className="text-base">Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
+              Your avatar {isEditing ? 'editing' : 'creation'} is not complete yet. All the details you've entered will be lost if you leave now. 
               Are you sure you want to go back to My Avatar page?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Stay and Continue</AlertDialogCancel>
+            <AlertDialogCancel className="text-sm h-9">Stay and Continue</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => navigate('/dashboard', { state: { activeSection: 'my-avatar' } })}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-sm h-9"
             >
               Yes, Discard Changes
             </AlertDialogAction>
@@ -303,8 +355,8 @@ const CreateAvatar = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Bottom padding to account for fixed navigation */}
-      <div className="h-20" />
+      {/* Bottom padding for fixed navigation */}
+      <div className="h-16" />
     </div>
   );
 };
