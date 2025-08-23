@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { User, Globe, X, Upload, ImageIcon } from 'lucide-react';
+import { User, Globe, X, ImageIcon } from 'lucide-react';
 import { ImageUpload } from '@/components/ui/image-upload';
 
 interface AvatarDetailStepProps {
