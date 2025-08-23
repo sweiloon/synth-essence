@@ -158,27 +158,9 @@ const UserProfile = () => {
 
     setIsUploading(true);
     try {
-      // Create a unique filename
+      // Create a unique filename with user folder structure
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-
-      // First, check if avatars bucket exists, if not create it
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const avatarsBucket = buckets?.find(bucket => bucket.name === 'avatars');
-      
-      if (!avatarsBucket) {
-        // Create the bucket if it doesn't exist
-        const { error: bucketError } = await supabase.storage.createBucket('avatars', {
-          public: true,
-          allowedMimeTypes: ['image/*'],
-          fileSizeLimit: 2097152 // 2MB
-        });
-        
-        if (bucketError) {
-          console.error('Error creating bucket:', bucketError);
-          throw new Error('Failed to create storage bucket');
-        }
-      }
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
