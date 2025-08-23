@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -62,7 +61,24 @@ const AvatarDetail = () => {
         throw error;
       }
 
-      setAvatar(data);
+      // Transform the data to match our Avatar interface
+      const avatarData: Avatar = {
+        id: data.id,
+        name: data.name,
+        avatar_images: data.avatar_images || [],
+        primary_language: data.primary_language,
+        secondary_languages: data.secondary_languages || [],
+        origin_country: data.origin_country,
+        age: data.age,
+        gender: data.gender,
+        backstory: data.backstory || '',
+        personality_traits: data.personality_traits || [],
+        knowledge_files: Array.isArray(data.knowledge_files) ? data.knowledge_files : [],
+        hidden_rules: data.hidden_rules || '',
+        created_at: data.created_at
+      };
+
+      setAvatar(avatarData);
     } catch (error: any) {
       console.error('Error fetching avatar:', error);
       toast({

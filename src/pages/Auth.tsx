@@ -33,8 +33,8 @@ const Auth = ({ onLogin }: AuthProps) => {
       case 'signup':
         return (
           <SignupForm
+            onLogin={handleAuthSuccess}
             onSwitchToLogin={() => setAuthMode('login')}
-            onSignupSuccess={handleAuthSuccess}
           />
         );
       case 'forgot-password':

@@ -65,7 +65,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
       case 'learning-path':
         return <LearningPathSection />;
       case 'my-avatar':
-        return <MyAvatarSection onSectionChange={setActiveSection} />;
+        return <MyAvatarSection />;
       case 'settings':
         return <SettingsSection />;
       default:
