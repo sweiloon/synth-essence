@@ -162,6 +162,24 @@ const UserProfile = () => {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
 
+      // First, check if avatars bucket exists, if not create it
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const avatarsBucket = buckets?.find(bucket => bucket.name === 'avatars');
+      
+      if (!avatarsBucket) {
+        // Create the bucket if it doesn't exist
+        const { error: bucketError } = await supabase.storage.createBucket('avatars', {
+          public: true,
+          allowedMimeTypes: ['image/*'],
+          fileSizeLimit: 2097152 // 2MB
+        });
+        
+        if (bucketError) {
+          console.error('Error creating bucket:', bucketError);
+          throw new Error('Failed to create storage bucket');
+        }
+      }
+
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
@@ -206,10 +224,13 @@ const UserProfile = () => {
       });
     } finally {
       setIsUploading(false);
+      // Reset the file input
+      event.target.value = '';
     }
   };
 
   const getInitials = (name: string) => {
+    if (!name) return 'U';
     return name
       .split(' ')
       .map(word => word[0])
@@ -279,7 +300,7 @@ const UserProfile = () => {
               {profileData.avatarUrl ? (
                 <AvatarImage src={profileData.avatarUrl} alt="Profile" />
               ) : (
-                <AvatarFallback>{getInitials(profileData.name || 'User')}</AvatarFallback>
+                <AvatarFallback className="text-lg">{getInitials(profileData.name || 'User')}</AvatarFallback>
               )}
             </Avatar>
             <div className="space-y-2">
