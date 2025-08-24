@@ -61,6 +61,39 @@ export type Database = {
           },
         ]
       }
+      avatar_templates: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean
+          template_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          template_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          template_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       avatars: {
         Row: {
           age: number | null

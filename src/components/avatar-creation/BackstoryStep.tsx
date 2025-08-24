@@ -4,14 +4,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BookOpen, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface BackstoryStepProps {
   data: any;
   onUpdate: (field: string, value: any) => void;
   avatarId?: string;
+}
+
+interface Template {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
 }
 
 export const BackstoryStep: React.FC<BackstoryStepProps> = ({ 
@@ -20,6 +29,35 @@ export const BackstoryStep: React.FC<BackstoryStepProps> = ({
   avatarId 
 }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+
+  // Fetch templates
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const { data: templatesData, error } = await supabase
+          .from('avatar_templates')
+          .select('id, title, content, category')
+          .eq('template_type', 'backstory')
+          .eq('is_active', true)
+          .order('category', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching templates:', error);
+        } else {
+          setTemplates(templatesData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching templates:', error);
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
 
   // Set up real-time updates for backstory changes
   useEffect(() => {
@@ -50,6 +88,22 @@ export const BackstoryStep: React.FC<BackstoryStepProps> = ({
     };
   }, [avatarId, user, onUpdate]);
 
+  const handleUseTemplate = (template: Template) => {
+    onUpdate('backstory', template.content);
+    toast({
+      title: "Template Applied",
+      description: `"${template.title}" template has been applied to your backstory.`,
+    });
+  };
+
+  const groupedTemplates = templates.reduce((acc, template) => {
+    if (!acc[template.category]) {
+      acc[template.category] = [];
+    }
+    acc[template.category].push(template);
+    return acc;
+  }, {} as Record<string, Template[]>);
+
   return (
     <Card className="card-modern">
       <CardHeader>
@@ -67,6 +121,42 @@ export const BackstoryStep: React.FC<BackstoryStepProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Templates Section */}
+        {!loadingTemplates && templates.length > 0 && (
+          <div className="space-y-4">
+            <Label>Quick Start Templates</Label>
+            {Object.entries(groupedTemplates).map(([category, categoryTemplates]) => (
+              <div key={category} className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground capitalize">
+                  {category}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {categoryTemplates.map((template) => (
+                    <Button
+                      key={template.id}
+                      variant="outline"
+                      className="justify-start h-auto p-3 text-left"
+                      onClick={() => handleUseTemplate(template)}
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <Copy className="h-4 w-4 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">
+                            {template.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {template.content.substring(0, 50)}...
+                          </p>
+                        </div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="backstory">Avatar Backstory *</Label>
           <Textarea

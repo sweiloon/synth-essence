@@ -1,266 +1,115 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, Save, CheckCircle2, User, BookOpen, Shield, Database } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { ArrowLeft, ArrowRight, User, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-// Import step components
 import { AvatarDetailStep } from '@/components/avatar-creation/AvatarDetailStep';
 import { AvatarPersonaStep } from '@/components/avatar-creation/AvatarPersonaStep';
 import { BackstoryStep } from '@/components/avatar-creation/BackstoryStep';
 import { HiddenRulesStep } from '@/components/avatar-creation/HiddenRulesStep';
 import { KnowledgeBaseStep } from '@/components/avatar-creation/KnowledgeBaseStep';
+import { AvatarCreationLoading } from '@/components/ui/avatar-creation-loading';
 
-const steps = [
-  { id: 'detail', title: 'Avatar Detail', icon: User, description: 'Basic information and images' },
-  { id: 'persona', title: 'Personality', icon: User, description: 'Traits and characteristics' },
-  { id: 'backstory', title: 'Backstory', icon: BookOpen, description: 'History and background' },
-  { id: 'rules', title: 'Hidden Rules', icon: Shield, description: 'Internal guidelines' },
-  { id: 'knowledge', title: 'Knowledge Base', icon: Database, description: 'Upload documents' }
-];
-
-export default function CreateAvatar() {
+const CreateAvatar = () => {
   const navigate = useNavigate();
-  const { id: avatarId } = useParams();
-  const { toast } = useToast();
   const { user } = useAuth();
-  
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [formData, setFormData] = useState({
-    // Avatar Detail
+  const [isCreating, setIsCreating] = useState(false);
+  const [creationStatus, setCreationStatus] = useState<'creating' | 'success' | 'error'>('creating');
+  const [creationProgress, setCreationProgress] = useState(0);
+  const [createdAvatarId, setCreatedAvatarId] = useState<string | null>(null);
+
+  const [avatarData, setAvatarData] = useState({
     name: '',
-    originCountry: 'Malaysia',
-    age: '',
+    age: null,
     gender: '',
-    primaryLanguage: '',
+    originCountry: 'Malaysia',
+    primaryLanguage: 'English',
     secondaryLanguages: [],
     avatarImages: [],
-    
-    // Personality
     personalityTraits: [],
     mbtiType: '',
-    
-    // Backstory
     backstory: '',
-    
-    // Hidden Rules
     hiddenRules: '',
-    
-    // Knowledge Base
-    knowledgeFiles: []
   });
 
-  // Load existing avatar data if editing
+  const steps = [
+    {
+      title: 'Avatar Details',
+      component: AvatarDetailStep,
+      description: 'Basic information about your avatar'
+    },
+    {
+      title: 'Personality',
+      component: AvatarPersonaStep,
+      description: 'Define personality traits and characteristics'
+    },
+    {
+      title: 'Backstory',
+      component: BackstoryStep,
+      description: 'Create a detailed background story'
+    },
+    {
+      title: 'Hidden Rules',
+      component: HiddenRulesStep,
+      description: 'Set behavior guidelines and constraints'
+    },
+    {
+      title: 'Knowledge Base',
+      component: KnowledgeBaseStep,
+      description: 'Upload documents for specialized knowledge'
+    }
+  ];
+
+  // Redirect if not authenticated
   useEffect(() => {
-    if (avatarId && user) {
-      loadAvatarData();
+    if (!user) {
+      navigate('/auth');
     }
-  }, [avatarId, user]);
+  }, [user, navigate]);
 
-  const loadAvatarData = async () => {
-    if (!avatarId || !user) return;
-    
-    setIsLoading(true);
-    try {
-      const { data: avatar, error } = await supabase
-        .from('avatars')
-        .select('*')
-        .eq('id', avatarId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error loading avatar:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load avatar data.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (avatar) {
-        setFormData({
-          name: avatar.name || '',
-          originCountry: avatar.origin_country || 'Malaysia',
-          age: avatar.age?.toString() || '',
-          gender: avatar.gender || '',
-          primaryLanguage: avatar.primary_language || '',
-          secondaryLanguages: avatar.secondary_languages || [],
-          avatarImages: avatar.avatar_images || [],
-          personalityTraits: avatar.personality_traits || [],
-          mbtiType: avatar.mbti_type || '',
-          backstory: avatar.backstory || '',
-          hiddenRules: avatar.hidden_rules || '',
-          knowledgeFiles: [] // This will be loaded by KnowledgeBaseStep
-        });
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateFormData = (field: string, value: any) => {
-    setFormData(prev => ({
+  const updateAvatarData = (field: string, value: any) => {
+    setAvatarData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const validateCurrentStep = () => {
-    const step = steps[currentStep];
-    
-    switch (step.id) {
-      case 'detail':
-        return formData.name && formData.age && formData.gender && formData.primaryLanguage;
-      case 'persona':
-        return formData.personalityTraits.length > 0;
-      case 'backstory':
-        return formData.backstory.trim().length > 0;
-      case 'rules':
+  const calculateProgress = () => {
+    // Progress should be 0% at step 0, then increment by 20% for each step
+    return (currentStep / steps.length) * 100;
+  };
+
+  const isStepValid = (stepIndex: number) => {
+    switch (stepIndex) {
+      case 0: // Avatar Details
+        return avatarData.name.trim() !== '' && avatarData.age && avatarData.gender;
+      case 1: // Personality
+        return avatarData.personalityTraits.length > 0;
+      case 2: // Backstory
+        return avatarData.backstory.trim() !== '';
+      case 3: // Hidden Rules
         return true; // Optional step
-      case 'knowledge':
+      case 4: // Knowledge Base
         return true; // Optional step
       default:
         return false;
     }
   };
 
-  const saveToDatabase = async () => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to save your avatar.",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    setIsSaving(true);
-    try {
-      const avatarData = {
-        user_id: user.id,
-        name: formData.name,
-        origin_country: formData.originCountry,
-        age: formData.age ? parseInt(formData.age) : null,
-        gender: formData.gender,
-        primary_language: formData.primaryLanguage,
-        secondary_languages: formData.secondaryLanguages,
-        avatar_images: formData.avatarImages,
-        personality_traits: formData.personalityTraits,
-        mbti_type: formData.mbtiType,
-        backstory: formData.backstory,
-        hidden_rules: formData.hiddenRules
-      };
-
-      let savedAvatarId = avatarId;
-
-      if (avatarId) {
-        // Update existing avatar
-        const { error: updateError } = await supabase
-          .from('avatars')
-          .update(avatarData)
-          .eq('id', avatarId)
-          .eq('user_id', user.id);
-
-        if (updateError) {
-          throw updateError;
-        }
-      } else {
-        // Create new avatar
-        const { data: newAvatar, error: insertError } = await supabase
-          .from('avatars')
-          .insert(avatarData)
-          .select()
-          .single();
-
-        if (insertError) {
-          throw insertError;
-        }
-
-        savedAvatarId = newAvatar.id;
-
-        // Save knowledge files for new avatar
-        if (formData.knowledgeFiles.length > 0) {
-          const filesWithTempId = formData.knowledgeFiles.filter((file: any) => 
-            file.id.startsWith('temp-') && file.file
-          );
-
-          for (const file of filesWithTempId) {
-            const fileName = `${user.id}/${savedAvatarId}/${Date.now()}-${file.file.name}`;
-            
-            const { data: storageData, error: storageError } = await supabase.storage
-              .from('knowledge-base')
-              .upload(fileName, file.file);
-
-            if (storageError) {
-              console.error('Storage upload error:', storageError);
-              continue;
-            }
-
-            const { error: dbError } = await supabase
-              .from('avatar_knowledge_files')
-              .insert({
-                avatar_id: savedAvatarId,
-                user_id: user.id,
-                file_name: file.file.name,
-                file_path: storageData.path,
-                file_size: file.file.size,
-                content_type: file.file.type || 'application/pdf',
-                is_linked: true
-              });
-
-            if (dbError) {
-              console.error('Database insert error:', dbError);
-            }
-          }
-        }
-      }
-
-      toast({
-        title: avatarId ? "Avatar Updated" : "Avatar Created",
-        description: avatarId ? "Your avatar has been updated successfully!" : "Your avatar has been created successfully!",
-      });
-
-      return savedAvatarId;
-    } catch (error) {
-      console.error('Save error:', error);
-      toast({
-        title: "Save Failed",
-        description: "Failed to save avatar. Please try again.",
-        variant: "destructive"
-      });
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
+  const canProceed = () => {
+    return isStepValid(currentStep);
   };
 
-  const handleNext = async () => {
-    if (!validateCurrentStep()) {
-      toast({
-        title: "Incomplete Step",
-        description: "Please fill in all required fields before proceeding.",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
@@ -272,199 +121,229 @@ export default function CreateAvatar() {
     }
   };
 
-  const handleSave = async () => {
-    const savedAvatarId = await saveToDatabase();
-    if (savedAvatarId) {
-      navigate('/dashboard');
+  const handleCreateAvatar = async () => {
+    if (!user) return;
+
+    setIsCreating(true);
+    setCreationStatus('creating');
+    setCreationProgress(0);
+
+    try {
+      // Simulate progress during creation
+      const progressInterval = setInterval(() => {
+        setCreationProgress(prev => {
+          const next = prev + 5;
+          return next > 90 ? 90 : next;
+        });
+      }, 1000);
+
+      const { data, error } = await supabase
+        .from('avatars')
+        .insert({
+          user_id: user.id,
+          name: avatarData.name,
+          age: avatarData.age,
+          gender: avatarData.gender,
+          origin_country: avatarData.originCountry,
+          primary_language: avatarData.primaryLanguage,
+          secondary_languages: avatarData.secondaryLanguages,
+          avatar_images: avatarData.avatarImages,
+          personality_traits: avatarData.personalityTraits,
+          mbti_type: avatarData.mbtiType,
+          backstory: avatarData.backstory,
+          hidden_rules: avatarData.hiddenRules,
+        })
+        .select()
+        .single();
+
+      clearInterval(progressInterval);
+      setCreationProgress(100);
+
+      if (error) {
+        throw error;
+      }
+
+      setCreatedAvatarId(data.id);
+      setCreationStatus('success');
+      
+      toast({
+        title: "Avatar Created Successfully!",
+        description: `${avatarData.name} has been created and is ready to use.`,
+      });
+
+      // Redirect to avatar detail page after a short delay
+      setTimeout(() => {
+        navigate(`/avatar/${data.id}`);
+      }, 2000);
+
+    } catch (error: any) {
+      console.error('Error creating avatar:', error);
+      setCreationStatus('error');
+      
+      toast({
+        title: "Failed to Create Avatar",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
-  const handleFinish = async () => {
-    const savedAvatarId = await saveToDatabase();
-    if (savedAvatarId) {
-      navigate('/dashboard');
-    }
-  };
+  if (!user) {
+    return null;
+  }
 
-  const renderCurrentStep = () => {
-    const step = steps[currentStep];
-    const commonProps = {
-      data: formData,
-      onUpdate: updateFormData,
-      avatarId
-    };
-
-    switch (step.id) {
-      case 'detail':
-        return <AvatarDetailStep {...commonProps} />;
-      case 'persona':
-        return <AvatarPersonaStep {...commonProps} />;
-      case 'backstory':
-        return <BackstoryStep {...commonProps} />;
-      case 'rules':
-        return <HiddenRulesStep {...commonProps} />;
-      case 'knowledge':
-        return <KnowledgeBaseStep {...commonProps} />;
-      default:
-        return null;
-    }
-  };
-
-  const progress = ((currentStep + 1) / steps.length) * 100;
-  const currentStepData = steps[currentStep];
-  const isLastStep = currentStep === steps.length - 1;
-  const isValid = validateCurrentStep();
-
-  if (isLoading) {
+  if (isCreating) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
-        <div className="max-w-4xl mx-auto pt-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading avatar data...</p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+        <div className="container mx-auto max-w-2xl py-8">
+          <AvatarCreationLoading 
+            status={creationStatus}
+            progress={creationProgress}
+            message={
+              creationStatus === 'creating' ? `Creating ${avatarData.name}...` :
+              creationStatus === 'success' ? `${avatarData.name} created successfully!` :
+              'Failed to create avatar'
+            }
+          />
+          
+          {creationStatus === 'success' && (
+            <div className="mt-6 text-center">
+              <Button
+                onClick={() => navigate(`/avatar/${createdAvatarId}`)}
+                className="btn-hero"
+              >
+                View Avatar
+              </Button>
+            </div>
+          )}
+          
+          {creationStatus === 'error' && (
+            <div className="mt-6 text-center space-x-4">
+              <Button
+                onClick={() => {
+                  setIsCreating(false);
+                  setCreationProgress(0);
+                }}
+                variant="outline"
+              >
+                Try Again
+              </Button>
+              <Button
+                onClick={() => navigate('/dashboard?section=avatars')}
+                className="btn-hero"
+              >
+                Back to My Avatars
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
+  const CurrentStepComponent = steps[currentStep].component;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+      <div className="container mx-auto max-w-4xl py-8">
         {/* Header */}
-        <div className="mb-8 pt-8">
-          <div className="flex items-center gap-4 mb-6">
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              className="shrink-0"
+              onClick={() => navigate('/dashboard?section=avatars')}
+              className="flex items-center gap-2"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              <ArrowLeft className="h-4 w-4" />
+              Back to My Avatars
             </Button>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {avatarId ? 'Edit Avatar' : 'Create New Avatar'}
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                {avatarId ? 'Update your avatar\'s details and settings' : 'Build your AI avatar step by step'}
-              </p>
-            </div>
+            <Badge variant="outline">
+              Step {currentStep + 1} of {steps.length}
+            </Badge>
+          </div>
+          
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold mb-2 flex items-center justify-center gap-2">
+              <User className="h-8 w-8" />
+              Create New Avatar
+            </h1>
+            <p className="text-muted-foreground">
+              {steps[currentStep].description}
+            </p>
           </div>
 
-          {/* Progress */}
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline">
-                    Step {currentStep + 1} of {steps.length}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {Math.round(progress)}% Complete
-                  </span>
-                </div>
-                <Progress value={progress} className="h-2" />
-                
-                {/* Step indicators */}
-                <div className="flex items-center justify-between">
-                  {steps.map((step, index) => {
-                    const StepIcon = step.icon;
-                    const isActive = index === currentStep;
-                    const isCompleted = index < currentStep;
-                    
-                    return (
-                      <div
-                        key={step.id}
-                        className={`flex flex-col items-center space-y-2 ${
-                          isActive ? 'text-primary' : isCompleted ? 'text-green-600' : 'text-muted-foreground'
-                        }`}
-                      >
-                        <div className={`p-2 rounded-full border-2 ${
-                          isActive ? 'border-primary bg-primary/10' : 
-                          isCompleted ? 'border-green-600 bg-green-50' : 'border-muted'
-                        }`}>
-                          {isCompleted ? (
-                            <CheckCircle2 className="h-5 w-5" />
-                          ) : (
-                            <StepIcon className="h-5 w-5" />
-                          )}
-                        </div>
-                        <span className="text-xs font-medium text-center hidden sm:block">
-                          {step.title}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Current Step Header */}
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              {currentStepData.title}
-            </h2>
-            <p className="text-muted-foreground">
-              {currentStepData.description}
-            </p>
+          {/* Progress Bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>{steps[currentStep].title}</span>
+              <span>{Math.round(calculateProgress())}% Complete</span>
+            </div>
+            <Progress value={calculateProgress()} className="h-2" />
           </div>
         </div>
 
         {/* Step Content */}
         <div className="mb-8">
-          {renderCurrentStep()}
+          <CurrentStepComponent
+            data={avatarData}
+            onUpdate={updateAvatarData}
+          />
         </div>
 
         {/* Navigation */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+        <Card className="card-modern">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center">
               <Button
                 variant="outline"
                 onClick={handlePrevious}
                 disabled={currentStep === 0}
+                className="flex items-center gap-2"
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
+                <ArrowLeft className="h-4 w-4" />
                 Previous
               </Button>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleSave}
-                  disabled={!isValid || isSaving}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save Draft'}
-                </Button>
-
-                {isLastStep ? (
-                  <Button
-                    onClick={handleFinish}
-                    disabled={!isValid || isSaving}
-                    className="btn-hero"
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    {avatarId ? 'Update Avatar' : 'Create Avatar'}
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleNext}
-                    disabled={!isValid}
-                    className="btn-hero"
-                  >
-                    Next Step
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                )}
+              <div className="flex items-center gap-2">
+                {steps.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`w-2 h-2 rounded-full ${
+                      index === currentStep
+                        ? 'bg-primary'
+                        : index < currentStep
+                        ? 'bg-green-500'
+                        : 'bg-muted'
+                    }`}
+                  />
+                ))}
               </div>
+
+              {currentStep === steps.length - 1 ? (
+                <Button
+                  onClick={handleCreateAvatar}
+                  disabled={!canProceed() || !avatarData.name.trim()}
+                  className="btn-hero flex items-center gap-2"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Create Avatar
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleNext}
+                  disabled={!canProceed()}
+                  className="btn-hero flex items-center gap-2"
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
   );
-}
+};
+
+export default CreateAvatar;
