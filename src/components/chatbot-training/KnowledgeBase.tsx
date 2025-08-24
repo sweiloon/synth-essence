@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,6 @@ interface KnowledgeFile {
   linked: boolean;
   uploadedAt: string;
   file?: File;
-  source: 'upload' | 'avatar';
 }
 
 interface KnowledgeBaseProps {
@@ -46,28 +45,43 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
   const { user } = useAuth();
 
   // Load files automatically when component mounts or avatarId changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (avatarId && user) {
       loadKnowledgeFiles();
     }
+  }, [avatarId, user]);
+
+  // Set up real-time updates for knowledge files
+  useEffect(() => {
+    if (!avatarId || !user) return;
+
+    const channel = supabase
+      .channel('knowledge-files-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'avatar_knowledge_files',
+          filter: `avatar_id=eq.${avatarId}`
+        },
+        (payload) => {
+          console.log('Knowledge files updated via realtime:', payload);
+          // Reload files when there are changes
+          loadKnowledgeFiles();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [avatarId, user]);
 
   const loadKnowledgeFiles = async () => {
     setIsLoading(true);
     try {
       console.log('Loading knowledge files for avatar:', avatarId);
-
-      // Load avatar's knowledge files from database
-      const { data: avatarData, error: avatarError } = await supabase
-        .from('avatars')
-        .select('knowledge_files')
-        .eq('id', avatarId)
-        .eq('user_id', user?.id)
-        .single();
-
-      if (avatarError && avatarError.code !== 'PGRST116') {
-        console.error('Error loading avatar knowledge files:', avatarError);
-      }
 
       // Load uploaded knowledge files from database
       const { data: uploadedFiles, error: uploadedError } = await supabase
@@ -81,36 +95,19 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
         console.error('Error loading uploaded knowledge files:', uploadedError);
       }
 
-      // Convert avatar knowledge files to KnowledgeFile format
-      let avatarFiles: KnowledgeFile[] = [];
-      if (avatarData?.knowledge_files && Array.isArray(avatarData.knowledge_files)) {
-        avatarFiles = avatarData.knowledge_files.map((file: any) => ({
-          id: `avatar-${file.id || Date.now()}-${Math.random()}`,
-          name: file.name || file.filename || 'Unknown File',
-          size: file.size || 'Unknown size',
-          type: 'PDF',
-          linked: true,
-          uploadedAt: file.uploadedAt || new Date().toISOString(),
-          source: 'avatar' as const
-        }));
-      }
-
       // Convert uploaded files to KnowledgeFile format
-      let uploadFiles: KnowledgeFile[] = [];
+      let allFiles: KnowledgeFile[] = [];
       if (uploadedFiles) {
-        uploadFiles = uploadedFiles.map((file) => ({
+        allFiles = uploadedFiles.map((file) => ({
           id: file.id,
           name: file.file_name,
           size: `${(file.file_size / (1024 * 1024)).toFixed(2)} MB`,
           type: 'PDF',
           linked: file.is_linked,
-          uploadedAt: file.uploaded_at,
-          source: 'upload' as const
+          uploadedAt: file.uploaded_at
         }));
       }
 
-      // Combine files
-      const allFiles = [...avatarFiles, ...uploadFiles];
       console.log('Loaded knowledge files:', allFiles);
       setKnowledgeFiles(allFiles);
     } catch (error) {
@@ -159,8 +156,9 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
     try {
       const uploadPromises = pdfFiles.map(async (file) => {
         // Upload to Supabase storage
-        const fileName = `${avatarId}/${Date.now()}-${file.name}`;
+        const fileName = `${user?.id}/${avatarId}/${Date.now()}-${file.name}`;
         
+        console.log('Uploading file to storage:', fileName);
         const { data: storageData, error: storageError } = await supabase.storage
           .from('knowledge-base')
           .upload(fileName, file);
@@ -170,18 +168,24 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
           throw new Error(`Failed to upload ${file.name}: ${storageError.message}`);
         }
 
+        console.log('File uploaded to storage successfully:', storageData);
+
         // Save file metadata to database
+        const insertData = {
+          avatar_id: avatarId,
+          user_id: user?.id,
+          file_name: file.name,
+          file_path: storageData.path,
+          file_size: file.size,
+          content_type: file.type || 'application/pdf',
+          is_linked: true
+        };
+
+        console.log('Inserting file metadata:', insertData);
+
         const { data: dbData, error: dbError } = await supabase
           .from('avatar_knowledge_files')
-          .insert({
-            avatar_id: avatarId,
-            user_id: user?.id,
-            file_name: file.name,
-            file_path: storageData.path,
-            file_size: file.size,
-            content_type: file.type || 'application/pdf',
-            is_linked: true
-          })
+          .insert(insertData)
           .select()
           .single();
 
@@ -192,6 +196,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
           throw new Error(`Failed to save ${file.name} metadata: ${dbError.message}`);
         }
 
+        console.log('File metadata saved successfully:', dbData);
         return dbData;
       });
 
@@ -202,7 +207,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
         description: `${results.length} file(s) uploaded successfully and linked to your avatar.`,
       });
 
-      // Reload knowledge files
+      // Reload knowledge files to show the new uploads
       await loadKnowledgeFiles();
 
     } catch (error) {
@@ -234,117 +239,88 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
     const file = knowledgeFiles.find(f => f.id === fileId);
     if (!file) return;
 
-    // Avatar files cannot be unlinked
-    if (file.source === 'avatar' && file.linked) {
-      toast({
-        title: "Cannot Unlink Avatar File",
-        description: "Files from the avatar profile cannot be unlinked. They are part of the avatar's core knowledge.",
-        variant: "destructive"
-      });
-      return;
-    }
+    try {
+      const newLinked = !file.linked;
+      
+      const { error } = await supabase
+        .from('avatar_knowledge_files')
+        .update({ is_linked: newLinked })
+        .eq('id', fileId)
+        .eq('user_id', user?.id);
 
-    if (file.source === 'upload') {
-      try {
-        const newLinked = !file.linked;
-        
-        const { error } = await supabase
-          .from('avatar_knowledge_files')
-          .update({ is_linked: newLinked })
-          .eq('id', fileId)
-          .eq('user_id', user?.id);
-
-        if (error) {
-          console.error('Error updating link status:', error);
-          toast({
-            title: "Update Failed",
-            description: "Failed to update file link status.",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        // Update local state
-        setKnowledgeFiles(prev =>
-          prev.map(f => f.id === fileId ? { ...f, linked: newLinked } : f)
-        );
-
-        toast({
-          title: newLinked ? "File Linked" : "File Unlinked",
-          description: newLinked 
-            ? `${file.name} is now available to your avatar.`
-            : `${file.name} has been removed from avatar's knowledge.`,
-        });
-      } catch (error) {
-        console.error('Error updating file:', error);
+      if (error) {
+        console.error('Error updating link status:', error);
         toast({
           title: "Update Failed",
-          description: "An unexpected error occurred.",
+          description: "Failed to update file link status.",
           variant: "destructive"
         });
+        return;
       }
+
+      // Update local state
+      setKnowledgeFiles(prev =>
+        prev.map(f => f.id === fileId ? { ...f, linked: newLinked } : f)
+      );
+
+      toast({
+        title: newLinked ? "File Linked" : "File Unlinked",
+        description: newLinked 
+          ? `${file.name} is now available to your avatar.`
+          : `${file.name} has been removed from avatar's knowledge.`,
+      });
+    } catch (error) {
+      console.error('Error updating file:', error);
+      toast({
+        title: "Update Failed",
+        description: "An unexpected error occurred.",
+        variant: "destructive"
+      });
     }
   };
 
   const handleDownload = async (file: KnowledgeFile) => {
-    if (file.source === 'upload') {
-      try {
-        // Get the file from database to find the storage path
-        const { data: fileData, error } = await supabase
-          .from('avatar_knowledge_files')
-          .select('file_path')
-          .eq('id', file.id)
-          .single();
+    try {
+      // Get the file from database to find the storage path
+      const { data: fileData, error } = await supabase
+        .from('avatar_knowledge_files')
+        .select('file_path')
+        .eq('id', file.id)
+        .single();
 
-        if (error || !fileData) {
-          throw new Error('File not found');
-        }
-
-        // Download from storage
-        const { data: blob, error: downloadError } = await supabase.storage
-          .from('knowledge-base')
-          .download(fileData.file_path);
-
-        if (downloadError) {
-          throw new Error(downloadError.message);
-        }
-
-        // Create download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Download error:', error);
-        toast({
-          title: "Download Failed",
-          description: "Failed to download the file.",
-          variant: "destructive"
-        });
+      if (error || !fileData) {
+        throw new Error('File not found');
       }
-    } else {
+
+      // Download from storage
+      const { data: blob, error: downloadError } = await supabase.storage
+        .from('knowledge-base')
+        .download(fileData.file_path);
+
+      if (downloadError) {
+        throw new Error(downloadError.message);
+      }
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
       toast({
-        title: "Download Not Available",
-        description: "This file is not available for download. It may be from the avatar's profile.",
+        title: "Download Failed",
+        description: "Failed to download the file.",
         variant: "destructive"
       });
     }
   };
 
   const confirmDelete = (file: KnowledgeFile) => {
-    if (file.source === 'avatar') {
-      toast({
-        title: "Cannot Delete Avatar File",
-        description: "Files from the avatar profile cannot be deleted from here. Please edit the avatar profile instead.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     setFileToDelete(file);
     setDeleteDialogOpen(true);
   };
@@ -353,7 +329,14 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
     if (!fileToDelete || isTraining) return;
 
     try {
-      // Delete from database
+      // Get file path for storage deletion
+      const { data: fileData } = await supabase
+        .from('avatar_knowledge_files')
+        .select('file_path')
+        .eq('id', fileToDelete.id)
+        .single();
+
+      // Delete from database first
       const { error: dbError } = await supabase
         .from('avatar_knowledge_files')
         .delete()
@@ -363,13 +346,6 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
       if (dbError) {
         throw new Error(dbError.message);
       }
-
-      // Get file path for storage deletion
-      const { data: fileData } = await supabase
-        .from('avatar_knowledge_files')
-        .select('file_path')
-        .eq('id', fileToDelete.id)
-        .single();
 
       // Delete from storage (ignore errors since file might not exist)
       if (fileData?.file_path) {
@@ -410,6 +386,9 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
                 Knowledge Base
+                <Badge variant="outline" className="text-xs">
+                  Real-time Updates
+                </Badge>
               </CardTitle>
               <CardDescription>
                 Manage PDF documents for your avatar's knowledge
@@ -504,11 +483,6 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
                             >
                               {file.linked ? "Linked" : "Not Linked"}
                             </Badge>
-                            {file.source === 'avatar' && (
-                              <Badge variant="outline" className="text-xs">
-                                From Avatar
-                              </Badge>
-                            )}
                             <span className="text-xs text-muted-foreground">{file.size}</span>
                             <span className="text-xs text-muted-foreground">
                               {new Date(file.uploadedAt).toLocaleDateString()}
@@ -535,7 +509,6 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
                           size="sm"
                           onClick={() => handleDownload(file)}
                           title="Download file"
-                          disabled={file.source === 'avatar'}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -543,9 +516,9 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
                           variant="outline" 
                           size="sm"
                           onClick={() => confirmDelete(file)}
-                          disabled={isTraining || isUploading || file.source === 'avatar'}
+                          disabled={isTraining || isUploading}
                           className="text-destructive hover:text-destructive"
-                          title={file.source === 'avatar' ? "Cannot delete avatar files" : "Delete file"}
+                          title="Delete file"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -560,11 +533,11 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-medium text-blue-900 mb-2">Knowledge Base Management</h4>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• <strong>Avatar Files:</strong> Automatically synced from your avatar's profile</li>
                 <li>• <strong>Link:</strong> Makes the document available to your avatar for referencing</li>
                 <li>• <strong>Unlink:</strong> Removes the document from avatar's active knowledge</li>
-                <li>• <strong>Delete:</strong> Permanently removes uploaded files (not avatar files)</li>
+                <li>• <strong>Delete:</strong> Permanently removes uploaded files</li>
                 <li>• Only linked documents are used by your avatar during conversations</li>
+                <li>• Real-time updates ensure changes are immediately reflected</li>
               </ul>
             </div>
           </div>

@@ -60,19 +60,6 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
     }
   }, [isLoaded, trainingData, avatarId]);
 
-  // Auto-resize textarea
-  const adjustTextareaHeight = () => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${Math.max(120, textarea.scrollHeight)}px`;
-    }
-  };
-
-  useEffect(() => {
-    adjustTextareaHeight();
-  }, [combinedInput]);
-
   const handleInputChange = (value: string) => {
     setCombinedInput(value);
     // Save to cache immediately
@@ -228,7 +215,7 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Chat-style Input Box */}
+          {/* Chat-style Input Box with fixed height and manual resize */}
           <div className="border rounded-lg bg-background">
             <Textarea
               ref={textareaRef}
@@ -240,8 +227,9 @@ Examples:
 • Training Instructions: Improve responses by focusing on..."
               value={combinedInput}
               onChange={(e) => handleInputChange(e.target.value)}
-              className="min-h-[120px] border-0 resize-none focus-visible:ring-0 bg-transparent"
+              className="min-h-[200px] max-h-[400px] border-0 focus-visible:ring-0 bg-transparent resize-y"
               disabled={isTraining}
+              style={{ height: '200px' }}
             />
             
             {/* File Attachments */}
