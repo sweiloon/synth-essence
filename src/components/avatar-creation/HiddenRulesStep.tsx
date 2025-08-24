@@ -4,9 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Shield, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Shield, AlertTriangle, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { Template } from '@/types/templates';
 
 interface HiddenRulesStepProps {
   data: any;
@@ -20,6 +22,34 @@ export const HiddenRulesStep: React.FC<HiddenRulesStepProps> = ({
   avatarId 
 }) => {
   const { user } = useAuth();
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch hidden rules templates
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      setLoading(true);
+      try {
+        const { data: templatesData, error } = await supabase
+          .from('avatar_templates')
+          .select('*')
+          .eq('template_type', 'hidden_rules')
+          .eq('is_active', true);
+
+        if (error) {
+          console.error('Error fetching templates:', error);
+        } else {
+          setTemplates(templatesData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching templates:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
 
   // Set up real-time updates for hidden rules changes
   useEffect(() => {
@@ -49,6 +79,10 @@ export const HiddenRulesStep: React.FC<HiddenRulesStepProps> = ({
       supabase.removeChannel(channel);
     };
   }, [avatarId, user, onUpdate]);
+
+  const handleUseTemplate = (template: Template) => {
+    onUpdate('hiddenRules', template.content);
+  };
 
   return (
     <div className="space-y-6">
@@ -116,6 +150,57 @@ export const HiddenRulesStep: React.FC<HiddenRulesStepProps> = ({
               <li>• Respect cultural sensitivities based on origin country</li>
             </ul>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Template Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Hidden Rules Templates</CardTitle>
+          <CardDescription>
+            Choose from pre-made hidden rules templates to establish proper boundaries
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-4">Loading templates...</div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {templates.map((template) => (
+                <Card key={template.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium">{template.title}</CardTitle>
+                      {template.category && (
+                        <Badge variant="secondary" className="text-xs">
+                          {template.category}
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
+                      {template.content.substring(0, 120)}...
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => handleUseTemplate(template)}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Use Template
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+          {!loading && templates.length === 0 && (
+            <div className="text-center py-4 text-muted-foreground">
+              No hidden rules templates available at the moment.
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
