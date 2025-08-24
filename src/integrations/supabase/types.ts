@@ -70,7 +70,6 @@ export type Database = {
           gender: string | null
           hidden_rules: string | null
           id: string
-          knowledge_files: Json | null
           mbti_type: string | null
           name: string
           origin_country: string
@@ -88,7 +87,6 @@ export type Database = {
           gender?: string | null
           hidden_rules?: string | null
           id?: string
-          knowledge_files?: Json | null
           mbti_type?: string | null
           name: string
           origin_country?: string
@@ -106,7 +104,6 @@ export type Database = {
           gender?: string | null
           hidden_rules?: string | null
           id?: string
-          knowledge_files?: Json | null
           mbti_type?: string | null
           name?: string
           origin_country?: string

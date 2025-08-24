@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,9 +20,16 @@ interface Avatar {
   gender: string;
   backstory: string;
   personality_traits: string[];
-  knowledge_files: any[];
   hidden_rules: string;
   created_at: string;
+}
+
+interface KnowledgeFile {
+  id: string;
+  file_name: string;
+  file_size: number;
+  uploaded_at: string;
+  content_type: string;
 }
 
 const AvatarDetail = () => {
@@ -30,13 +38,56 @@ const AvatarDetail = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [avatar, setAvatar] = useState<Avatar | null>(null);
+  const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (user && id) {
       fetchAvatar();
+      fetchKnowledgeFiles();
     }
   }, [user, id]);
+
+  // Set up real-time updates for avatar changes
+  useEffect(() => {
+    if (!id || !user) return;
+
+    const channel = supabase
+      .channel('avatar-detail-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'avatars',
+          filter: `id=eq.${id}`
+        },
+        (payload) => {
+          console.log('Avatar updated:', payload);
+          if (payload.new) {
+            fetchAvatar();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'avatar_knowledge_files',
+          filter: `avatar_id=eq.${id}`
+        },
+        (payload) => {
+          console.log('Knowledge files updated:', payload);
+          fetchKnowledgeFiles();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, user]);
 
   const fetchAvatar = async () => {
     if (!user || !id) return;
@@ -74,7 +125,6 @@ const AvatarDetail = () => {
         gender: data.gender,
         backstory: data.backstory || '',
         personality_traits: data.personality_traits || [],
-        knowledge_files: Array.isArray(data.knowledge_files) ? data.knowledge_files : [],
         hidden_rules: data.hidden_rules || '',
         created_at: data.created_at
       };
@@ -88,6 +138,31 @@ const AvatarDetail = () => {
         variant: "destructive"
       });
       navigate('/dashboard?section=my-avatars');
+    }
+  };
+
+  const fetchKnowledgeFiles = async () => {
+    if (!user || !id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('avatar_knowledge_files')
+        .select('id, file_name, file_size, uploaded_at, content_type')
+        .eq('avatar_id', id)
+        .eq('user_id', user.id)
+        .eq('is_linked', true)
+        .order('uploaded_at', { ascending: false });
+
+      if (error) throw error;
+
+      setKnowledgeFiles(data || []);
+    } catch (error: any) {
+      console.error('Error fetching knowledge files:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load knowledge files.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -293,32 +368,32 @@ const AvatarDetail = () => {
             )}
 
             {/* Knowledge Base */}
-            {avatar.knowledge_files && avatar.knowledge_files.length > 0 && (
+            {knowledgeFiles && knowledgeFiles.length > 0 && (
               <Card className="card-modern">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5" />
-                    Knowledge Base ({avatar.knowledge_files.length} files)
+                    Knowledge Base ({knowledgeFiles.length} files)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {avatar.knowledge_files.map((file: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    {knowledgeFiles.map((file: KnowledgeFile) => (
+                      <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center gap-3">
                           <FileText className="h-5 w-5 text-primary" />
                           <div>
-                            <p className="text-sm font-medium">{file.name}</p>
+                            <p className="text-sm font-medium">{file.file_name}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline" className="text-xs">PDF</Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {file.content_type === 'application/pdf' ? 'PDF' : 'FILE'}
+                              </Badge>
                               <span className="text-xs text-muted-foreground">
-                                {formatFileSize(file.size)}
+                                {formatFileSize(file.file_size)}
                               </span>
-                              {file.uploadedAt && (
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(file.uploadedAt).toLocaleDateString()}
-                                </span>
-                              )}
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(file.uploaded_at).toLocaleDateString()}
+                              </span>
                             </div>
                           </div>
                         </div>

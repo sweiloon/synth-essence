@@ -1,259 +1,466 @@
 
-import React, { useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, X, Database } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { 
+  Upload, 
+  Download, 
+  Trash2,
+  FileText,
+  Database,
+  RefreshCw
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+
+interface KnowledgeFile {
+  id: string;
+  name: string;
+  size: string;
+  type: string;
+  uploadedAt: string;
+  file?: File;
+}
 
 interface KnowledgeBaseStepProps {
   data: any;
   onUpdate: (field: string, value: any) => void;
+  avatarId?: string;
 }
 
-export const KnowledgeBaseStep: React.FC<KnowledgeBaseStepProps> = ({ data, onUpdate }) => {
+export const KnowledgeBaseStep: React.FC<KnowledgeBaseStepProps> = ({ 
+  data, 
+  onUpdate, 
+  avatarId 
+}) => {
+  const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>(data.knowledgeFiles || []);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<KnowledgeFile | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuth();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Load existing files from database if editing an avatar
+  React.useEffect(() => {
+    if (avatarId && user) {
+      loadExistingFiles();
+    }
+  }, [avatarId, user]);
+
+  const loadExistingFiles = async () => {
+    if (!avatarId || !user) return;
+    
+    setIsLoading(true);
+    try {
+      const { data: files, error } = await supabase
+        .from('avatar_knowledge_files')
+        .select('*')
+        .eq('avatar_id', avatarId)
+        .eq('user_id', user.id)
+        .order('uploaded_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading existing files:', error);
+        return;
+      }
+
+      if (files) {
+        const formattedFiles = files.map(file => ({
+          id: file.id,
+          name: file.file_name,
+          size: `${(file.file_size / (1024 * 1024)).toFixed(2)} MB`,
+          type: 'PDF',
+          uploadedAt: file.uploaded_at
+        }));
+        
+        setKnowledgeFiles(formattedFiles);
+        onUpdate('knowledgeFiles', formattedFiles);
+      }
+    } catch (error) {
+      console.error('Error loading files:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length === 0 || !user) return;
+    if (files.length === 0) return;
 
-    const pdfFiles = files.filter(file => file.type === 'application/pdf');
+    // Validate file types
+    const pdfFiles = files.filter(file => 
+      file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    );
+    
     if (pdfFiles.length !== files.length) {
       toast({
         title: "Invalid File Type",
-        description: "Only PDF files are allowed.",
+        description: "Only PDF files are allowed in the knowledge base.",
         variant: "destructive"
       });
       return;
     }
 
-    // Check file sizes (max 10MB each)
-    const oversizedFiles = pdfFiles.filter(file => file.size > 10 * 1024 * 1024);
+    // Validate file sizes (50MB limit)
+    const oversizedFiles = pdfFiles.filter(file => file.size > 50 * 1024 * 1024);
     if (oversizedFiles.length > 0) {
       toast({
         title: "File Too Large",
-        description: "Each PDF file must be under 10MB.",
+        description: `Files must be under 50MB. ${oversizedFiles.map(f => f.name).join(', ')} exceeded the limit.`,
         variant: "destructive"
       });
       return;
     }
 
-    const currentFiles = data.knowledgeFiles || [];
-    const updatedFiles = [...currentFiles];
+    setIsUploading(true);
 
-    for (const file of pdfFiles) {
-      try {
-        // Create a unique filename for each file
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+    try {
+      const newFiles: KnowledgeFile[] = [];
 
-        // Upload to Supabase storage
-        const { error: uploadError } = await supabase.storage
-          .from('knowledge-base')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
+      for (const file of pdfFiles) {
+        let filePath = '';
+        let fileId = '';
 
-        if (uploadError) {
-          throw uploadError;
+        // If editing existing avatar, upload to storage and database
+        if (avatarId && user) {
+          const fileName = `${user.id}/${avatarId}/${Date.now()}-${file.name}`;
+          
+          const { data: storageData, error: storageError } = await supabase.storage
+            .from('knowledge-base')
+            .upload(fileName, file);
+
+          if (storageError) {
+            throw new Error(`Failed to upload ${file.name}: ${storageError.message}`);
+          }
+
+          const { data: dbData, error: dbError } = await supabase
+            .from('avatar_knowledge_files')
+            .insert({
+              avatar_id: avatarId,
+              user_id: user.id,
+              file_name: file.name,
+              file_path: storageData.path,
+              file_size: file.size,
+              content_type: file.type || 'application/pdf',
+              is_linked: true
+            })
+            .select()
+            .single();
+
+          if (dbError) {
+            // Clean up uploaded file
+            await supabase.storage.from('knowledge-base').remove([fileName]);
+            throw new Error(`Failed to save ${file.name} metadata: ${dbError.message}`);
+          }
+
+          fileId = dbData.id;
+          filePath = storageData.path;
+        } else {
+          // For new avatar creation, just store temporarily
+          fileId = `temp-${Date.now()}-${Math.random()}`;
         }
 
-        // Get the public URL (even though bucket is private, we need the path)
-        const { data: urlData } = supabase.storage
-          .from('knowledge-base')
-          .getPublicUrl(fileName);
-
-        // Add file info to the array
-        updatedFiles.push({
+        const knowledgeFile: KnowledgeFile = {
+          id: fileId,
           name: file.name,
-          size: file.size,
-          type: file.type,
-          path: fileName,
-          url: urlData.publicUrl,
-          uploadedAt: new Date().toISOString()
-        });
+          size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+          type: 'PDF',
+          uploadedAt: new Date().toISOString(),
+          file: avatarId ? undefined : file // Keep file reference for new avatars
+        };
 
-        toast({
-          title: "File Uploaded",
-          description: `${file.name} has been uploaded successfully.`,
-        });
-
-      } catch (error: any) {
-        console.error('Error uploading file:', error);
-        toast({
-          title: "Upload Failed",
-          description: `Failed to upload ${file.name}: ${error.message}`,
-          variant: "destructive"
-        });
+        newFiles.push(knowledgeFile);
       }
-    }
 
-    onUpdate('knowledgeFiles', updatedFiles);
-    
-    // Clear the input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      const updatedFiles = [...knowledgeFiles, ...newFiles];
+      setKnowledgeFiles(updatedFiles);
+      onUpdate('knowledgeFiles', updatedFiles);
+
+      toast({
+        title: "Upload Successful",
+        description: `${newFiles.length} file(s) uploaded successfully.`,
+      });
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred during upload.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  const removeFile = async (index: number) => {
-    const currentFiles = data.knowledgeFiles || [];
-    const fileToRemove = currentFiles[index];
+  const handleDownload = async (file: KnowledgeFile) => {
+    if (!avatarId || file.id.startsWith('temp-')) {
+      toast({
+        title: "Download Not Available",
+        description: "File download is only available for saved avatars.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    // Remove from storage if it has a path
-    if (fileToRemove?.path && user) {
-      try {
-        const { error } = await supabase.storage
-          .from('knowledge-base')
-          .remove([fileToRemove.path]);
+    try {
+      const { data: fileData, error } = await supabase
+        .from('avatar_knowledge_files')
+        .select('file_path')
+        .eq('id', file.id)
+        .single();
 
-        if (error) {
-          console.error('Error removing file from storage:', error);
+      if (error || !fileData) {
+        throw new Error('File not found');
+      }
+
+      const { data: blob, error: downloadError } = await supabase.storage
+        .from('knowledge-base')
+        .download(fileData.file_path);
+
+      if (downloadError) {
+        throw new Error(downloadError.message);
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download the file.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const confirmDelete = (file: KnowledgeFile) => {
+    setFileToDelete(file);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!fileToDelete) return;
+
+    try {
+      // If it's an existing file in database, delete from storage and database
+      if (avatarId && !fileToDelete.id.startsWith('temp-')) {
+        const { data: fileData } = await supabase
+          .from('avatar_knowledge_files')
+          .select('file_path')
+          .eq('id', fileToDelete.id)
+          .single();
+
+        const { error: dbError } = await supabase
+          .from('avatar_knowledge_files')
+          .delete()
+          .eq('id', fileToDelete.id)
+          .eq('user_id', user?.id);
+
+        if (dbError) {
+          throw new Error(dbError.message);
         }
-      } catch (error) {
-        console.error('Error removing file:', error);
+
+        if (fileData?.file_path) {
+          await supabase.storage
+            .from('knowledge-base')
+            .remove([fileData.file_path]);
+        }
       }
+
+      // Update local state
+      const updatedFiles = knowledgeFiles.filter(file => file.id !== fileToDelete.id);
+      setKnowledgeFiles(updatedFiles);
+      onUpdate('knowledgeFiles', updatedFiles);
+      
+      toast({
+        title: "File Deleted",
+        description: `${fileToDelete.name} has been removed.`,
+      });
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete the file. Please try again.",
+        variant: "destructive"
+      });
     }
-
-    const updatedFiles = currentFiles.filter((_: any, i: number) => i !== index);
-    onUpdate('knowledgeFiles', updatedFiles);
-
-    toast({
-      title: "File Removed",
-      description: `${fileToRemove?.name || 'File'} has been removed.`,
-    });
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    
+    setDeleteDialogOpen(false);
+    setFileToDelete(null);
   };
 
   return (
-    <Card className="card-modern">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Database className="h-5 w-5" />
-          Knowledge Base
-        </CardTitle>
-        <CardDescription>
-          Upload PDF documents to give your avatar specialized knowledge (product manuals, guides, etc.)
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Upload Area */}
-        <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-          <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">Upload PDF Documents</h3>
-          <p className="text-muted-foreground mb-4">
-            Add knowledge documents that your avatar can reference and learn from
-          </p>
-          <Button 
-            onClick={() => fileInputRef.current?.click()}
-            className="btn-hero"
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Choose PDF Files
-          </Button>
+    <>
+      <Card className="card-modern">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Knowledge Base
+              </CardTitle>
+              <CardDescription>
+                Upload PDF documents to give your avatar specialized knowledge
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">
+                {knowledgeFiles.length} files
+              </Badge>
+              {avatarId && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={loadExistingFiles}
+                  disabled={isLoading}
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  Sync
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                {isUploading ? 'Uploading...' : 'Upload PDF'}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf"
+            accept=".pdf,application/pdf"
             multiple
             onChange={handleFileUpload}
             className="hidden"
           />
-          <p className="text-xs text-muted-foreground mt-2">
-            Supports PDF files up to 10MB each
-          </p>
-        </div>
 
-        {/* File Guidelines */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-muted/20 rounded-lg">
-            <FileText className="h-8 w-8 mx-auto mb-2 text-primary" />
-            <h4 className="font-medium mb-1">Document Types</h4>
-            <p className="text-xs text-muted-foreground">
-              Product manuals, guides, FAQs, policies, or any reference material
-            </p>
-          </div>
-          <div className="text-center p-4 bg-muted/20 rounded-lg">
-            <Upload className="h-8 w-8 mx-auto mb-2 text-primary" />
-            <h4 className="font-medium mb-1">File Format</h4>
-            <p className="text-xs text-muted-foreground">
-              PDF files only, maximum 10MB per file
-            </p>
-          </div>
-          <div className="text-center p-4 bg-muted/20 rounded-lg">
-            <Database className="h-8 w-8 mx-auto mb-2 text-primary" />
-            <h4 className="font-medium mb-1">Processing</h4>
-            <p className="text-xs text-muted-foreground">
-              Documents will be processed and indexed for quick retrieval
-            </p>
-          </div>
-        </div>
+          <div className="space-y-4">
+            {/* Upload Area - Show when no files */}
+            {knowledgeFiles.length === 0 && !isLoading && (
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Upload Knowledge Documents</h3>
+                <p className="text-muted-foreground mb-4">
+                  Add PDF documents to give your avatar specialized knowledge
+                </p>
+                <Button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn-hero"
+                  disabled={isUploading}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {isUploading ? 'Uploading...' : 'Choose PDF Files'}
+                </Button>
+              </div>
+            )}
 
-        {/* Uploaded Files List */}
-        {data.knowledgeFiles && data.knowledgeFiles.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="font-medium flex items-center gap-2">
-              Uploaded Documents ({data.knowledgeFiles.length})
-            </h4>
-            <div className="space-y-2">
-              {data.knowledgeFiles.map((file: any, index: number) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3 flex-1">
-                    <FileText className="h-5 w-5 text-primary flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{file.name}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">PDF</Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {formatFileSize(file.size)}
-                        </span>
-                        {file.uploadedAt && (
-                          <span className="text-xs text-muted-foreground">
-                            Uploaded: {new Date(file.uploadedAt).toLocaleDateString()}
-                          </span>
-                        )}
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+                <span className="text-muted-foreground">Loading knowledge files...</span>
+              </div>
+            )}
+
+            {/* Files List */}
+            {knowledgeFiles.length > 0 && !isLoading && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Knowledge Documents ({knowledgeFiles.length})</h4>
+                  {isUploading && (
+                    <Badge variant="destructive" className="text-xs">
+                      Upload in progress
+                    </Badge>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  {knowledgeFiles.map((file) => (
+                    <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3 flex-1">
+                        <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{file.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="default" className="text-xs">
+                              Linked
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">{file.size}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(file.uploadedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDownload(file)}
+                          title="Download file"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => confirmDelete(file)}
+                          disabled={isUploading}
+                          className="text-destructive hover:text-destructive"
+                          title="Delete file"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile(index)}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  ))}
                 </div>
-              ))}
+              </div>
+            )}
+
+            {/* Information */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 mb-2">Knowledge Base Information</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• Upload PDF documents that contain information you want your avatar to reference</li>
+                <li>• Files are automatically linked and available to your avatar during conversations</li>
+                <li>• Maximum file size: 50MB per PDF</li>
+                <li>• {avatarId ? 'Files are saved to your avatar immediately' : 'Files will be saved when you create the avatar'}</li>
+              </ul>
             </div>
           </div>
-        )}
+        </CardContent>
+      </Card>
 
-        {/* Information Note */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-medium text-blue-900 mb-2">How Knowledge Base Works</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Documents are processed and stored securely in your personal knowledge base</li>
-            <li>• Your avatar can reference this information during conversations</li>
-            <li>• Knowledge is indexed for quick and accurate retrieval</li>
-            <li>• You can add more documents anytime after creation</li>
-            <li>• Each avatar has its own separate knowledge base pool</li>
-          </ul>
-        </div>
-      </CardContent>
-    </Card>
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDelete}
+        title="Delete Knowledge File"
+        description="Are you sure you want to permanently delete"
+        itemName={fileToDelete?.name}
+      />
+    </>
   );
 };
