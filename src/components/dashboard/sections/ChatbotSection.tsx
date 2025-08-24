@@ -25,18 +25,32 @@ import { supabase } from '@/integrations/supabase/client';
 const ChatbotSection = () => {
   const [searchParams] = useSearchParams();
   const avatarFromUrl = searchParams.get('avatar');
-  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(avatarFromUrl);
+  
+  // Load selected avatar from localStorage or URL
+  const getInitialAvatarId = () => {
+    if (avatarFromUrl) return avatarFromUrl;
+    return localStorage.getItem('chatbot_selected_avatar_id') || null;
+  };
+  
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(getInitialAvatarId());
   const [selectedAvatar, setSelectedAvatar] = useState<any>(null);
   const [isTraining, setIsTraining] = useState(false);
-  const [activeTab, setActiveTab] = useState('train');
+  
+  // Load active tab from localStorage
+  const getInitialTab = () => {
+    return localStorage.getItem('chatbot_active_tab') || 'train';
+  };
+  
+  const [activeTab, setActiveTab] = useState(getInitialTab());
   const [showAvatarDetails, setShowAvatarDetails] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
   // Update selected avatar when URL param changes
   useEffect(() => {
-    if (avatarFromUrl) {
+    if (avatarFromUrl && avatarFromUrl !== selectedAvatarId) {
       setSelectedAvatarId(avatarFromUrl);
+      localStorage.setItem('chatbot_selected_avatar_id', avatarFromUrl);
     }
   }, [avatarFromUrl]);
 
@@ -51,6 +65,7 @@ const ChatbotSection = () => {
 
   const fetchAvatarData = async (avatarId: string) => {
     try {
+      console.log('Fetching avatar data for:', avatarId);
       const { data, error } = await supabase
         .from('avatars')
         .select('*')
@@ -60,6 +75,11 @@ const ChatbotSection = () => {
 
       if (error) {
         console.error('Error fetching avatar:', error);
+        // Clear invalid avatar selection
+        if (error.code === 'PGRST116') {
+          localStorage.removeItem('chatbot_selected_avatar_id');
+          setSelectedAvatarId(null);
+        }
         toast({
           title: "Error",
           description: "Failed to load avatar data.",
@@ -68,6 +88,7 @@ const ChatbotSection = () => {
         return;
       }
 
+      console.log('Loaded avatar:', data);
       setSelectedAvatar(data);
     } catch (error) {
       console.error('Error fetching avatar:', error);
@@ -84,8 +105,11 @@ const ChatbotSection = () => {
       return;
     }
     
+    console.log('Selected avatar:', avatarId);
     setSelectedAvatarId(avatarId);
-    setShowAvatarDetails(false); // Collapse details when switching avatar
+    localStorage.setItem('chatbot_selected_avatar_id', avatarId);
+    setShowAvatarDetails(false);
+    
     toast({
       title: "Avatar Selected",
       description: "You can now start training your avatar.",
@@ -135,6 +159,7 @@ const ChatbotSection = () => {
       return;
     }
     setActiveTab(value);
+    localStorage.setItem('chatbot_active_tab', value);
   };
 
   return (

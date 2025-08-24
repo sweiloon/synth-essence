@@ -40,11 +40,25 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
   onTrainingStart,
   onTrainingComplete
 }) => {
-  const { trainingData, updateTrainingData, clearCache } = useTrainingDataCache(avatarId);
+  const { trainingData, updateTrainingData, clearCache, isLoaded } = useTrainingDataCache(avatarId);
   const [trainingResults, setTrainingResults] = useState<TrainingResult[]>([]);
+  const [combinedInput, setCombinedInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+
+  // Initialize combined input from cached data
+  useEffect(() => {
+    if (isLoaded) {
+      const combined = [
+        trainingData.systemPrompt,
+        trainingData.userPrompt, 
+        trainingData.trainingInstructions
+      ].filter(Boolean).join('\n\n');
+      setCombinedInput(combined);
+      console.log('Loaded cached data for avatar:', avatarId, trainingData);
+    }
+  }, [isLoaded, trainingData, avatarId]);
 
   // Auto-resize textarea
   const adjustTextareaHeight = () => {
@@ -57,7 +71,17 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
 
   useEffect(() => {
     adjustTextareaHeight();
-  }, [trainingData.systemPrompt, trainingData.userPrompt, trainingData.trainingInstructions]);
+  }, [combinedInput]);
+
+  const handleInputChange = (value: string) => {
+    setCombinedInput(value);
+    // Save to cache immediately
+    updateTrainingData({
+      systemPrompt: value,
+      userPrompt: '',
+      trainingInstructions: ''
+    });
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -65,7 +89,7 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
 
     const allowedTypes = ['image/', 'text/', 'application/pdf'];
     const validFiles = files.filter(file => 
-      allowedTypes.some(type => file.type.startsWith(type))
+      allowedTypes.some(type => file.type.startsWith(type)) || file.name.toLowerCase().endsWith('.pdf')
     );
 
     if (validFiles.length !== files.length) {
@@ -77,8 +101,24 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
       return;
     }
 
+    // Check file sizes (50MB limit)
+    const oversizedFiles = validFiles.filter(file => file.size > 50 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      toast({
+        title: "File Too Large",
+        description: `Files must be under 50MB. ${oversizedFiles.map(f => f.name).join(', ')} exceeded the limit.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     updateTrainingData({
       uploadedFiles: [...trainingData.uploadedFiles, ...validFiles]
+    });
+
+    toast({
+      title: "Files Added",
+      description: `${validFiles.length} file(s) added to training data.`,
     });
 
     // Clear input
@@ -93,10 +133,7 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
   };
 
   const handleTraining = () => {
-    const hasContent = trainingData.systemPrompt.trim() || 
-                     trainingData.userPrompt.trim() || 
-                     trainingData.trainingInstructions.trim() || 
-                     trainingData.uploadedFiles.length > 0;
+    const hasContent = combinedInput.trim() || trainingData.uploadedFiles.length > 0;
 
     if (!hasContent) {
       toast({
@@ -113,43 +150,15 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
     setTimeout(() => {
       const results: TrainingResult[] = [];
       
-      if (trainingData.systemPrompt.trim()) {
+      if (combinedInput.trim()) {
         results.push({
           id: Date.now().toString() + '_system',
           type: 'system',
-          label: 'System Prompt Updated',
+          label: 'Training Content Updated',
           changes: [
             'Personality traits enhanced',
             'Response patterns improved',
             'Core behavior guidelines updated'
-          ],
-          timestamp: 'Just now'
-        });
-      }
-
-      if (trainingData.userPrompt.trim()) {
-        results.push({
-          id: Date.now().toString() + '_user',
-          type: 'user',
-          label: 'User Interaction Model Updated',
-          changes: [
-            'Input processing enhanced',
-            'Context understanding improved',
-            'Response generation optimized'
-          ],
-          timestamp: 'Just now'
-        });
-      }
-
-      if (trainingData.trainingInstructions.trim()) {
-        results.push({
-          id: Date.now().toString() + '_instructions',
-          type: 'instructions',
-          label: 'Training Instructions Applied',
-          changes: [
-            'Custom behavior rules added',
-            'Response quality enhanced',
-            'Domain-specific knowledge updated'
           ],
           timestamp: 'Just now'
         });
@@ -179,12 +188,13 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
       
       // Clear cached data after successful training
       clearCache();
+      setCombinedInput('');
     }, 5000);
   };
 
   const getFileIcon = (file: File) => {
     if (file.type.startsWith('image/')) return <Image className="h-4 w-4" />;
-    if (file.type === 'application/pdf') return <FileText className="h-4 w-4" />;
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) return <FileText className="h-4 w-4" />;
     return <FileText className="h-4 w-4" />;
   };
 
@@ -195,7 +205,15 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
     return null;
   };
 
-  const allContent = `${trainingData.systemPrompt}\n\n${trainingData.userPrompt}\n\n${trainingData.trainingInstructions}`.trim();
+  // Don't render until cache is loaded
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <span className="ml-2 text-muted-foreground">Loading training data...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -220,18 +238,8 @@ Examples:
 • System Prompt: You are a helpful assistant specialized in...
 • User Prompt: When users ask about..., respond with...
 • Training Instructions: Improve responses by focusing on..."
-              value={allContent}
-              onChange={(e) => {
-                const lines = e.target.value.split('\n');
-                // For simplicity, we'll store all content in systemPrompt
-                // In a real implementation, you might want to parse different sections
-                updateTrainingData({
-                  systemPrompt: e.target.value,
-                  userPrompt: '',
-                  trainingInstructions: ''
-                });
-                adjustTextareaHeight();
-              }}
+              value={combinedInput}
+              onChange={(e) => handleInputChange(e.target.value)}
               className="min-h-[120px] border-0 resize-none focus-visible:ring-0 bg-transparent"
               disabled={isTraining}
             />

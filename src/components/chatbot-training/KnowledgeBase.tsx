@@ -27,7 +27,7 @@ interface KnowledgeFile {
   linked: boolean;
   uploadedAt: string;
   file?: File;
-  source?: 'upload' | 'avatar';
+  source: 'upload' | 'avatar';
 }
 
 interface KnowledgeBaseProps {
@@ -40,73 +40,79 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<KnowledgeFile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Load files from both localStorage and avatar data
+  // Load files automatically when component mounts or avatarId changes
   React.useEffect(() => {
-    loadKnowledgeFiles();
-  }, [avatarId]);
+    if (avatarId && user) {
+      loadKnowledgeFiles();
+    }
+  }, [avatarId, user]);
 
   const loadKnowledgeFiles = async () => {
     setIsLoading(true);
     try {
-      // Load files from localStorage for this specific avatar
-      const savedFiles = localStorage.getItem(`avatar_${avatarId}_knowledge`);
-      const localFiles = savedFiles ? JSON.parse(savedFiles) : [];
+      console.log('Loading knowledge files for avatar:', avatarId);
 
       // Load avatar's knowledge files from database
-      const { data: avatarData, error } = await supabase
+      const { data: avatarData, error: avatarError } = await supabase
         .from('avatars')
         .select('knowledge_files')
         .eq('id', avatarId)
         .eq('user_id', user?.id)
         .single();
 
-      if (error) {
-        console.error('Error loading avatar knowledge files:', error);
-        setKnowledgeFiles(localFiles.map((file: KnowledgeFile) => ({
-          ...file,
-          source: 'upload' as const
-        })));
-        return;
+      if (avatarError && avatarError.code !== 'PGRST116') {
+        console.error('Error loading avatar knowledge files:', avatarError);
       }
 
-      // Convert avatar knowledge files to KnowledgeFile format with proper type checking
+      // Load uploaded knowledge files from database
+      const { data: uploadedFiles, error: uploadedError } = await supabase
+        .from('avatar_knowledge_files')
+        .select('*')
+        .eq('avatar_id', avatarId)
+        .eq('user_id', user?.id)
+        .order('uploaded_at', { ascending: false });
+
+      if (uploadedError) {
+        console.error('Error loading uploaded knowledge files:', uploadedError);
+      }
+
+      // Convert avatar knowledge files to KnowledgeFile format
       let avatarFiles: KnowledgeFile[] = [];
-      
       if (avatarData?.knowledge_files && Array.isArray(avatarData.knowledge_files)) {
         avatarFiles = avatarData.knowledge_files.map((file: any) => ({
           id: `avatar-${file.id || Date.now()}-${Math.random()}`,
           name: file.name || file.filename || 'Unknown File',
           size: file.size || 'Unknown size',
           type: 'PDF',
-          linked: true, // Avatar files are linked by default
+          linked: true,
           uploadedAt: file.uploadedAt || new Date().toISOString(),
           source: 'avatar' as const
         }));
       }
 
-      // Mark local files as uploads
-      const localFilesWithSource = localFiles.map((file: KnowledgeFile) => ({
-        ...file,
-        source: 'upload' as const
-      }));
+      // Convert uploaded files to KnowledgeFile format
+      let uploadFiles: KnowledgeFile[] = [];
+      if (uploadedFiles) {
+        uploadFiles = uploadedFiles.map((file) => ({
+          id: file.id,
+          name: file.file_name,
+          size: `${(file.file_size / (1024 * 1024)).toFixed(2)} MB`,
+          type: 'PDF',
+          linked: file.is_linked,
+          uploadedAt: file.uploaded_at,
+          source: 'upload' as const
+        }));
+      }
 
-      // Combine and deduplicate files
-      const allFiles = [...avatarFiles, ...localFilesWithSource];
-      const uniqueFiles = allFiles.reduce((acc: KnowledgeFile[], current) => {
-        const existing = acc.find(file => 
-          file.name === current.name && file.source === current.source
-        );
-        if (!existing) {
-          acc.push(current);
-        }
-        return acc;
-      }, []);
-
-      setKnowledgeFiles(uniqueFiles);
+      // Combine files
+      const allFiles = [...avatarFiles, ...uploadFiles];
+      console.log('Loaded knowledge files:', allFiles);
+      setKnowledgeFiles(allFiles);
     } catch (error) {
       console.error('Error loading knowledge files:', error);
       toast({
@@ -119,17 +125,15 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
     }
   };
 
-  // Save files to localStorage whenever knowledgeFiles changes (only local uploads)
-  React.useEffect(() => {
-    const localFiles = knowledgeFiles.filter(file => file.source === 'upload');
-    localStorage.setItem(`avatar_${avatarId}_knowledge`, JSON.stringify(localFiles));
-  }, [knowledgeFiles, avatarId]);
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const pdfFiles = files.filter(file => file.type === 'application/pdf');
+    // Validate file types
+    const pdfFiles = files.filter(file => 
+      file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    );
+    
     if (pdfFiles.length !== files.length) {
       toast({
         title: "Invalid File Type",
@@ -139,56 +143,81 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
       return;
     }
 
-    // Upload files to Supabase storage
-    const newFiles: KnowledgeFile[] = [];
-    
-    for (const file of pdfFiles) {
-      try {
+    // Validate file sizes (50MB limit)
+    const oversizedFiles = pdfFiles.filter(file => file.size > 50 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      toast({
+        title: "File Too Large",
+        description: `Files must be under 50MB. ${oversizedFiles.map(f => f.name).join(', ')} exceeded the limit.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const uploadPromises = pdfFiles.map(async (file) => {
+        // Upload to Supabase storage
         const fileName = `${avatarId}/${Date.now()}-${file.name}`;
         
-        const { data, error } = await supabase.storage
+        const { data: storageData, error: storageError } = await supabase.storage
           .from('knowledge-base')
           .upload(fileName, file);
 
-        if (error) {
-          console.error('Error uploading file:', error);
-          toast({
-            title: "Upload Error",
-            description: `Failed to upload ${file.name}`,
-            variant: "destructive"
-          });
-          continue;
+        if (storageError) {
+          console.error('Storage upload error:', storageError);
+          throw new Error(`Failed to upload ${file.name}: ${storageError.message}`);
         }
 
-        const newFile: KnowledgeFile = {
-          id: `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          name: file.name,
-          size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-          type: 'PDF',
-          linked: false, // Default to unlinked
-          uploadedAt: new Date().toISOString(),
-          file,
-          source: 'upload'
-        };
+        // Save file metadata to database
+        const { data: dbData, error: dbError } = await supabase
+          .from('avatar_knowledge_files')
+          .insert({
+            avatar_id: avatarId,
+            user_id: user?.id,
+            file_name: file.name,
+            file_path: storageData.path,
+            file_size: file.size,
+            content_type: file.type || 'application/pdf',
+            is_linked: true
+          })
+          .select()
+          .single();
 
-        newFiles.push(newFile);
-      } catch (error) {
-        console.error('Error processing file:', error);
-      }
-    }
+        if (dbError) {
+          console.error('Database insert error:', dbError);
+          // Try to clean up uploaded file
+          await supabase.storage.from('knowledge-base').remove([fileName]);
+          throw new Error(`Failed to save ${file.name} metadata: ${dbError.message}`);
+        }
 
-    if (newFiles.length > 0) {
-      setKnowledgeFiles(prev => [...prev, ...newFiles]);
-
-      toast({
-        title: "Files Uploaded",
-        description: `${newFiles.length} file(s) uploaded successfully. Link them to make available to your avatar.`,
+        return dbData;
       });
-    }
 
-    // Clear input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      const results = await Promise.all(uploadPromises);
+      
+      toast({
+        title: "Upload Successful",
+        description: `${results.length} file(s) uploaded successfully and linked to your avatar.`,
+      });
+
+      // Reload knowledge files
+      await loadKnowledgeFiles();
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred during upload.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+      // Clear input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -202,44 +231,101 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
       return;
     }
 
-    setKnowledgeFiles(prev =>
-      prev.map(file => {
-        if (file.id === fileId) {
-          const newLinked = !file.linked;
-          
-          // Avatar files cannot be unlinked (they're part of the avatar)
-          if (file.source === 'avatar' && !newLinked) {
-            toast({
-              title: "Cannot Unlink Avatar File",
-              description: "Files from the avatar profile cannot be unlinked. They are part of the avatar's core knowledge.",
-              variant: "destructive"
-            });
-            return file;
-          }
-          
+    const file = knowledgeFiles.find(f => f.id === fileId);
+    if (!file) return;
+
+    // Avatar files cannot be unlinked
+    if (file.source === 'avatar' && file.linked) {
+      toast({
+        title: "Cannot Unlink Avatar File",
+        description: "Files from the avatar profile cannot be unlinked. They are part of the avatar's core knowledge.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (file.source === 'upload') {
+      try {
+        const newLinked = !file.linked;
+        
+        const { error } = await supabase
+          .from('avatar_knowledge_files')
+          .update({ is_linked: newLinked })
+          .eq('id', fileId)
+          .eq('user_id', user?.id);
+
+        if (error) {
+          console.error('Error updating link status:', error);
           toast({
-            title: newLinked ? "File Linked" : "File Unlinked",
-            description: newLinked 
-              ? `${file.name} is now available to your avatar.`
-              : `${file.name} has been removed from avatar's knowledge.`,
+            title: "Update Failed",
+            description: "Failed to update file link status.",
+            variant: "destructive"
           });
-          return { ...file, linked: newLinked };
+          return;
         }
-        return file;
-      })
-    );
+
+        // Update local state
+        setKnowledgeFiles(prev =>
+          prev.map(f => f.id === fileId ? { ...f, linked: newLinked } : f)
+        );
+
+        toast({
+          title: newLinked ? "File Linked" : "File Unlinked",
+          description: newLinked 
+            ? `${file.name} is now available to your avatar.`
+            : `${file.name} has been removed from avatar's knowledge.`,
+        });
+      } catch (error) {
+        console.error('Error updating file:', error);
+        toast({
+          title: "Update Failed",
+          description: "An unexpected error occurred.",
+          variant: "destructive"
+        });
+      }
+    }
   };
 
-  const handleDownload = (file: KnowledgeFile) => {
-    if (file.file) {
-      const url = URL.createObjectURL(file.file);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+  const handleDownload = async (file: KnowledgeFile) => {
+    if (file.source === 'upload') {
+      try {
+        // Get the file from database to find the storage path
+        const { data: fileData, error } = await supabase
+          .from('avatar_knowledge_files')
+          .select('file_path')
+          .eq('id', file.id)
+          .single();
+
+        if (error || !fileData) {
+          throw new Error('File not found');
+        }
+
+        // Download from storage
+        const { data: blob, error: downloadError } = await supabase.storage
+          .from('knowledge-base')
+          .download(fileData.file_path);
+
+        if (downloadError) {
+          throw new Error(downloadError.message);
+        }
+
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Download error:', error);
+        toast({
+          title: "Download Failed",
+          description: "Failed to download the file.",
+          variant: "destructive"
+        });
+      }
     } else {
       toast({
         title: "Download Not Available",
@@ -264,37 +350,45 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
   };
 
   const handleDelete = async () => {
-    if (!fileToDelete) return;
-
-    if (isTraining) {
-      toast({
-        title: "Cannot Delete During Training",
-        description: "Please wait for training to complete before deleting files.",
-        variant: "destructive"
-      });
-      setDeleteDialogOpen(false);
-      setFileToDelete(null);
-      return;
-    }
+    if (!fileToDelete || isTraining) return;
 
     try {
-      // Delete from Supabase storage if it's an uploaded file
-      if (fileToDelete.source === 'upload') {
-        const fileName = `${avatarId}/${fileToDelete.name}`;
-        
-        // Note: We don't have the exact path, so we'll skip storage deletion
-        // In a production app, you'd store the full path
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('avatar_knowledge_files')
+        .delete()
+        .eq('id', fileToDelete.id)
+        .eq('user_id', user?.id);
+
+      if (dbError) {
+        throw new Error(dbError.message);
       }
 
+      // Get file path for storage deletion
+      const { data: fileData } = await supabase
+        .from('avatar_knowledge_files')
+        .select('file_path')
+        .eq('id', fileToDelete.id)
+        .single();
+
+      // Delete from storage (ignore errors since file might not exist)
+      if (fileData?.file_path) {
+        await supabase.storage
+          .from('knowledge-base')
+          .remove([fileData.file_path]);
+      }
+
+      // Update local state
       setKnowledgeFiles(prev => prev.filter(file => file.id !== fileToDelete.id));
+      
       toast({
         title: "File Deleted",
         description: `${fileToDelete.name} has been permanently removed.`,
       });
     } catch (error) {
-      console.error('Error deleting file:', error);
+      console.error('Delete error:', error);
       toast({
-        title: "Delete Error",
+        title: "Delete Failed",
         description: "Failed to delete the file. Please try again.",
         variant: "destructive"
       });
@@ -302,14 +396,6 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
     
     setDeleteDialogOpen(false);
     setFileToDelete(null);
-  };
-
-  const syncWithAvatarData = async () => {
-    await loadKnowledgeFiles();
-    toast({
-      title: "Sync Complete",
-      description: "Knowledge base has been synced with avatar data.",
-    });
   };
 
   const linkedCount = knowledgeFiles.filter(file => file.linked).length;
@@ -336,7 +422,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={syncWithAvatarData}
+                onClick={loadKnowledgeFiles}
                 disabled={isTraining || isLoading}
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -346,10 +432,10 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
                 variant="outline" 
                 size="sm" 
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isTraining}
+                disabled={isTraining || isUploading}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Upload PDF
+                {isUploading ? 'Uploading...' : 'Upload PDF'}
               </Button>
             </div>
           </div>
@@ -358,7 +444,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf"
+            accept=".pdf,application/pdf"
             multiple
             onChange={handleFileUpload}
             className="hidden"
@@ -376,10 +462,10 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
                 <Button 
                   onClick={() => fileInputRef.current?.click()}
                   className="btn-hero"
-                  disabled={isTraining}
+                  disabled={isTraining || isUploading}
                 >
                   <Upload className="mr-2 h-4 w-4" />
-                  Choose PDF Files
+                  {isUploading ? 'Uploading...' : 'Choose PDF Files'}
                 </Button>
               </div>
             )}
@@ -397,9 +483,9 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">Knowledge Documents ({knowledgeFiles.length})</h4>
-                  {isTraining && (
+                  {(isTraining || isUploading) && (
                     <Badge variant="destructive" className="text-xs">
-                      Training in progress - modifications disabled
+                      {isTraining ? 'Training in progress' : 'Upload in progress'} - modifications disabled
                     </Badge>
                   )}
                 </div>
@@ -435,7 +521,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
                           variant="outline"
                           size="sm"
                           onClick={() => toggleLinkStatus(file.id)}
-                          disabled={isTraining}
+                          disabled={isTraining || isUploading}
                           title={file.linked ? "Unlink from knowledge base" : "Link to knowledge base"}
                         >
                           {file.linked ? (
@@ -449,7 +535,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
                           size="sm"
                           onClick={() => handleDownload(file)}
                           title="Download file"
-                          disabled={!file.file}
+                          disabled={file.source === 'avatar'}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -457,7 +543,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
                           variant="outline" 
                           size="sm"
                           onClick={() => confirmDelete(file)}
-                          disabled={isTraining || file.source === 'avatar'}
+                          disabled={isTraining || isUploading || file.source === 'avatar'}
                           className="text-destructive hover:text-destructive"
                           title={file.source === 'avatar' ? "Cannot delete avatar files" : "Delete file"}
                         >

@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      avatar_knowledge_files: {
+        Row: {
+          avatar_id: string
+          content_type: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          is_linked: boolean
+          updated_at: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_id: string
+          content_type?: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          is_linked?: boolean
+          updated_at?: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_id?: string
+          content_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          is_linked?: boolean
+          updated_at?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avatar_knowledge_files_avatar_id_fkey"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "avatars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avatars: {
         Row: {
           age: number | null
