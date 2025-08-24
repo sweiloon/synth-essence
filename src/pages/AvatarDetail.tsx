@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, MessageCircle, Save, X } from 'lucide-react';
+import { ArrowLeft, Edit, MessageCircle, Save, X, User } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -119,7 +120,7 @@ const AvatarDetail = () => {
 
     const setupRealtimeUpdates = async () => {
       // Backstory changes
-      supabase
+      const backstoryChannel = supabase
         .channel('backstory-changes')
         .on(
           'postgres_changes',
@@ -132,17 +133,20 @@ const AvatarDetail = () => {
           (payload) => {
             console.log('Backstory updated (realtime):', payload);
             if (payload.new) {
-              setAvatar(prevAvatar => ({
-                ...prevAvatar,
-                backstory: (payload.new as any).backstory || ''
-              }));
+              setAvatar(prevAvatar => {
+                if (!prevAvatar) return prevAvatar;
+                return {
+                  ...prevAvatar,
+                  backstory: (payload.new as any).backstory || ''
+                };
+              });
             }
           }
         )
         .subscribe();
 
       // Hidden rules changes
-      supabase
+      const hiddenRulesChannel = supabase
         .channel('hidden-rules-changes')
         .on(
           'postgres_changes',
@@ -155,10 +159,13 @@ const AvatarDetail = () => {
           (payload) => {
             console.log('Hidden rules updated (realtime):', payload);
             if (payload.new) {
-              setAvatar(prevAvatar => ({
-                ...prevAvatar,
-                hidden_rules: (payload.new as any).hidden_rules || ''
-              }));
+              setAvatar(prevAvatar => {
+                if (!prevAvatar) return prevAvatar;
+                return {
+                  ...prevAvatar,
+                  hidden_rules: (payload.new as any).hidden_rules || ''
+                };
+              });
             }
           }
         )
@@ -168,8 +175,7 @@ const AvatarDetail = () => {
     setupRealtimeUpdates();
 
     return () => {
-      supabase.removeChannel('backstory-changes');
-      supabase.removeChannel('hidden-rules-changes');
+      supabase.removeAllChannels();
     };
   }, [avatarId, user]);
 
@@ -307,7 +313,7 @@ const AvatarDetail = () => {
                   {error}
                 </p>
                 <Button
-                  onClick={() => navigate('/dashboard?section=avatars')}
+                  onClick={() => navigate('/dashboard?section=myAvatars')}
                   variant="outline"
                 >
                   Back to My Avatars
@@ -329,7 +335,7 @@ const AvatarDetail = () => {
         <div className="flex items-center justify-between mb-6">
           <Button
             variant="ghost"
-            onClick={() => navigate('/dashboard?section=avatars')}
+            onClick={() => navigate('/dashboard?section=myAvatars')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -378,7 +384,6 @@ const AvatarDetail = () => {
               avatarImages: avatar.avatar_images,
             }}
             onUpdate={isEditing ? updateEditData : () => {}}
-            readOnly={!isEditing}
             avatarId={avatar.id}
           />
 
@@ -389,8 +394,6 @@ const AvatarDetail = () => {
               mbtiType: avatar.mbti_type,
             }}
             onUpdate={isEditing ? updateEditData : () => {}}
-            readOnly={!isEditing}
-            avatarId={avatar.id}
           />
 
           {/* Backstory */}
@@ -399,7 +402,6 @@ const AvatarDetail = () => {
               backstory: avatar.backstory,
             }}
             onUpdate={isEditing ? updateEditData : () => {}}
-            readOnly={!isEditing}
             avatarId={avatar.id}
           />
 
@@ -409,7 +411,6 @@ const AvatarDetail = () => {
               hiddenRules: avatar.hidden_rules,
             }}
             onUpdate={isEditing ? updateEditData : () => {}}
-            readOnly={!isEditing}
             avatarId={avatar.id}
           />
 
@@ -417,7 +418,6 @@ const AvatarDetail = () => {
           <KnowledgeBaseStep
             data={{ knowledgeFiles }}
             onUpdate={() => {}}
-            readOnly={!isEditing}
             avatarId={avatar.id}
           />
         </div>
