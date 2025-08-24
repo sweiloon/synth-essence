@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,85 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { User, Globe, X, Upload, Image as ImageIcon } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 
 interface AvatarDetailStepProps {
   data: any;
   onUpdate: (field: string, value: any) => void;
-  avatarId?: string;
 }
 
-export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({ 
-  data, 
-  onUpdate, 
-  avatarId 
-}) => {
-  const { user } = useAuth();
-
-  // Set up real-time updates for avatar changes
-  useEffect(() => {
-    if (!avatarId || !user) return;
-
-    const channel = supabase
-      .channel('avatar-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'avatars',
-          filter: `id=eq.${avatarId}`
-        },
-        (payload) => {
-          console.log('Avatar updated:', payload);
-          // Update local state with new data
-          if (payload.new) {
-            const newData = payload.new as any;
-            onUpdate('name', newData.name);
-            onUpdate('originCountry', newData.origin_country);
-            onUpdate('age', newData.age?.toString());
-            onUpdate('gender', newData.gender);
-            onUpdate('primaryLanguage', newData.primary_language);
-            onUpdate('secondaryLanguages', newData.secondary_languages || []);
-            onUpdate('avatarImages', newData.avatar_images || []);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [avatarId, user, onUpdate]);
-
-  // Set up real-time updates for knowledge files
-  useEffect(() => {
-    if (!avatarId || !user) return;
-
-    const knowledgeChannel = supabase
-      .channel('knowledge-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'avatar_knowledge_files',
-          filter: `avatar_id=eq.${avatarId}`
-        },
-        (payload) => {
-          console.log('Knowledge files updated:', payload);
-          // Trigger a refresh of knowledge files in parent component
-          // This will be handled by the KnowledgeBase component's real-time updates
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(knowledgeChannel);
-    };
-  }, [avatarId, user]);
-
+export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({ data, onUpdate }) => {
   const countries = [
     'Malaysia', 'United States', 'United Kingdom', 'Canada', 'Australia',
     'Singapore', 'China', 'Japan', 'South Korea', 'Thailand', 'Indonesia',
@@ -137,11 +65,6 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
         <CardTitle className="flex items-center gap-2">
           <User className="h-5 w-5" />
           Avatar Detail
-          {avatarId && (
-            <Badge variant="outline" className="text-xs">
-              Real-time Updates Enabled
-            </Badge>
-          )}
         </CardTitle>
         <CardDescription>
           Set up your avatar's basic information, images, and language preferences
