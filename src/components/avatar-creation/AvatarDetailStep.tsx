@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,9 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { User, Globe, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { User, Globe, X, Upload, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface AvatarDetailStepProps {
   data: any;
@@ -22,6 +22,8 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
   avatarId 
 }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
 
   // Set up real-time updates for avatar changes
   useEffect(() => {
@@ -108,17 +110,121 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
     'Bulgarian', 'Greek', 'Turkish', 'Hebrew', 'Urdu', 'Bengali', 'Tamil', 'Telugu'
   ];
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      const newImages = Array.from(files).map(file => URL.createObjectURL(file));
-      const currentImages = data.avatarImages || [];
-      onUpdate('avatarImages', [...currentImages, ...newImages]);
+  const uploadImageToSupabase = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file);
+
+      if (error) {
+        console.error('Upload error:', error);
+        toast({
+          title: "Upload Failed",
+          description: "Failed to upload image. Please try again.",
+          variant: "destructive"
+        });
+        return null;
+      }
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive"
+      });
+      return null;
     }
   };
 
-  const removeImage = (index: number) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
     const currentImages = data.avatarImages || [];
+    const newImageUrls: string[] = [];
+
+    try {
+      for (const file of Array.from(files)) {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          toast({
+            title: "Invalid File",
+            description: `${file.name} is not a valid image file.`,
+            variant: "destructive"
+          });
+          continue;
+        }
+
+        // Validate file size (10MB max)
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "File Too Large",
+            description: `${file.name} is larger than 10MB.`,
+            variant: "destructive"
+          });
+          continue;
+        }
+
+        const uploadedUrl = await uploadImageToSupabase(file);
+        if (uploadedUrl) {
+          newImageUrls.push(uploadedUrl);
+        }
+      }
+
+      if (newImageUrls.length > 0) {
+        onUpdate('avatarImages', [...currentImages, ...newImageUrls]);
+        toast({
+          title: "Images Uploaded",
+          description: `Successfully uploaded ${newImageUrls.length} image(s).`,
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast({
+        title: "Upload Failed",
+        description: "An error occurred while uploading images.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset the input
+      event.target.value = '';
+    }
+  };
+
+  const removeImage = async (index: number) => {
+    const currentImages = data.avatarImages || [];
+    const imageUrl = currentImages[index];
+    
+    // If it's a Supabase storage URL, try to delete it
+    if (imageUrl && imageUrl.includes('supabase') && user) {
+      try {
+        // Extract the file path from the URL
+        const urlParts = imageUrl.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        const filePath = `${user.id}/${fileName}`;
+        
+        await supabase.storage
+          .from('avatars')
+          .remove([filePath]);
+      } catch (error) {
+        console.error('Error deleting image from storage:', error);
+      }
+    }
+    
     const updatedImages = currentImages.filter((_: any, i: number) => i !== index);
     onUpdate('avatarImages', updatedImages);
   };
@@ -164,11 +270,16 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
               accept="image/*"
               onChange={handleImageUpload}
               className="hidden"
+              disabled={isUploading}
             />
-            <label htmlFor="avatar-images" className="cursor-pointer">
-              <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <label htmlFor="avatar-images" className={`cursor-pointer ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              {isUploading ? (
+                <Loader2 className="h-8 w-8 mx-auto mb-2 text-muted-foreground animate-spin" />
+              ) : (
+                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+              )}
               <p className="text-sm text-muted-foreground">
-                Click to upload avatar images or drag and drop
+                {isUploading ? 'Uploading images...' : 'Click to upload avatar images or drag and drop'}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 PNG, JPG, GIF up to 10MB each
@@ -186,6 +297,10 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
                       src={image}
                       alt={`Avatar ${index + 1}`}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('Image failed to load:', image);
+                        e.currentTarget.src = '/placeholder.svg';
+                      }}
                     />
                   </div>
                   <Button
