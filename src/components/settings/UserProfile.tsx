@@ -17,7 +17,18 @@ interface Profile {
   email: string;
   phone: string;
   avatar_url: string;
+  referral_code?: string;
 }
+
+// Generate a referral code
+const generateReferralCode = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
 
 export const UserProfile = () => {
   const { user } = useAuth();
@@ -41,6 +52,19 @@ export const UserProfile = () => {
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
         throw error;
+      }
+
+      // If profile exists but no referral code, generate one
+      if (data && !data.referral_code) {
+        const referralCode = generateReferralCode();
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ referral_code: referralCode })
+          .eq('id', user.id);
+
+        if (!updateError) {
+          data.referral_code = referralCode;
+        }
       }
 
       return data as Profile;

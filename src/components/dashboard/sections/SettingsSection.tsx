@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,10 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserProfile } from '@/components/settings/UserProfile';
+import ReferralSection from '@/components/settings/ReferralSection';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ApiKey {
   id: string;
@@ -26,6 +31,7 @@ interface ApiKey {
 }
 
 const SettingsSection = () => {
+  const { user } = useAuth();
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([
     {
       id: '1',
@@ -56,6 +62,33 @@ const SettingsSection = () => {
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [newApiKey, setNewApiKey] = useState({ name: '', service: '', key: '' });
   const { toast } = useToast();
+
+  // Fetch profile data for referral section
+  const { data: profileData } = useQuery({
+    queryKey: ['profile-referral', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('referral_code, referrer_code')
+        .eq('id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching profile:', error);
+        throw error;
+      }
+
+      return data || { referralCode: '', referrerCode: '' };
+    },
+    enabled: !!user?.id
+  });
+
+  const handleReferralUpdate = (data: { referrerCode: string }) => {
+    // This will be handled by the ReferralSection component
+    console.log('Referral updated:', data);
+  };
 
   const handleAddApiKey = () => {
     if (newApiKey.name && newApiKey.service && newApiKey.key) {
@@ -102,14 +135,28 @@ const SettingsSection = () => {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile">Profile Management</TabsTrigger>
+          <TabsTrigger value="referral">Referral System</TabsTrigger>
           <TabsTrigger value="api">API Management</TabsTrigger>
         </TabsList>
 
         {/* Profile Management Tab */}
         <TabsContent value="profile" className="space-y-4">
           <UserProfile />
+        </TabsContent>
+
+        {/* Referral System Tab */}
+        <TabsContent value="referral" className="space-y-4">
+          {profileData && (
+            <ReferralSection
+              profileData={{
+                referralCode: profileData.referral_code || '',
+                referrerCode: profileData.referrer_code || ''
+              }}
+              onUpdate={handleReferralUpdate}
+            />
+          )}
         </TabsContent>
 
         {/* API Management Tab */}
