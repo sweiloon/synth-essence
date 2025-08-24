@@ -1,179 +1,201 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Bot, 
   Users, 
   MessageSquare, 
+  Bot, 
   Settings,
-  TrendingUp,
-  Star,
   Plus,
-  ArrowRight,
-  Mic,
+  Sparkles,
+  BookOpen,
   Image,
-  BookOpen
+  Volume2,
+  Store,
+  GraduationCap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface DashboardOverviewProps {
+  userProfile?: any;
   onSectionChange: (section: string) => void;
 }
 
-const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onSectionChange }) => {
+export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ 
+  userProfile, 
+  onSectionChange 
+}) => {
   const navigate = useNavigate();
-
-  const handleCreateAvatar = () => {
-    navigate('/create-avatar');
-  };
-
-  const stats = [
-    {
-      title: 'Total Avatars',
-      value: '12',
-      icon: Users,
-      color: 'text-blue-500',
-    },
-    {
-      title: 'Chatbot Interactions',
-      value: '456',
-      icon: MessageSquare,
-      color: 'text-green-500',
-    },
-    {
-      title: 'TTS Usage',
-      value: '789',
-      icon: Mic,
-      color: 'text-orange-500',
-    },
-    {
-      title: 'Images Generated',
-      value: '101',
-      icon: Image,
-      color: 'text-red-500',
-    },
-  ];
 
   const quickActions = [
     {
-      title: 'Manage Chatbots',
-      description: 'Configure and train your AI chatbots',
+      title: 'Create Avatar',
+      description: 'Design a new AI avatar',
+      icon: Plus,
+      onClick: () => navigate('/create-avatar')
+    },
+    {
+      title: 'My Avatars',
+      description: 'View and manage avatars',
+      icon: Users,
+      onClick: () => onSectionChange('avatars')
+    },
+    {
+      title: 'Chatbot Training',
+      description: 'Train and test your bots',
       icon: Bot,
-      onClick: () => onSectionChange('chatbot'),
+      onClick: () => onSectionChange('chatbot')
     },
     {
-      title: 'Adjust Settings',
-      description: 'Customize your profile and preferences',
+      title: 'Settings',
+      description: 'Account and preferences',
       icon: Settings,
-      onClick: () => onSectionChange('settings'),
+      onClick: () => onSectionChange('settings')
+    }
+  ];
+
+  const features = [
+    {
+      title: 'AI Images',
+      description: 'Generate custom images',
+      icon: Image,
+      onClick: () => onSectionChange('images')
     },
     {
-      title: 'Explore Marketplace',
-      description: 'Discover new avatars and integrations',
-      icon: Star,
-      onClick: () => onSectionChange('marketplace'),
+      title: 'Text-to-Speech',
+      description: 'Voice synthesis tools',
+      icon: Volume2,
+      onClick: () => onSectionChange('tts')
     },
     {
-      title: 'View Learning Path',
-      description: 'Access tutorials and guides',
-      icon: BookOpen,
-      onClick: () => onSectionChange('learning-path'),
+      title: 'Marketplace',
+      description: 'Browse avatar templates',
+      icon: Store,
+      onClick: () => onSectionChange('marketplace')
     },
+    {
+      title: 'Learning Path',
+      description: 'Tutorials and guides',
+      icon: GraduationCap,
+      onClick: () => onSectionChange('learning')
+    }
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Welcome to AI Avatar Studio</h1>
-        <p className="text-muted-foreground">
-          Create, train, and manage your AI avatars in one place
+    <div className="space-y-8">
+      {/* Welcome Section */}
+      <div className="text-center space-y-4 py-8">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <Sparkles className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold">Welcome to AI Avatar Creator</h1>
+        </div>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          Create, customize, and deploy intelligent AI avatars with unique personalities, 
+          backstories, and conversational abilities.
         </p>
+        {userProfile?.name && (
+          <Badge variant="secondary" className="text-base px-4 py-2">
+            Hello, {userProfile.name}! 👋
+          </Badge>
+        )}
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="card-modern cursor-pointer hover:shadow-lg transition-all duration-200" onClick={handleCreateAvatar}>
-          <CardContent className="p-6 text-center">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 mx-auto">
-              <Plus className="h-6 w-6 text-white" />
-            </div>
-            <h3 className="font-semibold mb-2">Create Avatar</h3>
-            <p className="text-sm text-muted-foreground">Build a new AI avatar</p>
-          </CardContent>
-        </Card>
-        
-        {quickActions.map((action, index) => (
-          <Card
-            key={index}
-            className="card-modern cursor-pointer hover:shadow-lg transition-all duration-200"
-            onClick={action.onClick}
-          >
-            <CardContent className="p-6">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${action.color}`}>
-                <action.icon className="h-6 w-6" />
-              </div>
-              <h3 className="font-semibold mb-2">{action.title}</h3>
-              <p className="text-sm text-muted-foreground">{action.description}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
-          <Card key={index} className="card-modern">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${stat.color} bg-opacity-20`}>
-                  <stat.icon className="h-5 w-5" />
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {quickActions.map((action, index) => (
+            <Card 
+              key={index} 
+              className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+              onClick={action.onClick}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <action.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <CardTitle className="text-base">{action.title}</CardTitle>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <CardDescription className="text-sm">
+                  {action.description}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
       </div>
 
-      {/* Recent Activity */}
-      <Card className="card-modern">
+      {/* Features Grid */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold">Platform Features</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {features.map((feature, index) => (
+            <Card 
+              key={index} 
+              className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+              onClick={feature.onClick}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-secondary/50 rounded-lg">
+                    <feature.icon className="h-5 w-5 text-secondary-foreground" />
+                  </div>
+                  <CardTitle className="text-base">{feature.title}</CardTitle>
+                </div>
+                <CardDescription className="text-sm">
+                  {feature.description}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Getting Started */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>Your latest interactions and updates</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-blue-900">
+            <BookOpen className="h-5 w-5" />
+            Getting Started
+          </CardTitle>
+          <CardDescription className="text-blue-700">
+            New to AI Avatar Creator? Follow these steps to create your first avatar.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="h-4 w-4 text-green-500" />
-                <p className="text-sm font-medium">New avatar created</p>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center space-y-2">
+              <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center mx-auto font-semibold">
+                1
               </div>
-              <Badge variant="secondary">1 hour ago</Badge>
+              <h4 className="font-medium text-blue-900">Create Avatar</h4>
+              <p className="text-sm text-blue-700">Design your AI persona with unique traits</p>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <MessageSquare className="h-4 w-4 text-blue-500" />
-                <p className="text-sm font-medium">Chatbot training completed</p>
+            <div className="text-center space-y-2">
+              <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center mx-auto font-semibold">
+                2
               </div>
-              <Badge variant="secondary">3 hours ago</Badge>
+              <h4 className="font-medium text-blue-900">Train & Test</h4>
+              <p className="text-sm text-blue-700">Customize behavior and responses</p>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Image className="h-4 w-4 text-orange-500" />
-                <p className="text-sm font-medium">Image generated successfully</p>
+            <div className="text-center space-y-2">
+              <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center mx-auto font-semibold">
+                3
               </div>
-              <Badge variant="secondary">5 hours ago</Badge>
+              <h4 className="font-medium text-blue-900">Deploy</h4>
+              <p className="text-sm text-blue-700">Share your avatar with the world</p>
             </div>
+          </div>
+          <div className="flex justify-center">
+            <Button onClick={() => navigate('/create-avatar')} className="bg-blue-600 hover:bg-blue-700">
+              Create Your First Avatar
+            </Button>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 };
-
-export default DashboardOverview;

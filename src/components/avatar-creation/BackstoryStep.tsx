@@ -4,20 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { BookOpen, Search, FileText } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-
-interface Template {
-  id: string;
-  title: string;
-  content: string;
-  category: string;
-  template_type: string;
-}
 
 interface BackstoryStepProps {
   data: any;
@@ -31,47 +20,6 @@ export const BackstoryStep: React.FC<BackstoryStepProps> = ({
   avatarId 
 }) => {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
-
-  // Load templates
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      try {
-        const { data: templatesData, error } = await supabase
-          .from('avatar_templates')
-          .select('*')
-          .eq('template_type', 'backstory')
-          .eq('is_active', true)
-          .order('title');
-
-        if (error) {
-          console.error('Error fetching templates:', error);
-        } else {
-          setTemplates(templatesData || []);
-          setFilteredTemplates(templatesData || []);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setIsLoadingTemplates(false);
-      }
-    };
-
-    fetchTemplates();
-  }, []);
-
-  // Filter templates based on search
-  useEffect(() => {
-    const filtered = templates.filter(template =>
-      template.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      template.category?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredTemplates(filtered);
-  }, [searchTerm, templates]);
 
   // Set up real-time updates for backstory changes
   useEffect(() => {
@@ -102,83 +50,8 @@ export const BackstoryStep: React.FC<BackstoryStepProps> = ({
     };
   }, [avatarId, user, onUpdate]);
 
-  const handleTemplateSelect = (template: Template) => {
-    onUpdate('backstory', template.content);
-    toast({
-      title: "Template Applied",
-      description: `"${template.title}" template has been applied to your backstory.`,
-    });
-  };
-
   return (
     <div className="space-y-6">
-      {/* Template Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <FileText className="h-5 w-5" />
-            Backstory Templates
-          </CardTitle>
-          <CardDescription>
-            Choose from pre-made templates to get started quickly
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search templates..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          {/* Templates Grid */}
-          {isLoadingTemplates ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-24 bg-muted rounded-lg animate-pulse" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
-              {filteredTemplates.map((template) => (
-                <Card 
-                  key={template.id} 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => handleTemplateSelect(template)}
-                >
-                  <CardContent className="p-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm">{template.title}</h4>
-                        {template.category && (
-                          <Badge variant="outline" className="text-xs">
-                            {template.category}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {template.content.substring(0, 100)}...
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {!isLoadingTemplates && filteredTemplates.length === 0 && (
-            <div className="text-center py-6 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-2" />
-              <p>No templates found</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Main Backstory Input */}
       <Card>
         <CardHeader>
