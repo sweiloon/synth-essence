@@ -11,10 +11,13 @@ import {
   Link,
   Unlink,
   FileText,
-  Database
+  Database,
+  RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface KnowledgeFile {
   id: string;
@@ -24,6 +27,7 @@ interface KnowledgeFile {
   linked: boolean;
   uploadedAt: string;
   file?: File;
+  source?: 'upload' | 'avatar';
 }
 
 interface KnowledgeBaseProps {
@@ -35,20 +39,83 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
   const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<KnowledgeFile | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  // Load files from localStorage on component mount
+  // Load files from both localStorage and avatar data
   React.useEffect(() => {
-    const savedFiles = localStorage.getItem(`avatar_${avatarId}_knowledge`);
-    if (savedFiles) {
-      setKnowledgeFiles(JSON.parse(savedFiles));
-    }
+    loadKnowledgeFiles();
   }, [avatarId]);
 
-  // Save files to localStorage whenever knowledgeFiles changes
+  const loadKnowledgeFiles = async () => {
+    setIsLoading(true);
+    try {
+      // Load files from localStorage
+      const savedFiles = localStorage.getItem(`avatar_${avatarId}_knowledge`);
+      const localFiles = savedFiles ? JSON.parse(savedFiles) : [];
+
+      // Load avatar's knowledge files from database
+      const { data: avatarData, error } = await supabase
+        .from('avatars')
+        .select('knowledge_files')
+        .eq('id', avatarId)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading avatar knowledge files:', error);
+        setKnowledgeFiles(localFiles);
+        return;
+      }
+
+      // Convert avatar knowledge files to KnowledgeFile format
+      const avatarFiles: KnowledgeFile[] = (avatarData.knowledge_files || []).map((file: any) => ({
+        id: `avatar-${file.id || Date.now()}-${Math.random()}`,
+        name: file.name || file.filename || 'Unknown File',
+        size: file.size || 'Unknown size',
+        type: 'PDF',
+        linked: true, // Avatar files are linked by default
+        uploadedAt: file.uploadedAt || new Date().toISOString(),
+        source: 'avatar'
+      }));
+
+      // Mark local files as uploads
+      const localFilesWithSource = localFiles.map((file: KnowledgeFile) => ({
+        ...file,
+        source: 'upload'
+      }));
+
+      // Combine and deduplicate files
+      const allFiles = [...avatarFiles, ...localFilesWithSource];
+      const uniqueFiles = allFiles.reduce((acc: KnowledgeFile[], current) => {
+        const existing = acc.find(file => 
+          file.name === current.name && file.source === current.source
+        );
+        if (!existing) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+
+      setKnowledgeFiles(uniqueFiles);
+    } catch (error) {
+      console.error('Error loading knowledge files:', error);
+      toast({
+        title: "Error Loading Files",
+        description: "Failed to load knowledge base files.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Save files to localStorage whenever knowledgeFiles changes (only local uploads)
   React.useEffect(() => {
-    localStorage.setItem(`avatar_${avatarId}_knowledge`, JSON.stringify(knowledgeFiles));
+    const localFiles = knowledgeFiles.filter(file => file.source === 'upload');
+    localStorage.setItem(`avatar_${avatarId}_knowledge`, JSON.stringify(localFiles));
   }, [knowledgeFiles, avatarId]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,13 +133,14 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
     }
 
     const newFiles: KnowledgeFile[] = pdfFiles.map(file => ({
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: file.name,
       size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
       type: 'PDF',
       linked: false, // Default to unlinked
       uploadedAt: new Date().toISOString(),
-      file
+      file,
+      source: 'upload'
     }));
 
     setKnowledgeFiles(prev => [...prev, ...newFiles]);
@@ -102,6 +170,17 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
       prev.map(file => {
         if (file.id === fileId) {
           const newLinked = !file.linked;
+          
+          // Avatar files cannot be unlinked (they're part of the avatar)
+          if (file.source === 'avatar' && !newLinked) {
+            toast({
+              title: "Cannot Unlink Avatar File",
+              description: "Files from the avatar profile cannot be unlinked. They are part of the avatar's core knowledge.",
+              variant: "destructive"
+            });
+            return file;
+          }
+          
           toast({
             title: newLinked ? "File Linked" : "File Unlinked",
             description: newLinked 
@@ -128,13 +207,22 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
     } else {
       toast({
         title: "Download Not Available",
-        description: "File content is not available for download.",
+        description: "This file is not available for download. It may be from the avatar's profile.",
         variant: "destructive"
       });
     }
   };
 
   const confirmDelete = (file: KnowledgeFile) => {
+    if (file.source === 'avatar') {
+      toast({
+        title: "Cannot Delete Avatar File",
+        description: "Files from the avatar profile cannot be deleted from here. Please edit the avatar profile instead.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setFileToDelete(file);
     setDeleteDialogOpen(true);
   };
@@ -184,6 +272,15 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
                 {linkedCount}/{totalCount} linked
               </Badge>
               <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={loadKnowledgeFiles}
+                disabled={isTraining || isLoading}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                Sync
+              </Button>
+              <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={() => fileInputRef.current?.click()}
@@ -207,7 +304,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
 
           <div className="space-y-4">
             {/* Upload Area - Show when no files */}
-            {knowledgeFiles.length === 0 && (
+            {knowledgeFiles.length === 0 && !isLoading && (
               <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
                 <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-semibold mb-2">Upload Knowledge Documents</h3>
@@ -225,11 +322,19 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
               </div>
             )}
 
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+                <span className="text-muted-foreground">Loading knowledge files...</span>
+              </div>
+            )}
+
             {/* Files List */}
-            {knowledgeFiles.length > 0 && (
+            {knowledgeFiles.length > 0 && !isLoading && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Uploaded Documents ({knowledgeFiles.length})</h4>
+                  <h4 className="font-medium">Knowledge Documents ({knowledgeFiles.length})</h4>
                   {isTraining && (
                     <Badge variant="destructive" className="text-xs">
                       Training in progress - modifications disabled
@@ -251,6 +356,11 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
                             >
                               {file.linked ? "Linked" : "Not Linked"}
                             </Badge>
+                            {file.source === 'avatar' && (
+                              <Badge variant="outline" className="text-xs">
+                                From Avatar
+                              </Badge>
+                            )}
                             <span className="text-xs text-muted-foreground">{file.size}</span>
                             <span className="text-xs text-muted-foreground">
                               {new Date(file.uploadedAt).toLocaleDateString()}
@@ -277,6 +387,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
                           size="sm"
                           onClick={() => handleDownload(file)}
                           title="Download file"
+                          disabled={!file.file}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -284,9 +395,9 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
                           variant="outline" 
                           size="sm"
                           onClick={() => confirmDelete(file)}
-                          disabled={isTraining}
+                          disabled={isTraining || file.source === 'avatar'}
                           className="text-destructive hover:text-destructive"
-                          title="Delete file"
+                          title={file.source === 'avatar' ? "Cannot delete avatar files" : "Delete file"}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -301,11 +412,11 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-medium text-blue-900 mb-2">Knowledge Base Management</h4>
               <ul className="text-sm text-blue-800 space-y-1">
+                <li>• <strong>Avatar Files:</strong> Automatically synced from your avatar's profile</li>
                 <li>• <strong>Link:</strong> Makes the document available to your avatar for referencing</li>
-                <li>• <strong>Unlink:</strong> Removes the document from avatar's active knowledge (avatar "forgets")</li>
-                <li>• <strong>Delete:</strong> Permanently removes the file from your knowledge base</li>
+                <li>• <strong>Unlink:</strong> Removes the document from avatar's active knowledge</li>
+                <li>• <strong>Delete:</strong> Permanently removes uploaded files (not avatar files)</li>
                 <li>• Only linked documents are used by your avatar during conversations</li>
-                <li>• Knowledge base changes are disabled during training to prevent conflicts</li>
               </ul>
             </div>
           </div>
