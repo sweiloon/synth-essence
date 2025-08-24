@@ -379,14 +379,13 @@ const AvatarDetail = () => {
             avatarId={avatar.id}
           />
 
-          {/* Personality */}
+          {/* Personality - Remove avatarId prop */}
           <AvatarPersonaStep
             data={isEditing ? editData : {
               personalityTraits: avatar.personality_traits,
               mbtiType: avatar.mbti_type,
             }}
             onUpdate={isEditing ? updateEditData : () => {}}
-            avatarId={avatar.id}
           />
 
           {/* Backstory */}
