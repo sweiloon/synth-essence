@@ -69,6 +69,8 @@ const AvatarDetail = () => {
     setError(null);
 
     try {
+      console.log('Fetching avatar with ID:', avatarId);
+      
       const { data, error } = await supabase
         .from('avatars')
         .select('*')
@@ -76,9 +78,11 @@ const AvatarDetail = () => {
         .single();
 
       if (error) {
+        console.error('Supabase error:', error);
         throw error;
       }
 
+      console.log('Avatar data fetched:', data);
       setAvatar(data);
     } catch (error: any) {
       console.error('Error fetching avatar:', error);
@@ -115,6 +119,7 @@ const AvatarDetail = () => {
     }
   };
 
+  // Set up real-time updates
   useEffect(() => {
     if (!avatarId || !user) return;
 
@@ -182,6 +187,7 @@ const AvatarDetail = () => {
   useEffect(() => {
     if (avatar) {
       // Populate edit form with existing avatar data
+      console.log('Setting edit data from avatar:', avatar);
       setEditData({
         name: avatar.name || '',
         age: avatar.age || null,
@@ -221,6 +227,7 @@ const AvatarDetail = () => {
   };
 
   const updateEditData = (field: string, value: any) => {
+    console.log('Updating edit data:', field, value);
     setEditData(prev => ({
       ...prev,
       [field]: value
@@ -231,6 +238,8 @@ const AvatarDetail = () => {
     if (!avatar || !user) return;
 
     try {
+      console.log('Saving avatar with data:', editData);
+      
       const { error } = await supabase
         .from('avatars')
         .update({

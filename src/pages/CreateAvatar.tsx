@@ -77,6 +77,7 @@ const CreateAvatar = () => {
   }, [user, navigate]);
 
   const updateAvatarData = (field: string, value: any) => {
+    console.log('Updating avatar data:', field, value);
     setAvatarData(prev => ({
       ...prev,
       [field]: value
@@ -84,8 +85,8 @@ const CreateAvatar = () => {
   };
 
   const calculateProgress = () => {
-    // Progress should be 0% at step 0, then increment by 20% for each step
-    return (currentStep / steps.length) * 100;
+    // Progress should be 0% at step 0, then increment by 20% for each step completed
+    return currentStep === 0 ? 0 : (currentStep / steps.length) * 100;
   };
 
   const isStepValid = (stepIndex: number) => {
@@ -122,7 +123,16 @@ const CreateAvatar = () => {
   };
 
   const handleCreateAvatar = async () => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to create an avatar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('Creating avatar with data:', avatarData);
 
     setIsCreating(true);
     setCreationStatus('creating');
@@ -132,7 +142,7 @@ const CreateAvatar = () => {
       // Simulate progress during creation
       const progressInterval = setInterval(() => {
         setCreationProgress(prev => {
-          const next = prev + 5;
+          const next = prev + 10;
           return next > 90 ? 90 : next;
         });
       }, 1000);
@@ -147,7 +157,7 @@ const CreateAvatar = () => {
           origin_country: avatarData.originCountry,
           primary_language: avatarData.primaryLanguage,
           secondary_languages: avatarData.secondaryLanguages,
-          avatar_images: avatarData.avatarImages,
+          avatar_images: avatarData.avatarImages, // This should be an array of URLs
           personality_traits: avatarData.personalityTraits,
           mbti_type: avatarData.mbtiType,
           backstory: avatarData.backstory,
@@ -163,6 +173,7 @@ const CreateAvatar = () => {
         throw error;
       }
 
+      console.log('Avatar created successfully:', data);
       setCreatedAvatarId(data.id);
       setCreationStatus('success');
       
@@ -229,7 +240,7 @@ const CreateAvatar = () => {
                 Try Again
               </Button>
               <Button
-                onClick={() => navigate('/dashboard?section=avatars')}
+                onClick={() => navigate('/dashboard?section=myAvatars')}
                 className="btn-hero"
               >
                 Back to My Avatars
@@ -251,7 +262,7 @@ const CreateAvatar = () => {
           <div className="flex items-center justify-between mb-4">
             <Button
               variant="ghost"
-              onClick={() => navigate('/dashboard?section=avatars')}
+              onClick={() => navigate('/dashboard?section=myAvatars')}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
