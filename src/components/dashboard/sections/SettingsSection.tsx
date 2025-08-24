@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,7 +79,7 @@ const SettingsSection = () => {
         throw error;
       }
 
-      return data || { referralCode: '', referrerCode: '' };
+      return data || { referral_code: '', referrer_code: '' };
     },
     enabled: !!user?.id
   });
