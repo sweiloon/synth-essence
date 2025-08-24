@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,21 +69,25 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
         return;
       }
 
-      // Convert avatar knowledge files to KnowledgeFile format
-      const avatarFiles: KnowledgeFile[] = (avatarData.knowledge_files || []).map((file: any) => ({
-        id: `avatar-${file.id || Date.now()}-${Math.random()}`,
-        name: file.name || file.filename || 'Unknown File',
-        size: file.size || 'Unknown size',
-        type: 'PDF',
-        linked: true, // Avatar files are linked by default
-        uploadedAt: file.uploadedAt || new Date().toISOString(),
-        source: 'avatar'
-      }));
+      // Convert avatar knowledge files to KnowledgeFile format with proper type checking
+      let avatarFiles: KnowledgeFile[] = [];
+      
+      if (avatarData?.knowledge_files && Array.isArray(avatarData.knowledge_files)) {
+        avatarFiles = avatarData.knowledge_files.map((file: any) => ({
+          id: `avatar-${file.id || Date.now()}-${Math.random()}`,
+          name: file.name || file.filename || 'Unknown File',
+          size: file.size || 'Unknown size',
+          type: 'PDF',
+          linked: true, // Avatar files are linked by default
+          uploadedAt: file.uploadedAt || new Date().toISOString(),
+          source: 'avatar' as const
+        }));
+      }
 
       // Mark local files as uploads
       const localFilesWithSource = localFiles.map((file: KnowledgeFile) => ({
         ...file,
-        source: 'upload'
+        source: 'upload' as const
       }));
 
       // Combine and deduplicate files
