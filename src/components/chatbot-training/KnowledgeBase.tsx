@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,7 +52,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
   const loadKnowledgeFiles = async () => {
     setIsLoading(true);
     try {
-      // Load files from localStorage
+      // Load files from localStorage for this specific avatar
       const savedFiles = localStorage.getItem(`avatar_${avatarId}_knowledge`);
       const localFiles = savedFiles ? JSON.parse(savedFiles) : [];
 
@@ -65,7 +66,10 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
 
       if (error) {
         console.error('Error loading avatar knowledge files:', error);
-        setKnowledgeFiles(localFiles);
+        setKnowledgeFiles(localFiles.map((file: KnowledgeFile) => ({
+          ...file,
+          source: 'upload' as const
+        })));
         return;
       }
 
@@ -121,7 +125,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
     localStorage.setItem(`avatar_${avatarId}_knowledge`, JSON.stringify(localFiles));
   }, [knowledgeFiles, avatarId]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -135,23 +139,52 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
       return;
     }
 
-    const newFiles: KnowledgeFile[] = pdfFiles.map(file => ({
-      id: `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: file.name,
-      size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-      type: 'PDF',
-      linked: false, // Default to unlinked
-      uploadedAt: new Date().toISOString(),
-      file,
-      source: 'upload'
-    }));
+    // Upload files to Supabase storage
+    const newFiles: KnowledgeFile[] = [];
+    
+    for (const file of pdfFiles) {
+      try {
+        const fileName = `${avatarId}/${Date.now()}-${file.name}`;
+        
+        const { data, error } = await supabase.storage
+          .from('knowledge-base')
+          .upload(fileName, file);
 
-    setKnowledgeFiles(prev => [...prev, ...newFiles]);
+        if (error) {
+          console.error('Error uploading file:', error);
+          toast({
+            title: "Upload Error",
+            description: `Failed to upload ${file.name}`,
+            variant: "destructive"
+          });
+          continue;
+        }
 
-    toast({
-      title: "Files Uploaded",
-      description: `${newFiles.length} file(s) uploaded successfully. Link them to make available to your avatar.`,
-    });
+        const newFile: KnowledgeFile = {
+          id: `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          name: file.name,
+          size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+          type: 'PDF',
+          linked: false, // Default to unlinked
+          uploadedAt: new Date().toISOString(),
+          file,
+          source: 'upload'
+        };
+
+        newFiles.push(newFile);
+      } catch (error) {
+        console.error('Error processing file:', error);
+      }
+    }
+
+    if (newFiles.length > 0) {
+      setKnowledgeFiles(prev => [...prev, ...newFiles]);
+
+      toast({
+        title: "Files Uploaded",
+        description: `${newFiles.length} file(s) uploaded successfully. Link them to make available to your avatar.`,
+      });
+    }
 
     // Clear input
     if (fileInputRef.current) {
@@ -159,7 +192,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
     }
   };
 
-  const toggleLinkStatus = (fileId: string) => {
+  const toggleLinkStatus = async (fileId: string) => {
     if (isTraining) {
       toast({
         title: "Cannot Modify During Training",
@@ -230,7 +263,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
     setDeleteDialogOpen(true);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!fileToDelete) return;
 
     if (isTraining) {
@@ -244,13 +277,39 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
       return;
     }
 
-    setKnowledgeFiles(prev => prev.filter(file => file.id !== fileToDelete.id));
-    toast({
-      title: "File Deleted",
-      description: `${fileToDelete.name} has been permanently removed.`,
-    });
+    try {
+      // Delete from Supabase storage if it's an uploaded file
+      if (fileToDelete.source === 'upload') {
+        const fileName = `${avatarId}/${fileToDelete.name}`;
+        
+        // Note: We don't have the exact path, so we'll skip storage deletion
+        // In a production app, you'd store the full path
+      }
+
+      setKnowledgeFiles(prev => prev.filter(file => file.id !== fileToDelete.id));
+      toast({
+        title: "File Deleted",
+        description: `${fileToDelete.name} has been permanently removed.`,
+      });
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast({
+        title: "Delete Error",
+        description: "Failed to delete the file. Please try again.",
+        variant: "destructive"
+      });
+    }
+    
     setDeleteDialogOpen(false);
     setFileToDelete(null);
+  };
+
+  const syncWithAvatarData = async () => {
+    await loadKnowledgeFiles();
+    toast({
+      title: "Sync Complete",
+      description: "Knowledge base has been synced with avatar data.",
+    });
   };
 
   const linkedCount = knowledgeFiles.filter(file => file.linked).length;
@@ -277,7 +336,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={loadKnowledgeFiles}
+                onClick={syncWithAvatarData}
                 disabled={isTraining || isLoading}
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />

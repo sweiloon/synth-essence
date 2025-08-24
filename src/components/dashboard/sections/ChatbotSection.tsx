@@ -218,6 +218,7 @@ const ChatbotSection = () => {
           {selectedAvatar ? (
             <SimplifiedTrainingInterface 
               avatarName={selectedAvatar.name}
+              avatarId={selectedAvatar.id}
               isTraining={isTraining}
               onTrainingStart={handleTrainingStart}
               onTrainingComplete={handleTrainingComplete}
