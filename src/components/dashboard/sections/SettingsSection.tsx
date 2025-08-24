@@ -14,7 +14,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import UserProfile from '@/components/settings/UserProfile';
+import { UserProfile } from '@/components/settings/UserProfile';
 
 interface ApiKey {
   id: string;
