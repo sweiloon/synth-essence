@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import Sidebar from '@/components/dashboard/Sidebar';
 import DashboardOverview from '@/components/dashboard/DashboardOverview';
 import MarketplaceSection from '@/components/dashboard/sections/MarketplaceSection';
@@ -21,15 +21,19 @@ interface DashboardProps {
 const Dashboard = ({ onLogout }: DashboardProps) => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { signOut } = useAuth();
 
-  // Handle navigation from avatar detail page
+  // Handle URL parameters and navigation state
   useEffect(() => {
-    if (location.state?.activeSection) {
+    const sectionFromUrl = searchParams.get('section');
+    if (sectionFromUrl) {
+      setActiveSection(sectionFromUrl);
+    } else if (location.state?.activeSection) {
       setActiveSection(location.state.activeSection);
     }
-  }, [location.state]);
+  }, [location.state, searchParams]);
 
   const handleLogout = async () => {
     try {
@@ -64,6 +68,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         return <AvatarSection />;
       case 'learning-path':
         return <LearningPathSection />;
+      case 'myAvatars':
       case 'my-avatar':
         return <MyAvatarSection />;
       case 'settings':
