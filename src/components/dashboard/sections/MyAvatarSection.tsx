@@ -69,7 +69,6 @@ const MyAvatarSection = () => {
   };
 
   const handleCreateNewAvatar = () => {
-    console.log('Navigating to create avatar page');
     navigate('/create-avatar');
   };
 
