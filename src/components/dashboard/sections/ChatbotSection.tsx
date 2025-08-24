@@ -2,15 +2,19 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   MessageSquare, 
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  User
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AvatarSelectorDropdown } from '@/components/chatbot-training/AvatarSelectorDropdown';
 import { AvatarStatus } from '@/components/chatbot-training/AvatarStatus';
-import { EnhancedTrainingInterface } from '@/components/chatbot-training/EnhancedTrainingInterface';
+import { SimplifiedTrainingInterface } from '@/components/chatbot-training/SimplifiedTrainingInterface';
 import { TestChat } from '@/components/chatbot-training/TestChat';
 import { KnowledgeBase } from '@/components/chatbot-training/KnowledgeBase';
 import { VersionControl } from '@/components/chatbot-training/VersionControl';
@@ -25,6 +29,7 @@ const ChatbotSection = () => {
   const [selectedAvatar, setSelectedAvatar] = useState<any>(null);
   const [isTraining, setIsTraining] = useState(false);
   const [activeTab, setActiveTab] = useState('train');
+  const [showAvatarDetails, setShowAvatarDetails] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -80,6 +85,7 @@ const ChatbotSection = () => {
     }
     
     setSelectedAvatarId(avatarId);
+    setShowAvatarDetails(false); // Collapse details when switching avatar
     toast({
       title: "Avatar Selected",
       description: "You can now start training your avatar.",
@@ -162,9 +168,33 @@ const ChatbotSection = () => {
         onSelectAvatar={handleAvatarSelection}
       />
 
-      {/* Avatar Status - Only show if avatar is selected */}
+      {/* Collapsible Avatar Details */}
       {selectedAvatar && (
-        <AvatarStatus avatar={selectedAvatar} />
+        <Card className="card-modern">
+          <CardContent className="p-4">
+            <Button
+              variant="ghost"
+              onClick={() => setShowAvatarDetails(!showAvatarDetails)}
+              className="w-full flex items-center justify-between p-2 hover:bg-muted/50"
+            >
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span className="font-medium">Avatar Details & Prompts</span>
+              </div>
+              {showAvatarDetails ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+            
+            {showAvatarDetails && (
+              <div className="mt-4 pt-4 border-t">
+                <AvatarStatus avatar={selectedAvatar} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
@@ -186,7 +216,7 @@ const ChatbotSection = () => {
         {/* Training Tab */}
         <TabsContent value="train" className="space-y-6">
           {selectedAvatar ? (
-            <EnhancedTrainingInterface 
+            <SimplifiedTrainingInterface 
               avatarName={selectedAvatar.name}
               isTraining={isTraining}
               onTrainingStart={handleTrainingStart}
