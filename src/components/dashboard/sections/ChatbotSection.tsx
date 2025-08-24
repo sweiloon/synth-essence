@@ -15,14 +15,18 @@ import { TestChat } from '@/components/chatbot-training/TestChat';
 import { KnowledgeBase } from '@/components/chatbot-training/KnowledgeBase';
 import { VersionControl } from '@/components/chatbot-training/VersionControl';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const ChatbotSection = () => {
   const [searchParams] = useSearchParams();
   const avatarFromUrl = searchParams.get('avatar');
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(avatarFromUrl);
+  const [selectedAvatar, setSelectedAvatar] = useState<any>(null);
   const [isTraining, setIsTraining] = useState(false);
   const [activeTab, setActiveTab] = useState('train');
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Update selected avatar when URL param changes
   useEffect(() => {
@@ -31,9 +35,39 @@ const ChatbotSection = () => {
     }
   }, [avatarFromUrl]);
 
-  // Get avatar data from localStorage (matching existing pattern in codebase)
-  const savedAvatars = JSON.parse(localStorage.getItem('myAvatars') || '[]');
-  const selectedAvatar = savedAvatars.find((avatar: any) => avatar.id === selectedAvatarId);
+  // Fetch avatar data when selectedAvatarId changes
+  useEffect(() => {
+    if (selectedAvatarId && user) {
+      fetchAvatarData(selectedAvatarId);
+    } else {
+      setSelectedAvatar(null);
+    }
+  }, [selectedAvatarId, user]);
+
+  const fetchAvatarData = async (avatarId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('avatars')
+        .select('*')
+        .eq('id', avatarId)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching avatar:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load avatar data.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setSelectedAvatar(data);
+    } catch (error) {
+      console.error('Error fetching avatar:', error);
+    }
+  };
 
   const handleAvatarSelection = (avatarId: string) => {
     if (isTraining) {
