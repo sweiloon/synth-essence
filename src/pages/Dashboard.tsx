@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from '@/components/dashboard/Sidebar';
-import DashboardOverview from '@/components/dashboard/DashboardOverview';
+import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
 import MarketplaceSection from '@/components/dashboard/sections/MarketplaceSection';
 import ChatbotSection from '@/components/dashboard/sections/ChatbotSection';
 import TTSSection from '@/components/dashboard/sections/TTSSection';
