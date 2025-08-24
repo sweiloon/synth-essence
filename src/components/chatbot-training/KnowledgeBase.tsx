@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,7 +62,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
         .select('knowledge_files')
         .eq('id', avatarId)
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (avatarError && avatarError.code !== 'PGRST116') {
         console.error('Error loading avatar knowledge files:', avatarError);
@@ -159,8 +158,9 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
     try {
       const uploadPromises = pdfFiles.map(async (file) => {
         // Upload to Supabase storage
-        const fileName = `${avatarId}/${Date.now()}-${file.name}`;
+        const fileName = `${user?.id}/${avatarId}/${Date.now()}-${file.name}`;
         
+        console.log('Uploading file to storage:', fileName);
         const { data: storageData, error: storageError } = await supabase.storage
           .from('knowledge-base')
           .upload(fileName, file);
@@ -170,18 +170,24 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
           throw new Error(`Failed to upload ${file.name}: ${storageError.message}`);
         }
 
+        console.log('File uploaded to storage successfully:', storageData);
+
         // Save file metadata to database
+        const insertData = {
+          avatar_id: avatarId,
+          user_id: user?.id,
+          file_name: file.name,
+          file_path: storageData.path,
+          file_size: file.size,
+          content_type: file.type || 'application/pdf',
+          is_linked: true
+        };
+
+        console.log('Inserting file metadata:', insertData);
+
         const { data: dbData, error: dbError } = await supabase
           .from('avatar_knowledge_files')
-          .insert({
-            avatar_id: avatarId,
-            user_id: user?.id,
-            file_name: file.name,
-            file_path: storageData.path,
-            file_size: file.size,
-            content_type: file.type || 'application/pdf',
-            is_linked: true
-          })
+          .insert(insertData)
           .select()
           .single();
 
@@ -192,6 +198,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
           throw new Error(`Failed to save ${file.name} metadata: ${dbError.message}`);
         }
 
+        console.log('File metadata saved successfully:', dbData);
         return dbData;
       });
 
@@ -353,7 +360,14 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
     if (!fileToDelete || isTraining) return;
 
     try {
-      // Delete from database
+      // Get file path for storage deletion
+      const { data: fileData } = await supabase
+        .from('avatar_knowledge_files')
+        .select('file_path')
+        .eq('id', fileToDelete.id)
+        .single();
+
+      // Delete from database first
       const { error: dbError } = await supabase
         .from('avatar_knowledge_files')
         .delete()
@@ -363,13 +377,6 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ avatarId, isTraini
       if (dbError) {
         throw new Error(dbError.message);
       }
-
-      // Get file path for storage deletion
-      const { data: fileData } = await supabase
-        .from('avatar_knowledge_files')
-        .select('file_path')
-        .eq('id', fileToDelete.id)
-        .single();
 
       // Delete from storage (ignore errors since file might not exist)
       if (fileData?.file_path) {
