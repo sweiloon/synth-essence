@@ -1,305 +1,174 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Bot, 
+  Users, 
   MessageSquare, 
-  Mic, 
-  Image, 
-  User, 
-  TrendingUp, 
-  Clock, 
-  Zap,
-  UserCircle
+  Settings,
+  TrendingUp,
+  Star,
+  Plus,
+  ArrowRight,
+  Mic,
+  Image,
+  BookOpen
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface DashboardOverviewProps {
   onSectionChange: (section: string) => void;
 }
 
-interface Avatar {
-  id: string;
-  name: string;
-  avatar_images: string[];
-  age: number;
-  gender: string;
-  created_at: string;
-}
+const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onSectionChange }) => {
+  const navigate = useNavigate();
 
-const DashboardOverview = ({ onSectionChange }: DashboardOverviewProps) => {
-  const [avatars, setAvatars] = useState<Avatar[]>([]);
-  const [isLoadingAvatars, setIsLoadingAvatars] = useState(true);
-  const { toast } = useToast();
-  const { user } = useAuth();
-
-  // Load avatars from Supabase
-  useEffect(() => {
-    if (user) {
-      fetchAvatars();
-    }
-  }, [user]);
-
-  const fetchAvatars = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('avatars')
-        .select('id, name, avatar_images, age, gender, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      if (error) {
-        console.error('Error fetching avatars:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load your avatars.",
-          variant: "destructive"
-        });
-      } else {
-        setAvatars(data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching avatars:', error);
-    } finally {
-      setIsLoadingAvatars(false);
-    }
+  const handleCreateAvatar = () => {
+    navigate('/create-avatar');
   };
 
-  const handleComingSoon = () => {
-    toast({
-      title: "Coming Soon",
-      description: "This feature is currently under development and will be available soon!",
-      duration: 4000,
-    });
-  };
+  const stats = [
+    {
+      title: 'Total Avatars',
+      value: '12',
+      icon: Users,
+      color: 'text-blue-500',
+    },
+    {
+      title: 'Chatbot Interactions',
+      value: '456',
+      icon: MessageSquare,
+      color: 'text-green-500',
+    },
+    {
+      title: 'TTS Usage',
+      value: '789',
+      icon: Mic,
+      color: 'text-orange-500',
+    },
+    {
+      title: 'Images Generated',
+      value: '101',
+      icon: Image,
+      color: 'text-red-500',
+    },
+  ];
 
-  const handleAvatarClick = (avatarId: string) => {
-    // Navigate to avatar detail page
-    window.location.href = `/avatar/${avatarId}`;
-  };
+  const quickActions = [
+    {
+      title: 'Manage Chatbots',
+      description: 'Configure and train your AI chatbots',
+      icon: Bot,
+      onClick: () => onSectionChange('chatbot'),
+    },
+    {
+      title: 'Adjust Settings',
+      description: 'Customize your profile and preferences',
+      icon: Settings,
+      onClick: () => onSectionChange('settings'),
+    },
+    {
+      title: 'Explore Marketplace',
+      description: 'Discover new avatars and integrations',
+      icon: Star,
+      onClick: () => onSectionChange('marketplace'),
+    },
+    {
+      title: 'View Learning Path',
+      description: 'Access tutorials and guides',
+      icon: BookOpen,
+      onClick: () => onSectionChange('learning-path'),
+    },
+  ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Manage and train your AI Avatar
-          </p>
-        </div>
-        <Button className="btn-hero" onClick={() => onSectionChange('my-avatar')}>
-          <Bot className="mr-2 h-4 w-4" />
-          Create New Avatar
-        </Button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="card-modern">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Training Sessions
-            </CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">
-              No training sessions yet
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="card-modern">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Voice Models
-            </CardTitle>
-            <Mic className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">
-              No voice models created
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="card-modern">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Generated Images
-            </CardTitle>
-            <Image className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">
-              No images generated
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="card-modern">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Avatar Completeness
-            </CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{avatars.length > 0 ? '25%' : '0%'}</div>
-            <p className="text-xs text-muted-foreground">
-              {avatars.length > 0 ? 'Avatar created' : 'Create your first avatar'}
-            </p>
-          </CardContent>
-        </Card>
+      <div>
+        <h1 className="text-3xl font-bold">Welcome to AI Avatar Studio</h1>
+        <p className="text-muted-foreground">
+          Create, train, and manage your AI avatars in one place
+        </p>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="card-modern">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5" />
-              Quick Actions
-            </CardTitle>
-            <CardDescription>
-              Get started with your AI avatar journey
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => onSectionChange('my-avatar')}
-            >
-              <Bot className="mr-2 h-4 w-4" />
-              Create Your First Avatar
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => onSectionChange('chatbot')}
-            >
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Train Language Model
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={handleComingSoon}
-            >
-              <Mic className="mr-2 h-4 w-4" />
-              Configure Voice
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => onSectionChange('images')}
-            >
-              <Image className="mr-2 h-4 w-4" />
-              Generate Images
-            </Button>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="card-modern cursor-pointer hover:shadow-lg transition-all duration-200" onClick={handleCreateAvatar}>
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 mx-auto">
+              <Plus className="h-6 w-6 text-white" />
+            </div>
+            <h3 className="font-semibold mb-2">Create Avatar</h3>
+            <p className="text-sm text-muted-foreground">Build a new AI avatar</p>
           </CardContent>
         </Card>
+        
+        {quickActions.map((action, index) => (
+          <Card
+            key={index}
+            className="card-modern cursor-pointer hover:shadow-lg transition-all duration-200"
+            onClick={action.onClick}
+          >
+            <CardContent className="p-6">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${action.color}`}>
+                <action.icon className="h-6 w-6" />
+              </div>
+              <h3 className="font-semibold mb-2">{action.title}</h3>
+              <p className="text-sm text-muted-foreground">{action.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-        <Card className="card-modern">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              My Avatar
-            </CardTitle>
-            <CardDescription>
-              Your created avatars
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isLoadingAvatars ? (
-              <div className="animate-pulse space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3">
-                    <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-1"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                    </div>
-                  </div>
-                ))}
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, index) => (
+          <Card key={index} className="card-modern">
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">{stat.value}</div>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${stat.color} bg-opacity-20`}>
+                  <stat.icon className="h-5 w-5" />
+                </div>
               </div>
-            ) : avatars.length === 0 ? (
-              <div className="text-center py-8">
-                <Bot className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Avatars Yet</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Create your first avatar to see it here
-                </p>
-                <Button onClick={() => onSectionChange('my-avatar')} className="btn-hero">
-                  Create New Avatar
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {avatars.map((avatar) => (
-                  <div 
-                    key={avatar.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => handleAvatarClick(avatar.id)}
-                  >
-                    {avatar.avatar_images && avatar.avatar_images.length > 0 ? (
-                      <img 
-                        src={avatar.avatar_images[0]} 
-                        alt={avatar.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <UserCircle className="h-10 w-10 text-muted-foreground" />
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium">{avatar.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {avatar.gender} • {avatar.age} years • Created {new Date(avatar.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                <Button 
-                  variant="ghost" 
-                  className="w-full"
-                  onClick={() => onSectionChange('my-avatar')}
-                >
-                  View All Avatars
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Recent Activity */}
       <Card className="card-modern">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Recent Activity
-          </CardTitle>
-          <CardDescription>
-            Your latest avatar activities will appear here
-          </CardDescription>
+          <CardTitle>Recent Activity</CardTitle>
+          <CardDescription>Your latest interactions and updates</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground">
-              No recent activity yet. Start by creating your first avatar!
-            </p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-4 w-4 text-green-500" />
+                <p className="text-sm font-medium">New avatar created</p>
+              </div>
+              <Badge variant="secondary">1 hour ago</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <MessageSquare className="h-4 w-4 text-blue-500" />
+                <p className="text-sm font-medium">Chatbot training completed</p>
+              </div>
+              <Badge variant="secondary">3 hours ago</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Image className="h-4 w-4 text-orange-500" />
+                <p className="text-sm font-medium">Image generated successfully</p>
+              </div>
+              <Badge variant="secondary">5 hours ago</Badge>
+            </div>
           </div>
         </CardContent>
       </Card>

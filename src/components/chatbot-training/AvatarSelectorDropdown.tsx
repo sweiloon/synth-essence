@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -176,20 +175,6 @@ export const AvatarSelectorDropdown: React.FC<AvatarSelectorDropdownProps> = ({
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {avatars.length === 0 && (
-          <div className="text-center py-6">
-            <User className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <h3 className="font-medium mb-2">No Avatars Found</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Create your first avatar to start training.
-            </p>
-            <Button onClick={handleCreateNewAvatar} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Avatar
-            </Button>
           </div>
         )}
       </CardContent>

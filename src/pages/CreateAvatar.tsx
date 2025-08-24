@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, Save, CheckCircle2, User, BookOpen, Shield, Database } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, CheckCircle2, User, BookOpen, Shield, Database, Loader2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,6 +33,7 @@ export default function CreateAvatar() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
     // Avatar Detail
     name: '',
@@ -275,14 +275,20 @@ export default function CreateAvatar() {
   const handleSave = async () => {
     const savedAvatarId = await saveToDatabase();
     if (savedAvatarId) {
-      navigate('/dashboard');
+      navigate('/dashboard?section=my-avatar');
     }
   };
 
   const handleFinish = async () => {
+    setIsCreating(true);
     const savedAvatarId = await saveToDatabase();
     if (savedAvatarId) {
-      navigate('/dashboard');
+      setTimeout(() => {
+        setIsCreating(false);
+        navigate('/dashboard?section=my-avatar');
+      }, 2000);
+    } else {
+      setIsCreating(false);
     }
   };
 
@@ -310,55 +316,77 @@ export default function CreateAvatar() {
     }
   };
 
-  const progress = ((currentStep + 1) / steps.length) * 100;
+  const progress = currentStep === 0 ? 0 : currentStep === steps.length - 1 ? 100 : (currentStep / (steps.length - 1)) * 100;
   const currentStepData = steps[currentStep];
   const isLastStep = currentStep === steps.length - 1;
   const isValid = validateCurrentStep();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
-        <div className="max-w-4xl mx-auto pt-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading avatar data...</p>
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading avatar data...</p>
         </div>
       </div>
     );
   }
 
+  // Show creating state
+  if (isCreating) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto" />
+              <div>
+                <h3 className="text-xl font-semibold">Creating Avatar...</h3>
+                <p className="text-muted-foreground mt-2">
+                  Please wait while we set up your avatar
+                </p>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div className="bg-primary h-2 rounded-full animate-pulse" style={{ width: '75%' }} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Header */}
-        <div className="mb-8 pt-8">
+        <div className="mb-6">
           <div className="flex items-center gap-4 mb-6">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/dashboard?section=my-avatar')}
               className="shrink-0"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              Back
             </Button>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground truncate">
                 {avatarId ? 'Edit Avatar' : 'Create New Avatar'}
               </h1>
-              <p className="text-muted-foreground mt-1">
-                {avatarId ? 'Update your avatar\'s details and settings' : 'Build your AI avatar step by step'}
+              <p className="text-muted-foreground text-sm md:text-base">
+                {avatarId ? 'Update your avatar details' : 'Build your AI avatar step by step'}
               </p>
             </div>
           </div>
 
           {/* Progress */}
           <Card className="mb-6">
-            <CardContent className="pt-6">
+            <CardContent className="p-4 md:p-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="text-xs">
                     Step {currentStep + 1} of {steps.length}
                   </Badge>
                   <span className="text-sm text-muted-foreground">
@@ -367,8 +395,8 @@ export default function CreateAvatar() {
                 </div>
                 <Progress value={progress} className="h-2" />
                 
-                {/* Step indicators */}
-                <div className="flex items-center justify-between">
+                {/* Step indicators - responsive */}
+                <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
                   {steps.map((step, index) => {
                     const StepIcon = step.icon;
                     const isActive = index === currentStep;
@@ -377,7 +405,7 @@ export default function CreateAvatar() {
                     return (
                       <div
                         key={step.id}
-                        className={`flex flex-col items-center space-y-2 ${
+                        className={`flex flex-col items-center space-y-1 min-w-0 flex-1 ${
                           isActive ? 'text-primary' : isCompleted ? 'text-green-600' : 'text-muted-foreground'
                         }`}
                       >
@@ -386,12 +414,12 @@ export default function CreateAvatar() {
                           isCompleted ? 'border-green-600 bg-green-50' : 'border-muted'
                         }`}>
                           {isCompleted ? (
-                            <CheckCircle2 className="h-5 w-5" />
+                            <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" />
                           ) : (
-                            <StepIcon className="h-5 w-5" />
+                            <StepIcon className="h-4 w-4 md:h-5 md:w-5" />
                           )}
                         </div>
-                        <span className="text-xs font-medium text-center hidden sm:block">
+                        <span className="text-xs font-medium text-center hidden sm:block truncate w-full">
                           {step.title}
                         </span>
                       </div>
@@ -404,38 +432,40 @@ export default function CreateAvatar() {
 
           {/* Current Step Header */}
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">
               {currentStepData.title}
             </h2>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm md:text-base">
               {currentStepData.description}
             </p>
           </div>
         </div>
 
         {/* Step Content */}
-        <div className="mb-8">
+        <div className="mb-6">
           {renderCurrentStep()}
         </div>
 
         {/* Navigation */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:justify-between">
               <Button
                 variant="outline"
                 onClick={handlePrevious}
                 disabled={currentStep === 0}
+                className="w-full sm:w-auto"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Previous
               </Button>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   onClick={handleSave}
                   disabled={!isValid || isSaving}
+                  className="w-full sm:w-auto"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {isSaving ? 'Saving...' : 'Save Draft'}
@@ -444,8 +474,8 @@ export default function CreateAvatar() {
                 {isLastStep ? (
                   <Button
                     onClick={handleFinish}
-                    disabled={!isValid || isSaving}
-                    className="btn-hero"
+                    disabled={!isValid || isSaving || isCreating}
+                    className="w-full sm:w-auto bg-primary hover:bg-primary/90"
                   >
                     <CheckCircle2 className="h-4 w-4 mr-2" />
                     {avatarId ? 'Update Avatar' : 'Create Avatar'}
@@ -454,7 +484,7 @@ export default function CreateAvatar() {
                   <Button
                     onClick={handleNext}
                     disabled={!isValid}
-                    className="btn-hero"
+                    className="w-full sm:w-auto bg-primary hover:bg-primary/90"
                   >
                     Next Step
                     <ArrowRight className="h-4 w-4 ml-2" />
