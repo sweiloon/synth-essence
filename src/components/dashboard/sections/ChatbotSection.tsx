@@ -1,34 +1,27 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   MessageSquare, 
-  Upload, 
-  Download, 
-  Plus,
-  Trash2,
-  Link,
-  Unlink,
   AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AvatarSelectorDropdown } from '@/components/chatbot-training/AvatarSelectorDropdown';
 import { AvatarStatus } from '@/components/chatbot-training/AvatarStatus';
-import { TrainingInterface } from '@/components/chatbot-training/TrainingInterface';
+import { EnhancedTrainingInterface } from '@/components/chatbot-training/EnhancedTrainingInterface';
+import { TestChat } from '@/components/chatbot-training/TestChat';
+import { KnowledgeBase } from '@/components/chatbot-training/KnowledgeBase';
+import { VersionControl } from '@/components/chatbot-training/VersionControl';
 import { useSearchParams } from 'react-router-dom';
 
 const ChatbotSection = () => {
   const [searchParams] = useSearchParams();
   const avatarFromUrl = searchParams.get('avatar');
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(avatarFromUrl);
-  const [conversationHistory, setConversationHistory] = useState([
-    { id: 1, type: 'user', message: 'Hello, how are you today?' },
-    { id: 2, type: 'avatar', message: 'Hello! I\'m doing well, thank you for asking. I\'m always excited to learn and chat with you.' },
-  ]);
+  const [isTraining, setIsTraining] = useState(false);
+  const [activeTab, setActiveTab] = useState('train');
   const { toast } = useToast();
 
   // Update selected avatar when URL param changes
@@ -38,10 +31,20 @@ const ChatbotSection = () => {
     }
   }, [avatarFromUrl]);
 
+  // Get avatar data from localStorage (matching existing pattern in codebase)
   const savedAvatars = JSON.parse(localStorage.getItem('myAvatars') || '[]');
   const selectedAvatar = savedAvatars.find((avatar: any) => avatar.id === selectedAvatarId);
 
   const handleAvatarSelection = (avatarId: string) => {
+    if (isTraining) {
+      toast({
+        title: "Cannot Switch Avatar",
+        description: "Please wait for current training to complete before switching avatars.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setSelectedAvatarId(avatarId);
     toast({
       title: "Avatar Selected",
@@ -49,40 +52,49 @@ const ChatbotSection = () => {
     });
   };
 
-  const handleActionWithoutAvatar = () => {
+  const handleTrainingStart = () => {
+    setIsTraining(true);
     toast({
-      title: "No Avatar Selected",
-      description: "Please select or create an avatar before training.",
-      variant: "destructive"
+      title: "Training Started",
+      description: "Avatar training is in progress. Please wait...",
     });
   };
 
-  // Get knowledge files from the selected avatar instead of using mock data
-  const getKnowledgeFiles = () => {
-    if (!selectedAvatar || !selectedAvatar.knowledgeFiles) {
-      return [];
+  const handleTrainingComplete = () => {
+    setIsTraining(false);
+    
+    // Create a new version entry
+    if (selectedAvatarId) {
+      const existingVersions = JSON.parse(localStorage.getItem(`avatar_${selectedAvatarId}_versions`) || '[]');
+      const newVersion = {
+        id: Date.now().toString(),
+        version: `v2.1.${existingVersions.length + 4}`,
+        status: 'Active',
+        description: 'Latest training update with prompt improvements',
+        accuracy: Math.floor(Math.random() * 10) + 90, // 90-99%
+        improvements: ['System prompt optimization', 'Response quality enhancement', 'Context understanding'],
+        timestamp: 'Just now',
+        trainingType: 'language'
+      };
+      
+      // Mark previous version as completed
+      const updatedVersions = existingVersions.map((v: any) => ({ ...v, status: 'Completed' }));
+      updatedVersions.unshift(newVersion);
+      
+      localStorage.setItem(`avatar_${selectedAvatarId}_versions`, JSON.stringify(updatedVersions));
     }
-    return selectedAvatar.knowledgeFiles.map((file: any, index: number) => ({
-      id: `${selectedAvatar.id}-${index}`,
-      name: file.name || `Document ${index + 1}`,
-      size: file.size || 'Unknown size',
-      linked: true,
-      file: file
-    }));
   };
 
-  const toggleLinkStatus = (fileId: string) => {
-    toast({
-      title: "Knowledge Base Updated",
-      description: "File link status has been updated successfully.",
-    });
-  };
-
-  const removeFile = (fileId: string) => {
-    toast({
-      title: "File Removed",
-      description: "The file has been removed from knowledge base.",
-    });
+  const handleTabChange = (value: string) => {
+    if (isTraining && value !== activeTab) {
+      toast({
+        title: "Training in Progress",
+        description: "Please wait for training to complete before switching tabs.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setActiveTab(value);
   };
 
   return (
@@ -98,12 +110,19 @@ const ChatbotSection = () => {
             Train your avatar's language processing and conversation abilities
           </p>
         </div>
-        <Badge variant="outline" className="learning-path-gradient text-white">
-          Language Model v2.1
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="learning-path-gradient text-white">
+            Language Model v2.1
+          </Badge>
+          {isTraining && (
+            <Badge variant="destructive" className="animate-pulse">
+              Training Active
+            </Badge>
+          )}
+        </div>
       </div>
 
-      {/* Avatar Selection - Now using dropdown */}
+      {/* Avatar Selection */}
       <AvatarSelectorDropdown 
         selectedAvatarId={selectedAvatarId}
         onSelectAvatar={handleAvatarSelection}
@@ -114,17 +133,31 @@ const ChatbotSection = () => {
         <AvatarStatus avatar={selectedAvatar} />
       )}
 
-      <Tabs defaultValue="train" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="train">Train Model</TabsTrigger>
-          <TabsTrigger value="test">Test Chat</TabsTrigger>
-          <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="train" disabled={isTraining && activeTab !== 'train'}>
+            Train Model
+          </TabsTrigger>
+          <TabsTrigger value="test" disabled={isTraining && activeTab !== 'test'}>
+            Test Chat
+          </TabsTrigger>
+          <TabsTrigger value="knowledge" disabled={isTraining && activeTab !== 'knowledge'}>
+            Knowledge Base
+          </TabsTrigger>
+          <TabsTrigger value="versions" disabled={isTraining && activeTab !== 'versions'}>
+            Version Control
+          </TabsTrigger>
         </TabsList>
 
         {/* Training Tab */}
         <TabsContent value="train" className="space-y-6">
           {selectedAvatar ? (
-            <TrainingInterface avatarName={selectedAvatar.name} />
+            <EnhancedTrainingInterface 
+              avatarName={selectedAvatar.name}
+              isTraining={isTraining}
+              onTrainingStart={handleTrainingStart}
+              onTrainingComplete={handleTrainingComplete}
+            />
           ) : (
             <Card className="card-modern">
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -141,44 +174,11 @@ const ChatbotSection = () => {
         {/* Test Chat Tab */}
         <TabsContent value="test" className="space-y-6">
           {selectedAvatar ? (
-            <Card className="card-modern">
-              <CardHeader>
-                <CardTitle>Chat with {selectedAvatar.name}</CardTitle>
-                <CardDescription>
-                  Test your avatar's conversation abilities in real-time
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="border rounded-lg p-4 h-96 overflow-y-auto bg-muted/20">
-                    {conversationHistory.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`mb-4 flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                            msg.type === 'user'
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-background border'
-                          }`}
-                        >
-                          <p className="text-sm">{msg.message}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Type your message..."
-                      className="input-modern"
-                    />
-                    <Button className="btn-hero">Send</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <TestChat 
+              avatarName={selectedAvatar.name}
+              avatarImage={selectedAvatar.avatar_images?.[0]}
+              isTraining={isTraining}
+            />
           ) : (
             <Card className="card-modern">
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -195,79 +195,10 @@ const ChatbotSection = () => {
         {/* Knowledge Base Tab */}
         <TabsContent value="knowledge" className="space-y-6">
           {selectedAvatar ? (
-            <Card className="card-modern">
-              <CardHeader>
-                <CardTitle>Knowledge Base for {selectedAvatar.name}</CardTitle>
-                <CardDescription>
-                  Manage PDF documents that your avatar can reference
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-medium">Uploaded Documents</h4>
-                    <Button variant="outline" size="sm" onClick={selectedAvatar ? undefined : handleActionWithoutAvatar}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Upload PDF
-                    </Button>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {getKnowledgeFiles().length > 0 ? (
-                      getKnowledgeFiles().map((file) => (
-                        <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center gap-3 flex-1">
-                            <div>
-                              <p className="font-medium">{file.name}</p>
-                              <p className="text-sm text-muted-foreground">{file.size}</p>
-                            </div>
-                            <Badge variant={file.linked ? "default" : "secondary"}>
-                              {file.linked ? "Linked" : "Not Linked"}
-                            </Badge>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleLinkStatus(file.id)}
-                            >
-                              {file.linked ? (
-                                <>
-                                  <Unlink className="h-4 w-4" />
-                                  <span className="hidden sm:inline ml-2">Unlink</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Link className="h-4 w-4" />
-                                  <span className="hidden sm:inline ml-2">Link to KB</span>
-                                </>
-                              )}
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => removeFile(file.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground">No documents uploaded yet</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Add PDF documents during avatar creation or upload them here
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <KnowledgeBase 
+              avatarId={selectedAvatar.id}
+              isTraining={isTraining}
+            />
           ) : (
             <Card className="card-modern">
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -275,6 +206,26 @@ const ChatbotSection = () => {
                 <h3 className="text-lg font-semibold mb-2">No Avatar Selected</h3>
                 <p className="text-muted-foreground text-center mb-4">
                   Please select an avatar to manage its knowledge base
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Version Control Tab */}
+        <TabsContent value="versions" className="space-y-6">
+          {selectedAvatar ? (
+            <VersionControl 
+              avatarId={selectedAvatar.id}
+              isTraining={isTraining}
+            />
+          ) : (
+            <Card className="card-modern">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Avatar Selected</h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  Please select an avatar to view its version history
                 </p>
               </CardContent>
             </Card>
