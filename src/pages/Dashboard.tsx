@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import Sidebar from '@/components/dashboard/Sidebar';
 import DashboardOverview from '@/components/dashboard/DashboardOverview';
 import MarketplaceSection from '@/components/dashboard/sections/MarketplaceSection';
@@ -19,32 +19,17 @@ interface DashboardProps {
 }
 
 const Dashboard = ({ onLogout }: DashboardProps) => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const section = searchParams.get('section') || 'dashboard';
-  const [activeSection, setActiveSection] = useState(section);
+  const [activeSection, setActiveSection] = useState('dashboard');
   const location = useLocation();
   const { toast } = useToast();
   const { signOut } = useAuth();
-
-  // Update active section when URL changes
-  useEffect(() => {
-    const currentSection = searchParams.get('section') || 'dashboard';
-    setActiveSection(currentSection);
-  }, [searchParams]);
 
   // Handle navigation from avatar detail page
   useEffect(() => {
     if (location.state?.activeSection) {
       setActiveSection(location.state.activeSection);
-      // Update URL to reflect the section
-      setSearchParams({ section: location.state.activeSection });
     }
-  }, [location.state, setSearchParams]);
-
-  const handleSectionChange = (newSection: string) => {
-    setActiveSection(newSection);
-    setSearchParams({ section: newSection });
-  };
+  }, [location.state]);
 
   const handleLogout = async () => {
     try {
@@ -66,7 +51,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
   const renderActiveSection = () => {
     switch (activeSection) {
       case 'dashboard':
-        return <DashboardOverview onSectionChange={handleSectionChange} />;
+        return <DashboardOverview onSectionChange={setActiveSection} />;
       case 'marketplace':
         return <MarketplaceSection />;
       case 'chatbot':
@@ -84,7 +69,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
       case 'settings':
         return <SettingsSection />;
       default:
-        return <DashboardOverview onSectionChange={handleSectionChange} />;
+        return <DashboardOverview onSectionChange={setActiveSection} />;
     }
   };
 
@@ -92,7 +77,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar 
         activeSection={activeSection}
-        onSectionChange={handleSectionChange}
+        onSectionChange={setActiveSection}
         onLogout={handleLogout}
       />
       <main className="flex-1 overflow-auto">

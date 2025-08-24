@@ -69,6 +69,8 @@ const AvatarDetail = () => {
     setError(null);
 
     try {
+      console.log('Fetching avatar with ID:', avatarId);
+      
       const { data, error } = await supabase
         .from('avatars')
         .select('*')
@@ -76,9 +78,11 @@ const AvatarDetail = () => {
         .single();
 
       if (error) {
+        console.error('Supabase error:', error);
         throw error;
       }
 
+      console.log('Avatar data fetched:', data);
       setAvatar(data);
     } catch (error: any) {
       console.error('Error fetching avatar:', error);
@@ -115,12 +119,14 @@ const AvatarDetail = () => {
     }
   };
 
+  // Set up real-time updates
   useEffect(() => {
     if (!avatarId || !user) return;
 
     const setupRealtimeUpdates = async () => {
+      // Backstory changes
       const backstoryChannel = supabase
-        .channel(`backstory-changes-${avatarId}`)
+        .channel('backstory-changes')
         .on(
           'postgres_changes',
           {
@@ -132,17 +138,21 @@ const AvatarDetail = () => {
           (payload) => {
             console.log('Backstory updated (realtime):', payload);
             if (payload.new) {
-              setAvatar(prevAvatar => prevAvatar ? {
-                ...prevAvatar,
-                backstory: (payload.new as any).backstory || ''
-              } : null);
+              setAvatar(prevAvatar => {
+                if (!prevAvatar) return prevAvatar;
+                return {
+                  ...prevAvatar,
+                  backstory: (payload.new as any).backstory || ''
+                };
+              });
             }
           }
         )
         .subscribe();
 
+      // Hidden rules changes
       const hiddenRulesChannel = supabase
-        .channel(`hidden-rules-changes-${avatarId}`)
+        .channel('hidden-rules-changes')
         .on(
           'postgres_changes',
           {
@@ -154,10 +164,13 @@ const AvatarDetail = () => {
           (payload) => {
             console.log('Hidden rules updated (realtime):', payload);
             if (payload.new) {
-              setAvatar(prevAvatar => prevAvatar ? {
-                ...prevAvatar,
-                hidden_rules: (payload.new as any).hidden_rules || ''
-              } : null);
+              setAvatar(prevAvatar => {
+                if (!prevAvatar) return prevAvatar;
+                return {
+                  ...prevAvatar,
+                  hidden_rules: (payload.new as any).hidden_rules || ''
+                };
+              });
             }
           }
         )
@@ -174,6 +187,7 @@ const AvatarDetail = () => {
   useEffect(() => {
     if (avatar) {
       // Populate edit form with existing avatar data
+      console.log('Setting edit data from avatar:', avatar);
       setEditData({
         name: avatar.name || '',
         age: avatar.age || null,
@@ -213,6 +227,7 @@ const AvatarDetail = () => {
   };
 
   const updateEditData = (field: string, value: any) => {
+    console.log('Updating edit data:', field, value);
     setEditData(prev => ({
       ...prev,
       [field]: value
@@ -223,6 +238,8 @@ const AvatarDetail = () => {
     if (!avatar || !user) return;
 
     try {
+      console.log('Saving avatar with data:', editData);
+      
       const { error } = await supabase
         .from('avatars')
         .update({
@@ -305,7 +322,7 @@ const AvatarDetail = () => {
                   {error}
                 </p>
                 <Button
-                  onClick={() => navigate('/?section=my-avatar')}
+                  onClick={() => navigate('/dashboard?section=myAvatars')}
                   variant="outline"
                 >
                   Back to My Avatars
@@ -327,7 +344,7 @@ const AvatarDetail = () => {
         <div className="flex items-center justify-between mb-6">
           <Button
             variant="ghost"
-            onClick={() => navigate('/?section=my-avatar')}
+            onClick={() => navigate('/dashboard?section=myAvatars')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -336,7 +353,7 @@ const AvatarDetail = () => {
           
           <div className="flex items-center gap-2">
             <Button
-              onClick={() => navigate(`/?section=chatbot&avatar=${avatar.id}`)}
+              onClick={() => navigate(`/dashboard?section=chatbot&avatar=${avatar.id}`)}
               className="btn-hero"
             >
               <MessageCircle className="h-4 w-4 mr-2" />
@@ -379,7 +396,7 @@ const AvatarDetail = () => {
             avatarId={avatar.id}
           />
 
-          {/* Personality - Remove avatarId prop */}
+          {/* Personality */}
           <AvatarPersonaStep
             data={isEditing ? editData : {
               personalityTraits: avatar.personality_traits,
