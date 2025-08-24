@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useLocation } from 'react-router-dom';
 import Auth from './Auth';
 import Dashboard from './Dashboard';
@@ -13,10 +13,13 @@ interface IndexProps {
 const Index = ({ isAuthenticated, onLogin, onLogout }: IndexProps) => {
   const location = useLocation();
 
-  // Check if we're on an avatar detail route
+  // Parse URL search params to get section
+  const searchParams = new URLSearchParams(location.search);
+  const section = searchParams.get('section');
+
+  // Handle avatar detail routes
   if (location.pathname.startsWith('/avatar/')) {
-    // This will be handled by the AvatarDetail component
-    return null;
+    return null; // This will be handled by the AvatarDetail component
   }
 
   // Always render either Auth or Dashboard - never a blank state
