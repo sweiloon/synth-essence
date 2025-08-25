@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AvatarSelectorDropdown } from '@/components/chatbot-training/AvatarSelectorDropdown';
-import { AvatarStatus } from '@/components/chatbot-training/AvatarStatus';
+import AvatarStatus from '@/components/chatbot-training/AvatarStatus';
 import { SimplifiedTrainingInterface } from '@/components/chatbot-training/SimplifiedTrainingInterface';
 import { TestChat } from '@/components/chatbot-training/TestChat';
 import { KnowledgeBase } from '@/components/chatbot-training/KnowledgeBase';
