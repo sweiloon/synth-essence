@@ -33,6 +33,12 @@ interface TrainingResult {
   timestamp: string;
 }
 
+interface TrainingPromptSummary {
+  content: string;
+  fileCount: number;
+  estimatedTokens: number;
+}
+
 export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfaceProps> = ({ 
   avatarName,
   avatarId,
@@ -43,6 +49,7 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
   const { trainingData, updateTrainingData, clearCache, isLoaded } = useTrainingDataCache(avatarId);
   const [trainingResults, setTrainingResults] = useState<TrainingResult[]>([]);
   const [combinedInput, setCombinedInput] = useState('');
+  const [trainingPromptSummary, setTrainingPromptSummary] = useState<TrainingPromptSummary | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
@@ -119,18 +126,38 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
     updateTrainingData({ uploadedFiles: newFiles });
   };
 
-  const handleTraining = () => {
+  const handleGeneratePrompt = () => {
     const hasContent = combinedInput.trim() || trainingData.uploadedFiles.length > 0;
 
     if (!hasContent) {
       toast({
         title: "No Training Data",
-        description: "Please provide training data before starting.",
+        description: "Please provide training data before generating prompt.",
         variant: "destructive"
       });
       return;
     }
 
+    // Generate training prompt summary
+    const wordCount = combinedInput.trim().split(/\s+/).length;
+    const estimatedTokens = Math.ceil(wordCount * 1.3) + (trainingData.uploadedFiles.length * 500);
+    
+    const summary: TrainingPromptSummary = {
+      content: combinedInput.trim(),
+      fileCount: trainingData.uploadedFiles.length,
+      estimatedTokens
+    };
+
+    setTrainingPromptSummary(summary);
+    
+    toast({
+      title: "Training Prompt Generated",
+      description: "Review the prompt summary below and click 'Merge & Start Training' to proceed.",
+    });
+  };
+
+  const handleMergeAndTrain = () => {
+    setTrainingPromptSummary(null);
     onTrainingStart();
     
     // Simulate training process and generate results
@@ -177,6 +204,14 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
       clearCache();
       setCombinedInput('');
     }, 5000);
+  };
+
+  const handleCancelPrompt = () => {
+    setTrainingPromptSummary(null);
+    toast({
+      title: "Training Cancelled",
+      description: "The training prompt has been cancelled.",
+    });
   };
 
   const getFileIcon = (file: File) => {
@@ -291,8 +326,8 @@ Examples:
               </div>
               
               <Button 
-                onClick={handleTraining}
-                disabled={isTraining}
+                onClick={handleGeneratePrompt}
+                disabled={isTraining || !!trainingPromptSummary}
                 className="btn-hero h-8"
               >
                 {isTraining ? (
@@ -303,7 +338,7 @@ Examples:
                 ) : (
                   <>
                     <Send className="mr-2 h-4 w-4" />
-                    Start Training
+                    Generate Training Prompt
                   </>
                 )}
               </Button>
@@ -311,6 +346,61 @@ Examples:
           </div>
         </CardContent>
       </Card>
+
+      {/* Training Prompt Summary */}
+      {trainingPromptSummary && (
+        <Card className="card-modern border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-700">
+              <Brain className="h-5 w-5" />
+              Training Prompt Summary
+            </CardTitle>
+            <CardDescription className="text-blue-600">
+              Review the generated training prompt before proceeding
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-white rounded-lg p-4 border border-blue-200">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-blue-900">Content Preview</h4>
+                <div className="flex gap-2">
+                  <Badge variant="outline" className="text-blue-700 border-blue-300">
+                    {trainingPromptSummary.estimatedTokens} tokens
+                  </Badge>
+                  {trainingPromptSummary.fileCount > 0 && (
+                    <Badge variant="outline" className="text-blue-700 border-blue-300">
+                      {trainingPromptSummary.fileCount} files
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="max-h-32 overflow-y-auto text-sm text-blue-800 bg-blue-50 p-3 rounded border">
+                {trainingPromptSummary.content.length > 200 
+                  ? `${trainingPromptSummary.content.substring(0, 200)}...` 
+                  : trainingPromptSummary.content}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={handleCancelPrompt}
+                disabled={isTraining}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleMergeAndTrain}
+                disabled={isTraining}
+                className="btn-hero"
+              >
+                <Brain className="mr-2 h-4 w-4" />
+                Merge & Start Training
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Training Results */}
       {trainingResults.length > 0 && (
