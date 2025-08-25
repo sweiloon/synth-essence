@@ -70,10 +70,6 @@ function App() {
             element={user ? <CreateAvatar /> : <Navigate to="/auth" />} 
           />
           <Route 
-            path="/create-avatar/:id" 
-            element={user ? <CreateAvatar /> : <Navigate to="/auth" />} 
-          />
-          <Route 
             path="/avatar/:id" 
             element={user ? <AvatarDetail /> : <Navigate to="/auth" />} 
           />
