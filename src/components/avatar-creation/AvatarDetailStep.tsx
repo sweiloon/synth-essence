@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -111,31 +112,46 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
   ];
 
   const uploadImageToSupabase = async (file: File): Promise<string | null> => {
-    if (!user) return null;
+    if (!user) {
+      console.error('No user found for upload');
+      return null;
+    }
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      // Generate unique filename with user ID and timestamp
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(7);
+      const fileName = `${user.id}/avatars/${timestamp}-${randomId}.${fileExt}`;
       
+      console.log('Uploading file to path:', fileName);
+      
+      // Upload file to Supabase Storage
       const { data, error } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (error) {
-        console.error('Upload error:', error);
+        console.error('Storage upload error:', error);
         toast({
           title: "Upload Failed",
-          description: "Failed to upload image. Please try again.",
+          description: `Failed to upload image: ${error.message}`,
           variant: "destructive"
         });
         return null;
       }
+
+      console.log('Upload successful:', data);
 
       // Get the public URL
       const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
+      console.log('Public URL generated:', urlData.publicUrl);
       return urlData.publicUrl;
     } catch (error) {
       console.error('Upload error:', error);
@@ -151,6 +167,15 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
+
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to upload images.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsUploading(true);
     const currentImages = data.avatarImages || [];
@@ -181,11 +206,15 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
         const uploadedUrl = await uploadImageToSupabase(file);
         if (uploadedUrl) {
           newImageUrls.push(uploadedUrl);
+          console.log('Successfully uploaded image:', uploadedUrl);
         }
       }
 
       if (newImageUrls.length > 0) {
-        onUpdate('avatarImages', [...currentImages, ...newImageUrls]);
+        const updatedImages = [...currentImages, ...newImageUrls];
+        console.log('Updating avatarImages with:', updatedImages);
+        onUpdate('avatarImages', updatedImages);
+        
         toast({
           title: "Images Uploaded",
           description: `Successfully uploaded ${newImageUrls.length} image(s).`,
@@ -209,23 +238,35 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
     const currentImages = data.avatarImages || [];
     const imageUrl = currentImages[index];
     
-    // If it's a Supabase storage URL, try to delete it
+    console.log('Removing image at index:', index, 'URL:', imageUrl);
+    
+    // If it's a Supabase storage URL, try to delete it from storage
     if (imageUrl && imageUrl.includes('supabase') && user) {
       try {
         // Extract the file path from the URL
-        const urlParts = imageUrl.split('/');
-        const fileName = urlParts[urlParts.length - 1];
-        const filePath = `${user.id}/${fileName}`;
-        
-        await supabase.storage
-          .from('avatars')
-          .remove([filePath]);
+        // URL format: https://project.supabase.co/storage/v1/object/public/avatars/path/to/file
+        const urlParts = imageUrl.split('/storage/v1/object/public/avatars/');
+        if (urlParts.length > 1) {
+          const filePath = urlParts[1];
+          console.log('Attempting to delete file at path:', filePath);
+          
+          const { error } = await supabase.storage
+            .from('avatars')
+            .remove([filePath]);
+
+          if (error) {
+            console.error('Error deleting file from storage:', error);
+          } else {
+            console.log('Successfully deleted file from storage');
+          }
+        }
       } catch (error) {
         console.error('Error deleting image from storage:', error);
       }
     }
     
     const updatedImages = currentImages.filter((_: any, i: number) => i !== index);
+    console.log('Updated images after removal:', updatedImages);
     onUpdate('avatarImages', updatedImages);
   };
 
@@ -297,9 +338,11 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
                       src={image}
                       alt={`Avatar ${index + 1}`}
                       className="w-full h-full object-cover"
+                      onLoad={() => console.log('Image loaded successfully:', image)}
                       onError={(e) => {
                         console.error('Image failed to load:', image);
-                        e.currentTarget.src = '/placeholder.svg';
+                        // Don't set placeholder, just log the error
+                        e.currentTarget.style.display = 'none';
                       }}
                     />
                   </div>
