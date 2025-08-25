@@ -8,20 +8,38 @@ import { AvatarSelectorDropdown } from './AvatarSelectorDropdown';
 import { AvatarOverview } from './AvatarOverview';
 import { TestChat } from './TestChat';
 
-export const SimplifiedTrainingInterface = () => {
-  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
+interface SimplifiedTrainingInterfaceProps {
+  avatarName?: string;
+  avatarId?: string;
+  isTraining?: boolean;
+  onTrainingStart?: () => void;
+  onTrainingComplete?: () => void;
+}
+
+export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfaceProps> = ({
+  avatarName,
+  avatarId,
+  isTraining,
+  onTrainingStart,
+  onTrainingComplete
+}) => {
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(avatarId || null);
   const [isAvatarDetailsOpen, setIsAvatarDetailsOpen] = useState(false);
+
+  const currentAvatarId = selectedAvatarId || avatarId;
 
   return (
     <div className="space-y-6">
-      {/* Avatar Selection */}
-      <AvatarSelectorDropdown
-        selectedAvatarId={selectedAvatarId}
-        onSelectAvatar={setSelectedAvatarId}
-      />
+      {/* Avatar Selection - only show if no avatarId prop provided */}
+      {!avatarId && (
+        <AvatarSelectorDropdown
+          selectedAvatarId={selectedAvatarId}
+          onSelectAvatar={setSelectedAvatarId}
+        />
+      )}
 
       {/* Avatar Details & Prompts - Collapsible */}
-      {selectedAvatarId && (
+      {currentAvatarId && (
         <Collapsible open={isAvatarDetailsOpen} onOpenChange={setIsAvatarDetailsOpen}>
           <Card className="card-modern">
             <CollapsibleTrigger asChild>
@@ -42,7 +60,7 @@ export const SimplifiedTrainingInterface = () => {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <CardContent className="pt-0">
-                <AvatarOverview avatarId={selectedAvatarId} />
+                <AvatarOverview avatarId={currentAvatarId} />
               </CardContent>
             </CollapsibleContent>
           </Card>
@@ -50,8 +68,11 @@ export const SimplifiedTrainingInterface = () => {
       )}
 
       {/* Test Chat */}
-      {selectedAvatarId && (
-        <TestChat avatarId={selectedAvatarId} />
+      {currentAvatarId && avatarName && (
+        <TestChat 
+          avatarName={avatarName}
+          isTraining={isTraining || false}
+        />
       )}
     </div>
   );
