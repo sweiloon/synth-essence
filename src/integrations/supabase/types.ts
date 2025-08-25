@@ -74,13 +74,6 @@ export type Database = {
             referencedRelation: "avatars"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "avatar_knowledge_files_avatar_id_fkey"
-            columns: ["avatar_id"]
-            isOneToOne: false
-            referencedRelation: "deleted_avatars"
-            referencedColumns: ["id"]
-          },
         ]
       }
       avatar_templates: {
@@ -185,6 +178,39 @@ export type Database = {
         }
         Relationships: []
       }
+      deleted_avatars: {
+        Row: {
+          days_until_hard_delete: number | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
+          id: string | null
+          name: string | null
+          scheduled_hard_delete_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          days_until_hard_delete?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          id?: string | null
+          name?: string | null
+          scheduled_hard_delete_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          days_until_hard_delete?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          id?: string | null
+          name?: string | null
+          scheduled_hard_delete_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -223,39 +249,7 @@ export type Database = {
       }
     }
     Views: {
-      deleted_avatars: {
-        Row: {
-          days_until_hard_delete: number | null
-          deleted_at: string | null
-          deleted_by: string | null
-          deletion_reason: string | null
-          id: string | null
-          name: string | null
-          scheduled_hard_delete_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          days_until_hard_delete?: never
-          deleted_at?: string | null
-          deleted_by?: string | null
-          deletion_reason?: string | null
-          id?: string | null
-          name?: string | null
-          scheduled_hard_delete_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          days_until_hard_delete?: never
-          deleted_at?: string | null
-          deleted_by?: string | null
-          deletion_reason?: string | null
-          id?: string | null
-          name?: string | null
-          scheduled_hard_delete_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       cleanup_hard_delete_avatars: {
@@ -265,6 +259,10 @@ export type Database = {
       generate_referral_code: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      refresh_deleted_avatars_view: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       restore_avatar: {
         Args: { avatar_id_param: string }
