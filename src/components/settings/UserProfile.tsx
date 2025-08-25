@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Save, Loader2 } from 'lucide-react';
+import { Camera, Save, Loader2, Edit, X, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Profile {
   id: string;
@@ -36,6 +37,9 @@ export const UserProfile = () => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({ name: '', phone: '' });
+  const [originalData, setOriginalData] = useState({ name: '', phone: '', avatar_url: '' });
 
   // Fetch user profile
   const { data: profile, isLoading } = useQuery({
@@ -67,6 +71,17 @@ export const UserProfile = () => {
         }
       }
 
+      // Set form data and original data when profile loads
+      if (data) {
+        const profileData = { name: data.name || '', phone: data.phone || '' };
+        setFormData(profileData);
+        setOriginalData({ 
+          name: data.name || '', 
+          phone: data.phone || '', 
+          avatar_url: data.avatar_url || '' 
+        });
+      }
+
       return data as Profile;
     },
     enabled: !!user?.id
@@ -87,8 +102,15 @@ export const UserProfile = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+      // Update original data after successful save
+      setOriginalData({
+        name: data.name || '',
+        phone: data.phone || '',
+        avatar_url: data.avatar_url || ''
+      });
+      setIsEditing(false);
       toast({
         title: "Profile Updated",
         description: "Your profile has been updated successfully.",
@@ -131,23 +153,35 @@ export const UserProfile = () => {
     setIsUploading(true);
 
     try {
+      // Generate unique filename with user ID and timestamp
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(7);
+      const fileName = `${user.id}/profile/${timestamp}-${randomId}.${fileExt}`;
+      
+      console.log('Uploading profile avatar to path:', fileName);
+
       // Upload to Supabase storage
-      const fileName = `${user.id}-${Date.now()}.${file.name.split('.').pop()}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: true
+          upsert: false
         });
 
       if (uploadError) {
+        console.error('Storage upload error:', uploadError);
         throw uploadError;
       }
+
+      console.log('Upload successful:', uploadData);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(uploadData.path);
+        .getPublicUrl(fileName);
+
+      console.log('Public URL generated:', publicUrl);
 
       // Update profile with new avatar URL
       await updateProfileMutation.mutateAsync({
@@ -163,7 +197,7 @@ export const UserProfile = () => {
       console.error('Avatar upload error:', error);
       toast({
         title: "Upload Failed",
-        description: "Failed to upload your avatar. Please try again.",
+        description: `Failed to upload your avatar: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {
@@ -175,16 +209,38 @@ export const UserProfile = () => {
     }
   };
 
-  const handleProfileUpdate = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
+  const handleEdit = () => {
+    if (profile) {
+      setFormData({ name: profile.name || '', phone: profile.phone || '' });
+      setIsEditing(true);
+    }
+  };
+
+  const handleCancel = () => {
+    setFormData({ name: originalData.name, phone: originalData.phone });
+    setIsEditing(false);
+  };
+
+  const handleSaveChanges = () => {
     if (!profile) return;
 
-    const formData = new FormData(e.currentTarget);
-    const updates = {
-      name: formData.get('name') as string,
-      phone: formData.get('phone') as string,
-    };
+    // Check if any changes were made
+    const hasNameChanged = formData.name !== originalData.name;
+    const hasPhoneChanged = formData.phone !== originalData.phone;
+
+    if (!hasNameChanged && !hasPhoneChanged) {
+      toast({
+        title: "No Changes Detected",
+        description: "You provided the same information. No updates were made.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Proceed with update
+    const updates: Partial<Profile> = {};
+    if (hasNameChanged) updates.name = formData.name;
+    if (hasPhoneChanged) updates.phone = formData.phone;
 
     updateProfileMutation.mutate(updates);
   };
@@ -213,7 +269,15 @@ export const UserProfile = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Profile Settings</CardTitle>
+        <CardTitle className="flex items-center justify-between">
+          Profile Settings
+          {!isEditing && (
+            <Button variant="outline" onClick={handleEdit} size="sm">
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Avatar Section */}
@@ -231,7 +295,7 @@ export const UserProfile = () => {
             <Button 
               variant="outline" 
               onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
+              disabled={isUploading || !isEditing}
               className="mb-2"
             >
               {isUploading ? (
@@ -249,6 +313,11 @@ export const UserProfile = () => {
             <p className="text-sm text-muted-foreground">
               Upload a new profile picture. Max size: 5MB
             </p>
+            {!isEditing && (
+              <p className="text-xs text-orange-600 mt-1">
+                Click "Edit" to change your avatar
+              </p>
+            )}
           </div>
           <input
             ref={fileInputRef}
@@ -256,67 +325,85 @@ export const UserProfile = () => {
             accept="image/*"
             onChange={handleAvatarUpload}
             className="hidden"
+            disabled={!isEditing}
           />
         </div>
 
         {/* Profile Form */}
-        <form onSubmit={handleProfileUpdate} className="space-y-4">
-          <div className="grid gap-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                name="name"
-                defaultValue={profile.name || ''}
-                placeholder="Enter your name"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={profile.email || user?.email || ''}
-                disabled
-                className="bg-muted"
-              />
-              <p className="text-sm text-muted-foreground mt-1">
-                Email cannot be changed from here
-              </p>
-            </div>
-            
-            <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                defaultValue={profile.phone || ''}
-                placeholder="Enter your phone number"
-              />
-            </div>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Enter your name"
+              disabled={!isEditing}
+              className={!isEditing ? "bg-muted cursor-not-allowed" : ""}
+            />
           </div>
+          
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={profile.email || user?.email || ''}
+              disabled
+              className="bg-muted cursor-not-allowed"
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              Email cannot be changed from here
+            </p>
+          </div>
+          
+          <div>
+            <Label htmlFor="phone">Phone</Label>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+              placeholder="Enter your phone number"
+              disabled={!isEditing}
+              className={!isEditing ? "bg-muted cursor-not-allowed" : ""}
+            />
+          </div>
+        </div>
 
-          <Button 
-            type="submit" 
-            disabled={updateProfileMutation.isPending}
-            className="w-full"
-          >
-            {updateProfileMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-              </>
-            )}
-          </Button>
-        </form>
+        {/* Action Buttons */}
+        {isEditing && (
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleSaveChanges}
+              disabled={updateProfileMutation.isPending}
+              className="flex-1"
+            >
+              {updateProfileMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleCancel}
+              disabled={updateProfileMutation.isPending}
+            >
+              <X className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
