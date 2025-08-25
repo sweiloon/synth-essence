@@ -18,11 +18,16 @@ export type Database = {
         Row: {
           avatar_id: string
           content_type: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           file_name: string
           file_path: string
           file_size: number
           id: string
           is_linked: boolean
+          scheduled_hard_delete_at: string | null
+          status: string | null
           updated_at: string
           uploaded_at: string
           user_id: string
@@ -30,11 +35,16 @@ export type Database = {
         Insert: {
           avatar_id: string
           content_type?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           file_name: string
           file_path: string
           file_size: number
           id?: string
           is_linked?: boolean
+          scheduled_hard_delete_at?: string | null
+          status?: string | null
           updated_at?: string
           uploaded_at?: string
           user_id: string
@@ -42,11 +52,16 @@ export type Database = {
         Update: {
           avatar_id?: string
           content_type?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           file_name?: string
           file_path?: string
           file_size?: number
           id?: string
           is_linked?: boolean
+          scheduled_hard_delete_at?: string | null
+          status?: string | null
           updated_at?: string
           uploaded_at?: string
           user_id?: string
@@ -57,6 +72,13 @@ export type Database = {
             columns: ["avatar_id"]
             isOneToOne: false
             referencedRelation: "avatars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avatar_knowledge_files_avatar_id_fkey"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_avatars"
             referencedColumns: ["id"]
           },
         ]
@@ -100,6 +122,9 @@ export type Database = {
           avatar_images: string[] | null
           backstory: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           gender: string | null
           hidden_rules: string | null
           id: string
@@ -108,7 +133,9 @@ export type Database = {
           origin_country: string
           personality_traits: string[] | null
           primary_language: string
+          scheduled_hard_delete_at: string | null
           secondary_languages: string[] | null
+          status: string | null
           updated_at: string
           user_id: string
         }
@@ -117,6 +144,9 @@ export type Database = {
           avatar_images?: string[] | null
           backstory?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           gender?: string | null
           hidden_rules?: string | null
           id?: string
@@ -125,7 +155,9 @@ export type Database = {
           origin_country?: string
           personality_traits?: string[] | null
           primary_language?: string
+          scheduled_hard_delete_at?: string | null
           secondary_languages?: string[] | null
+          status?: string | null
           updated_at?: string
           user_id: string
         }
@@ -134,6 +166,9 @@ export type Database = {
           avatar_images?: string[] | null
           backstory?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           gender?: string | null
           hidden_rules?: string | null
           id?: string
@@ -142,7 +177,9 @@ export type Database = {
           origin_country?: string
           personality_traits?: string[] | null
           primary_language?: string
+          scheduled_hard_delete_at?: string | null
           secondary_languages?: string[] | null
+          status?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -186,12 +223,56 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      deleted_avatars: {
+        Row: {
+          days_until_hard_delete: number | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
+          id: string | null
+          name: string | null
+          scheduled_hard_delete_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          days_until_hard_delete?: never
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          id?: string | null
+          name?: string | null
+          scheduled_hard_delete_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          days_until_hard_delete?: never
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          id?: string | null
+          name?: string | null
+          scheduled_hard_delete_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      cleanup_hard_delete_avatars: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       generate_referral_code: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      restore_avatar: {
+        Args: { avatar_id_param: string }
+        Returns: undefined
+      }
+      soft_delete_avatar: {
+        Args: { avatar_id_param: string; deletion_reason_param?: string }
+        Returns: undefined
       }
     }
     Enums: {

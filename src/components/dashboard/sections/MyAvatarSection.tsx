@@ -49,6 +49,7 @@ const MyAvatarSection = () => {
         .from('avatars')
         .select('id, name, avatar_images, primary_language, secondary_languages, created_at')
         .eq('user_id', user.id)
+        .eq('status', 'active')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -91,18 +92,19 @@ const MyAvatarSection = () => {
 
   const handleDeleteAvatar = async () => {
     try {
-      const { error } = await supabase
-        .from('avatars')
-        .delete()
-        .eq('id', deleteDialog.avatarId);
+      // Use the soft delete function instead of direct delete
+      const { error } = await supabase.rpc('soft_delete_avatar', {
+        avatar_id_param: deleteDialog.avatarId,
+        deletion_reason_param: 'User requested deletion via dashboard'
+      });
 
       if (error) {
         throw error;
       }
 
       toast({
-        title: "Avatar Deleted",
-        description: `${deleteDialog.avatarName} has been successfully deleted.`,
+        title: "Avatar Moved to Trash",
+        description: `${deleteDialog.avatarName} has been moved to trash. It will be permanently deleted after 90 days.`,
       });
 
       // Refresh the avatars list

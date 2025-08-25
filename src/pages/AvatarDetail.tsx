@@ -22,6 +22,7 @@ interface Avatar {
   personality_traits: string[];
   hidden_rules: string;
   created_at: string;
+  status?: string;
 }
 
 interface KnowledgeFile {
@@ -98,6 +99,7 @@ const AvatarDetail = () => {
         .select('*')
         .eq('id', id)
         .eq('user_id', user.id)
+        .eq('status', 'active')
         .single();
 
       if (error) {
@@ -126,7 +128,8 @@ const AvatarDetail = () => {
         backstory: data.backstory || '',
         personality_traits: data.personality_traits || [],
         hidden_rules: data.hidden_rules || '',
-        created_at: data.created_at
+        created_at: data.created_at,
+        status: data.status
       };
 
       setAvatar(avatarData);
@@ -150,6 +153,7 @@ const AvatarDetail = () => {
         .select('id, file_name, file_size, uploaded_at, content_type')
         .eq('avatar_id', id)
         .eq('user_id', user.id)
+        .eq('status', 'active')
         .eq('is_linked', true)
         .order('uploaded_at', { ascending: false });
 

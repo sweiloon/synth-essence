@@ -1,22 +1,8 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { 
-  User, 
-  Globe, 
-  BookOpen, 
-  Database, 
-  ShieldAlert,
-  MessageSquare,
-  Settings,
-  Edit,
-  Save,
-  X,
-  Image as ImageIcon
-} from 'lucide-react';
+import { User, Globe, Brain, FileText, BookOpen, Shield } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,27 +10,35 @@ import { supabase } from '@/integrations/supabase/client';
 interface Avatar {
   id: string;
   name: string;
+  avatar_images: string[];
   primary_language: string;
   secondary_languages: string[];
+  origin_country: string;
+  age: number;
+  gender: string;
   backstory: string;
-  hidden_rules: string;
-  avatar_images: string[];
   personality_traits: string[];
+  hidden_rules: string;
+  created_at: string;
+  status?: string;
+}
+
+interface KnowledgeFile {
+  id: string;
+  file_name: string;
+  content_type: string;
+  file_size: number;
 }
 
 interface ExtendedAvatar extends Avatar {
-  knowledgeFiles?: any[];
+  knowledgeFiles?: KnowledgeFile[];
 }
 
 interface AvatarStatusProps {
   avatar: Avatar;
 }
 
-export const AvatarStatus: React.FC<AvatarStatusProps> = ({ avatar: initialAvatar }) => {
-  const [isEditingSystem, setIsEditingSystem] = useState(false);
-  const [isEditingUser, setIsEditingUser] = useState(false);
-  const [systemPrompt, setSystemPrompt] = useState('');
-  const [userPrompt, setUserPrompt] = useState('');
+const AvatarStatus: React.FC<AvatarStatusProps> = ({ avatar: initialAvatar }) => {
   const { user } = useAuth();
 
   // Fetch full avatar data with knowledge files
@@ -59,6 +53,7 @@ export const AvatarStatus: React.FC<AvatarStatusProps> = ({ avatar: initialAvata
         .select('*')
         .eq('id', initialAvatar.id)
         .eq('user_id', user.id)
+        .eq('status', 'active')
         .single();
 
       if (avatarError) {
@@ -66,12 +61,14 @@ export const AvatarStatus: React.FC<AvatarStatusProps> = ({ avatar: initialAvata
         return { ...initialAvatar, knowledgeFiles: [] };
       }
 
-      // Fetch knowledge files count
+      // Fetch knowledge files
       const { data: knowledgeFiles, error: knowledgeError } = await supabase
         .from('avatar_knowledge_files')
         .select('id, file_name, content_type, file_size')
         .eq('avatar_id', initialAvatar.id)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .eq('is_linked', true);
 
       if (knowledgeError) {
         console.error('Error fetching knowledge files:', knowledgeError);
@@ -89,64 +86,38 @@ export const AvatarStatus: React.FC<AvatarStatusProps> = ({ avatar: initialAvata
 
   // Generate dummy system and user prompts based on avatar data
   const generateSystemPrompt = () => {
-    return `You are ${avatar.name}, an AI avatar with the following characteristics:
+    const traits = avatar.personality_traits?.join(', ') || 'friendly, helpful';
+    const languages = [avatar.primary_language, ...(avatar.secondary_languages || [])].join(', ');
+    
+    return `You are ${avatar.name}, a ${avatar.age}-year-old ${avatar.gender} from ${avatar.origin_country}. 
+Your personality traits include: ${traits}. 
+You can communicate in: ${languages}.
+${avatar.backstory ? `Your background: ${avatar.backstory}` : ''}
+${avatar.hidden_rules ? `Special instructions: ${avatar.hidden_rules}` : ''}
 
-PRIMARY LANGUAGE: ${avatar.primary_language}
-SECONDARY LANGUAGES: ${(avatar.secondary_languages || []).join(', ') || 'None'}
-
-BACKSTORY: ${avatar.backstory || 'No backstory provided'}
-
-PERSONALITY TRAITS: ${(avatar.personality_traits || []).join(', ') || 'None specified'}
-
-PERSONALITY GUIDELINES:
-- Maintain a consistent personality throughout conversations
-- Respond in your primary language unless specifically asked to use another language
-- Reference your backstory when relevant to the conversation
-
-KNOWLEDGE BASE: ${(avatar.knowledgeFiles || []).length} documents available for reference
-
-${avatar.hidden_rules ? `SPECIAL INSTRUCTIONS: ${avatar.hidden_rules}` : ''}
-
-Always stay in character and provide helpful, engaging responses.`;
+Always stay in character and respond according to your personality and background.`;
   };
 
   const generateUserPrompt = () => {
-    return `Hello ${avatar.name}! I'm looking forward to our conversation. Please introduce yourself briefly and let me know how you can help me today. Remember to stay true to your character and use your knowledge base when relevant.`;
+    return `Remember, you are interacting with ${avatar.name}. They have knowledge from ${avatar.knowledgeFiles?.length || 0} uploaded documents. Please ask questions or have conversations that align with their personality and expertise.`;
   };
 
-  React.useEffect(() => {
-    setSystemPrompt(generateSystemPrompt());
-    setUserPrompt(generateUserPrompt());
-  }, [avatar]);
-
-  const handleSaveSystemPrompt = () => {
-    setIsEditingSystem(false);
-    // Here you would typically save to backend or localStorage
-  };
-
-  const handleSaveUserPrompt = () => {
-    setIsEditingUser(false);
-    // Here you would typically save to backend or localStorage
-  };
-
-  const handleCancelSystemEdit = () => {
-    setSystemPrompt(generateSystemPrompt());
-    setIsEditingSystem(false);
-  };
-
-  const handleCancelUserEdit = () => {
-    setUserPrompt(generateUserPrompt());
-    setIsEditingUser(false);
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Card className="card-modern">
-          <CardContent className="p-6 text-center">
-            Loading avatar details...
-          </CardContent>
-        </Card>
+      <div className="space-y-4">
+        <div className="animate-pulse">
+          <div className="h-32 bg-gray-200 rounded-lg mb-4"></div>
+          <div className="h-20 bg-gray-200 rounded-lg mb-4"></div>
+          <div className="h-16 bg-gray-200 rounded-lg"></div>
+        </div>
       </div>
     );
   }
@@ -158,195 +129,214 @@ Always stay in character and provide helpful, engaging responses.`;
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
-            Avatar Overview: {avatar.name}
+            Avatar Overview
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Avatar Images */}
-          {avatar.avatar_images && avatar.avatar_images.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="h-4 w-4" />
-                <span className="text-sm font-medium">Avatar Images</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {avatar.avatar_images.slice(0, 3).map((imageUrl, index) => (
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Avatar Image */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm text-muted-foreground">Avatar Image</h4>
+              <div className="aspect-square rounded-lg overflow-hidden bg-muted">
+                {avatar.avatar_images && avatar.avatar_images.length > 0 ? (
                   <img
-                    key={index}
-                    src={imageUrl}
-                    alt={`Avatar ${index + 1}`}
-                    className="w-full h-20 object-cover rounded border"
+                    src={avatar.avatar_images[0]}
+                    alt={avatar.name}
+                    className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.currentTarget.src = '/placeholder.svg';
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.parentElement!.innerHTML = `
+                        <div class="w-full h-full flex items-center justify-center">
+                          <svg class="h-12 w-12 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                      `;
                     }}
                   />
-                ))}
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <User className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
               </div>
-              {avatar.avatar_images.length > 3 && (
-                <p className="text-xs text-muted-foreground">
-                  +{avatar.avatar_images.length - 3} more images
+            </div>
+
+            {/* Basic Info */}
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium text-sm text-muted-foreground mb-2">Basic Information</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Name:</span>
+                    <span className="text-sm font-medium">{avatar.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Age:</span>
+                    <span className="text-sm font-medium">{avatar.age} years</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Gender:</span>
+                    <span className="text-sm font-medium capitalize">{avatar.gender}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Origin:</span>
+                    <span className="text-sm font-medium">{avatar.origin_country}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Languages */}
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-1">
+                  <Globe className="h-4 w-4" />
+                  Languages
+                </h4>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-xs text-muted-foreground">Primary:</span>
+                    <Badge variant="default" className="ml-2 text-xs">{avatar.primary_language}</Badge>
+                  </div>
+                  {avatar.secondary_languages && avatar.secondary_languages.length > 0 && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Secondary:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {avatar.secondary_languages.map((lang: string, index: number) => (
+                          <Badge key={index} variant="outline" className="text-xs">{lang}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Personality & Traits */}
+      {avatar.personality_traits && avatar.personality_traits.length > 0 && (
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Brain className="h-5 w-5" />
+              Personality Traits
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {avatar.personality_traits.map((trait: string, index: number) => (
+                <Badge key={index} variant="secondary" className="text-sm">{trait}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Knowledge Base */}
+      {avatar.knowledgeFiles && avatar.knowledgeFiles.length > 0 && (
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5" />
+              Knowledge Base ({avatar.knowledgeFiles.length} files)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {avatar.knowledgeFiles.slice(0, 5).map((file: KnowledgeFile) => (
+                <div key={file.id} className="flex items-center justify-between p-2 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">{file.file_name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {file.content_type === 'application/pdf' ? 'PDF' : 'FILE'}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {formatFileSize(file.file_size)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {avatar.knowledgeFiles.length > 5 && (
+                <p className="text-sm text-muted-foreground text-center mt-2">
+                  +{avatar.knowledgeFiles.length - 5} more files...
                 </p>
               )}
             </div>
-          )}
+          </CardContent>
+        </Card>
+      )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                <span className="text-sm font-medium">Primary Language</span>
-              </div>
-              <Badge variant="outline">{avatar.primary_language}</Badge>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                <span className="text-sm font-medium">Secondary Languages</span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {(avatar.secondary_languages || []).length > 0 ? (
-                  (avatar.secondary_languages || []).map((lang, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {lang}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-sm text-muted-foreground">None</span>
-                )}
-              </div>
-            </div>
+      {/* Backstory */}
+      {avatar.backstory && (
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <BookOpen className="h-5 w-5" />
+              Backstory
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+              {avatar.backstory}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Database className="h-4 w-4" />
-                <span className="text-sm font-medium">Knowledge Base</span>
-              </div>
-              <Badge variant="outline">
-                {(avatar.knowledgeFiles || []).length} documents
-              </Badge>
-            </div>
+      {/* Hidden Rules */}
+      {avatar.hidden_rules && (
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Shield className="h-5 w-5" />
+              Hidden Rules & Instructions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 p-3 rounded-lg border-l-4 border-primary">
+              {avatar.hidden_rules}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4" />
-                <span className="text-sm font-medium">Hidden Rules</span>
-              </div>
-              <Badge variant={avatar.hidden_rules ? "outline" : "secondary"}>
-                {avatar.hidden_rules ? "Configured" : "Not set"}
-              </Badge>
+      {/* System & User Prompts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle className="text-lg">System Prompt</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-muted/50 p-3 rounded-lg border">
+              <pre className="text-xs whitespace-pre-wrap text-muted-foreground">
+                {generateSystemPrompt()}
+              </pre>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Personality Traits */}
-          {avatar.personality_traits && avatar.personality_traits.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span className="text-sm font-medium">Personality Traits</span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {avatar.personality_traits.map((trait, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {trait}
-                  </Badge>
-                ))}
-              </div>
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle className="text-lg">User Prompt Template</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-muted/50 p-3 rounded-lg border">
+              <pre className="text-xs whitespace-pre-wrap text-muted-foreground">
+                {generateUserPrompt()}
+              </pre>
             </div>
-          )}
-
-          {avatar.backstory && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                <span className="text-sm font-medium">Backstory</span>
-              </div>
-              <p className="text-sm text-muted-foreground bg-muted/20 p-3 rounded-lg">
-                {avatar.backstory}
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Avatar Prompts */}
-      <Card className="card-modern">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Avatar Prompts
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                <span className="text-sm font-medium">System Prompt</span>
-              </div>
-              <div className="flex gap-2">
-                {isEditingSystem ? (
-                  <>
-                    <Button size="sm" onClick={handleSaveSystemPrompt}>
-                      <Save className="h-3 w-3 mr-1" />
-                      Save
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={handleCancelSystemEdit}>
-                      <X className="h-3 w-3 mr-1" />
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <Button size="sm" variant="outline" onClick={() => setIsEditingSystem(true)}>
-                    <Edit className="h-3 w-3 mr-1" />
-                    Edit
-                  </Button>
-                )}
-              </div>
-            </div>
-            <Textarea
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              readOnly={!isEditingSystem}
-              className={`min-h-[200px] text-sm ${!isEditingSystem ? 'bg-muted/20' : ''}`}
-            />
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span className="text-sm font-medium">User Prompt</span>
-              </div>
-              <div className="flex gap-2">
-                {isEditingUser ? (
-                  <>
-                    <Button size="sm" onClick={handleSaveUserPrompt}>
-                      <Save className="h-3 w-3 mr-1" />
-                      Save
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={handleCancelUserEdit}>
-                      <X className="h-3 w-3 mr-1" />
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <Button size="sm" variant="outline" onClick={() => setIsEditingUser(true)}>
-                    <Edit className="h-3 w-3 mr-1" />
-                    Edit
-                  </Button>
-                )}
-              </div>
-            </div>
-            <Textarea
-              value={userPrompt}
-              onChange={(e) => setUserPrompt(e.target.value)}
-              readOnly={!isEditingUser}
-              className={`min-h-[100px] text-sm ${!isEditingUser ? 'bg-muted/20' : ''}`}
-            />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
+
+export default AvatarStatus;
