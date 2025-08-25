@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Save, Loader2 } from 'lucide-react';
+import { Camera, Save, Loader2, Edit, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,6 +36,8 @@ export const UserProfile = () => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValues, setEditValues] = useState({ name: '', phone: '' });
 
   // Fetch user profile
   const { data: profile, isLoading } = useQuery({
@@ -131,16 +133,20 @@ export const UserProfile = () => {
     setIsUploading(true);
 
     try {
+      // Create unique filename with user ID and timestamp
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
       // Upload to Supabase storage
-      const fileName = `${user.id}-${Date.now()}.${file.name.split('.').pop()}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: true
+          upsert: false
         });
 
       if (uploadError) {
+        console.error('Upload error:', uploadError);
         throw uploadError;
       }
 
@@ -175,18 +181,47 @@ export const UserProfile = () => {
     }
   };
 
-  const handleProfileUpdate = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
+  const handleEditClick = () => {
+    if (profile) {
+      setEditValues({
+        name: profile.name || '',
+        phone: profile.phone || ''
+      });
+      setIsEditing(true);
+    }
+  };
+
+  const handleSaveChanges = async () => {
     if (!profile) return;
 
-    const formData = new FormData(e.currentTarget);
-    const updates = {
-      name: formData.get('name') as string,
-      phone: formData.get('phone') as string,
-    };
+    // Check if values have changed
+    const nameChanged = editValues.name !== (profile.name || '');
+    const phoneChanged = editValues.phone !== (profile.phone || '');
 
-    updateProfileMutation.mutate(updates);
+    if (!nameChanged && !phoneChanged) {
+      toast({
+        title: "No Changes",
+        description: "You provided the same information. No changes were made.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const updates: Partial<Profile> = {};
+    if (nameChanged) updates.name = editValues.name;
+    if (phoneChanged) updates.phone = editValues.phone;
+
+    try {
+      await updateProfileMutation.mutateAsync(updates);
+      setIsEditing(false);
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditValues({ name: '', phone: '' });
   };
 
   if (isLoading) {
@@ -231,7 +266,7 @@ export const UserProfile = () => {
             <Button 
               variant="outline" 
               onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
+              disabled={isUploading || !isEditing}
               className="mb-2"
             >
               {isUploading ? (
@@ -260,28 +295,43 @@ export const UserProfile = () => {
         </div>
 
         {/* Profile Form */}
-        <form onSubmit={handleProfileUpdate} className="space-y-4">
+        <div className="space-y-4">
           <div className="grid gap-4">
             <div>
               <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                name="name"
-                defaultValue={profile.name || ''}
-                placeholder="Enter your name"
-              />
+              {isEditing ? (
+                <Input
+                  id="name"
+                  name="name"
+                  value={editValues.name}
+                  onChange={(e) => setEditValues(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter your name"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={profile.name || ''}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
             </div>
             
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={profile.email || user?.email || ''}
-                disabled
-                className="bg-muted"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={profile.email || user?.email || ''}
+                  disabled
+                  className="bg-muted"
+                />
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              </div>
               <p className="text-sm text-muted-foreground mt-1">
                 Email cannot be changed from here
               </p>
@@ -289,34 +339,69 @@ export const UserProfile = () => {
             
             <div>
               <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                defaultValue={profile.phone || ''}
-                placeholder="Enter your phone number"
-              />
+              {isEditing ? (
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={editValues.phone}
+                  onChange={(e) => setEditValues(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="Enter your phone number"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={profile.phone || ''}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
             </div>
           </div>
 
-          <Button 
-            type="submit" 
-            disabled={updateProfileMutation.isPending}
-            className="w-full"
-          >
-            {updateProfileMutation.isPending ? (
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            {isEditing ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                <Button 
+                  onClick={handleSaveChanges}
+                  disabled={updateProfileMutation.isPending}
+                  className="flex-1"
+                >
+                  {updateProfileMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={updateProfileMutation.isPending}
+                >
+                  Cancel
+                </Button>
               </>
             ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-              </>
+              <Button 
+                onClick={handleEditClick}
+                variant="outline"
+                className="w-full"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Profile
+              </Button>
             )}
-          </Button>
-        </form>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
