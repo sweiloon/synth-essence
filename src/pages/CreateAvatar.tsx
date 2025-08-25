@@ -8,6 +8,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { useBackNavigation } from '@/hooks/useBackNavigation';
 
 // Import step components
 import { AvatarDetailStep } from '@/components/avatar-creation/AvatarDetailStep';
@@ -29,11 +31,13 @@ export default function CreateAvatar() {
   const { id: avatarId } = useParams();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { goBack } = useBackNavigation();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [formData, setFormData] = useState({
     // Avatar Detail
     name: '',
@@ -56,6 +60,34 @@ export default function CreateAvatar() {
     
     // Knowledge Base
     knowledgeFiles: []
+  });
+
+  // Check if user has made any changes
+  const hasAnyData = () => {
+    return formData.name.trim() !== '' ||
+           formData.age.trim() !== '' ||
+           formData.gender.trim() !== '' ||
+           formData.primaryLanguage.trim() !== '' ||
+           formData.secondaryLanguages.length > 0 ||
+           formData.avatarImages.length > 0 ||
+           formData.personalityTraits.length > 0 ||
+           formData.mbtiType.trim() !== '' ||
+           formData.backstory.trim() !== '' ||
+           formData.hiddenRules.trim() !== '' ||
+           formData.knowledgeFiles.length > 0;
+  };
+
+  // Update unsaved changes status when form data changes
+  useEffect(() => {
+    if (!avatarId) { // Only track changes for new avatars
+      setHasUnsavedChanges(hasAnyData());
+    }
+  }, [formData, avatarId]);
+
+  // Use unsaved changes protection
+  const { confirmNavigation } = useUnsavedChanges({
+    hasUnsavedChanges,
+    message: "You have unsaved changes in your avatar creation. If you leave now, all your progress will be lost. Are you sure you want to continue?"
   });
 
   // Load existing avatar data if editing
@@ -102,6 +134,8 @@ export default function CreateAvatar() {
           hiddenRules: avatar.hidden_rules || '',
           knowledgeFiles: [] // This will be loaded by KnowledgeBaseStep
         });
+        // Don't track changes for existing avatars initially
+        setHasUnsavedChanges(false);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -237,6 +271,9 @@ export default function CreateAvatar() {
         description: avatarId ? "Your avatar has been updated successfully!" : "Your avatar has been created successfully!",
       });
 
+      // Clear unsaved changes after successful save
+      setHasUnsavedChanges(false);
+
       return savedAvatarId;
     } catch (error) {
       console.error('Save error:', error);
@@ -290,6 +327,12 @@ export default function CreateAvatar() {
     } else {
       setIsCreating(false);
     }
+  };
+
+  const handleBackClick = () => {
+    confirmNavigation(() => {
+      goBack();
+    });
   };
 
   const renderCurrentStep = () => {
@@ -365,7 +408,7 @@ export default function CreateAvatar() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/dashboard?section=my-avatar')}
+              onClick={handleBackClick}
               className="shrink-0"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />

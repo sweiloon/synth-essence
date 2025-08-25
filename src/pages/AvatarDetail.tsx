@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { ArrowLeft, User, Globe, Calendar, FileText, BookOpen, Shield, Edit } fr
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useBackNavigation } from '@/hooks/useBackNavigation';
 
 interface Avatar {
   id: string;
@@ -38,6 +38,7 @@ const AvatarDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { goBack } = useBackNavigation();
   const [avatar, setAvatar] = useState<Avatar | null>(null);
   const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -173,7 +174,7 @@ const AvatarDetail = () => {
   };
 
   const handleEditAvatar = () => {
-    navigate(`/create-avatar?edit=${id}`);
+    navigate(`/create-avatar/${id}`);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -206,9 +207,9 @@ const AvatarDetail = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Avatar Not Found</h1>
-            <Button onClick={() => navigate('/dashboard?section=my-avatars')}>
+            <Button onClick={goBack}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to My Avatars
+              Go Back
             </Button>
           </div>
         </div>
@@ -225,10 +226,10 @@ const AvatarDetail = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/dashboard?section=my-avatars')}
+              onClick={goBack}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to My Avatars
+              Back
             </Button>
             <div>
               <h1 className="text-3xl font-bold">{avatar.name}</h1>
