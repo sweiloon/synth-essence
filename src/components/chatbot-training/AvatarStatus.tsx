@@ -32,6 +32,10 @@ interface Avatar {
   personality_traits: string[];
 }
 
+interface ExtendedAvatar extends Avatar {
+  knowledgeFiles?: any[];
+}
+
 interface AvatarStatusProps {
   avatar: Avatar;
 }
@@ -44,10 +48,10 @@ export const AvatarStatus: React.FC<AvatarStatusProps> = ({ avatar: initialAvata
   const { user } = useAuth();
 
   // Fetch full avatar data with knowledge files
-  const { data: avatar = initialAvatar, isLoading } = useQuery({
+  const { data: extendedAvatar, isLoading } = useQuery({
     queryKey: ['avatar-full', initialAvatar.id],
     queryFn: async () => {
-      if (!user?.id) return initialAvatar;
+      if (!user?.id) return { ...initialAvatar, knowledgeFiles: [] };
 
       // Fetch avatar details
       const { data: avatarData, error: avatarError } = await supabase
@@ -59,13 +63,13 @@ export const AvatarStatus: React.FC<AvatarStatusProps> = ({ avatar: initialAvata
 
       if (avatarError) {
         console.error('Error fetching avatar:', avatarError);
-        return initialAvatar;
+        return { ...initialAvatar, knowledgeFiles: [] };
       }
 
       // Fetch knowledge files count
       const { data: knowledgeFiles, error: knowledgeError } = await supabase
         .from('avatar_knowledge_files')
-        .select('id')
+        .select('id, file_name, content_type, file_size')
         .eq('avatar_id', initialAvatar.id)
         .eq('user_id', user.id);
 
@@ -76,10 +80,12 @@ export const AvatarStatus: React.FC<AvatarStatusProps> = ({ avatar: initialAvata
       return {
         ...avatarData,
         knowledgeFiles: knowledgeFiles || []
-      };
+      } as ExtendedAvatar;
     },
     enabled: !!user?.id && !!initialAvatar.id
   });
+
+  const avatar = extendedAvatar || { ...initialAvatar, knowledgeFiles: [] };
 
   // Generate dummy system and user prompts based on avatar data
   const generateSystemPrompt = () => {
