@@ -25,6 +25,14 @@ interface SimplifiedTrainingInterfaceProps {
   onTrainingComplete: () => void;
 }
 
+interface TrainingPromptSummary {
+  systemPrompt?: string;
+  userPrompt?: string;
+  instructions?: string;
+  fileCount: number;
+  totalContent: string;
+}
+
 interface TrainingResult {
   id: string;
   type: 'system' | 'user' | 'instructions';
@@ -43,6 +51,7 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
   const { trainingData, updateTrainingData, clearCache, isLoaded } = useTrainingDataCache(avatarId);
   const [trainingResults, setTrainingResults] = useState<TrainingResult[]>([]);
   const [combinedInput, setCombinedInput] = useState('');
+  const [promptSummary, setPromptSummary] = useState<TrainingPromptSummary | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
@@ -119,17 +128,42 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
     updateTrainingData({ uploadedFiles: newFiles });
   };
 
-  const handleTraining = () => {
+  const generateTrainingPrompt = () => {
     const hasContent = combinedInput.trim() || trainingData.uploadedFiles.length > 0;
 
     if (!hasContent) {
       toast({
         title: "No Training Data",
-        description: "Please provide training data before starting.",
+        description: "Please provide training data before generating prompt.",
         variant: "destructive"
       });
       return;
     }
+
+    // Generate prompt summary
+    const summary: TrainingPromptSummary = {
+      totalContent: combinedInput.trim(),
+      fileCount: trainingData.uploadedFiles.length
+    };
+
+    // Parse the input to categorize content
+    const lines = combinedInput.split('\n').filter(line => line.trim());
+    lines.forEach(line => {
+      const lowerLine = line.toLowerCase();
+      if (lowerLine.includes('system prompt:') || lowerLine.includes('system:')) {
+        summary.systemPrompt = line.replace(/system prompt:|system:/i, '').trim();
+      } else if (lowerLine.includes('user prompt:') || lowerLine.includes('user:')) {
+        summary.userPrompt = line.replace(/user prompt:|user:/i, '').trim();
+      } else if (lowerLine.includes('instruction') || lowerLine.includes('improve')) {
+        summary.instructions = line.trim();
+      }
+    });
+
+    setPromptSummary(summary);
+  };
+
+  const handleMergeTraining = () => {
+    if (!promptSummary) return;
 
     onTrainingStart();
     
@@ -137,7 +171,7 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
     setTimeout(() => {
       const results: TrainingResult[] = [];
       
-      if (combinedInput.trim()) {
+      if (promptSummary.totalContent) {
         results.push({
           id: Date.now().toString() + '_system',
           type: 'system',
@@ -151,13 +185,13 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
         });
       }
 
-      if (trainingData.uploadedFiles.length > 0) {
+      if (promptSummary.fileCount > 0) {
         results.push({
           id: Date.now().toString() + '_files',
           type: 'system',
-          label: `${trainingData.uploadedFiles.length} Files Processed`,
+          label: `${promptSummary.fileCount} Files Processed`,
           changes: [
-            `Analyzed ${trainingData.uploadedFiles.length} training files`,
+            `Analyzed ${promptSummary.fileCount} training files`,
             'Knowledge base expanded',
             'Context understanding improved'
           ],
@@ -166,6 +200,7 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
       }
 
       setTrainingResults(results);
+      setPromptSummary(null);
       onTrainingComplete();
       
       toast({
@@ -177,6 +212,10 @@ export const SimplifiedTrainingInterface: React.FC<SimplifiedTrainingInterfacePr
       clearCache();
       setCombinedInput('');
     }, 5000);
+  };
+
+  const handleCancelTraining = () => {
+    setPromptSummary(null);
   };
 
   const getFileIcon = (file: File) => {
@@ -291,8 +330,8 @@ Examples:
               </div>
               
               <Button 
-                onClick={handleTraining}
-                disabled={isTraining}
+                onClick={generateTrainingPrompt}
+                disabled={isTraining || !!promptSummary}
                 className="btn-hero h-8"
               >
                 {isTraining ? (
@@ -303,7 +342,7 @@ Examples:
                 ) : (
                   <>
                     <Send className="mr-2 h-4 w-4" />
-                    Start Training
+                    Generate Training Prompt
                   </>
                 )}
               </Button>
@@ -311,6 +350,91 @@ Examples:
           </div>
         </CardContent>
       </Card>
+
+      {/* Training Prompt Summary */}
+      {promptSummary && (
+        <Card className="card-modern border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-700">
+              <Brain className="h-5 w-5" />
+              Training Prompt Summary
+            </CardTitle>
+            <CardDescription className="text-orange-600">
+              Review the training prompt before merging with your avatar
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-white rounded-lg p-4 border border-orange-200">
+              <div className="space-y-3">
+                {promptSummary.systemPrompt && (
+                  <div>
+                    <p className="text-sm font-medium text-orange-700 mb-1">System Prompt:</p>
+                    <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                      {promptSummary.systemPrompt}
+                    </p>
+                  </div>
+                )}
+                
+                {promptSummary.userPrompt && (
+                  <div>
+                    <p className="text-sm font-medium text-orange-700 mb-1">User Prompt:</p>
+                    <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                      {promptSummary.userPrompt}
+                    </p>
+                  </div>
+                )}
+                
+                {promptSummary.instructions && (
+                  <div>
+                    <p className="text-sm font-medium text-orange-700 mb-1">Instructions:</p>
+                    <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                      {promptSummary.instructions}
+                    </p>
+                  </div>
+                )}
+                
+                {promptSummary.totalContent && !promptSummary.systemPrompt && !promptSummary.userPrompt && !promptSummary.instructions && (
+                  <div>
+                    <p className="text-sm font-medium text-orange-700 mb-1">Training Content:</p>
+                    <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded max-h-32 overflow-y-auto">
+                      {promptSummary.totalContent}
+                    </p>
+                  </div>
+                )}
+                
+                {promptSummary.fileCount > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-orange-700 mb-1">Files:</p>
+                    <p className="text-sm text-gray-700">
+                      {promptSummary.fileCount} file(s) will be processed
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button 
+                onClick={handleMergeTraining}
+                disabled={isTraining}
+                className="btn-hero flex-1"
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Merge & Start Training
+              </Button>
+              <Button 
+                onClick={handleCancelTraining}
+                disabled={isTraining}
+                variant="outline"
+                className="flex-1"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Training Results */}
       {trainingResults.length > 0 && (
