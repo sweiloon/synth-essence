@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, User, MessageCircle, Edit, Trash2 } from 'lucide-react';
+import { Plus, User, MessageCircle, Edit, Trash2, ArrowLeft, Globe, BookOpen, Shield, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +16,22 @@ interface Avatar {
   avatar_images: string[];
   primary_language: string;
   secondary_languages: string[];
+  origin_country: string;
+  age: number;
+  gender: string;
+  backstory: string;
+  personality_traits: string[];
+  hidden_rules: string;
+  mbti_type: string;
   created_at: string;
+}
+
+interface KnowledgeFile {
+  id: string;
+  file_name: string;
+  file_size: number;
+  uploaded_at: string;
+  content_type: string;
 }
 
 const MyAvatarSection = () => {
@@ -23,7 +39,10 @@ const MyAvatarSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [avatars, setAvatars] = useState<Avatar[]>([]);
+  const [selectedAvatar, setSelectedAvatar] = useState<Avatar | null>(null);
+  const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
     avatarId: string;
@@ -46,7 +65,7 @@ const MyAvatarSection = () => {
     try {
       const { data, error } = await supabase
         .from('avatars')
-        .select('id, name, avatar_images, primary_language, secondary_languages, created_at')
+        .select('*')
         .eq('user_id', user.id)
         .eq('status', 'active')
         .order('created_at', { ascending: false });
@@ -68,12 +87,50 @@ const MyAvatarSection = () => {
     }
   };
 
+  const fetchKnowledgeFiles = async (avatarId: string) => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('avatar_knowledge_files')
+        .select('id, file_name, file_size, uploaded_at, content_type')
+        .eq('avatar_id', avatarId)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .eq('is_linked', true)
+        .order('uploaded_at', { ascending: false });
+
+      if (error) throw error;
+
+      setKnowledgeFiles(data || []);
+    } catch (error: any) {
+      console.error('Error fetching knowledge files:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load knowledge files.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleCreateNewAvatar = () => {
     navigate('/create-avatar');
   };
 
-  const handleViewAvatar = (avatarId: string) => {
-    navigate(`/avatar/${avatarId}`);
+  const handleViewAvatar = async (avatar: Avatar) => {
+    setIsLoadingDetails(true);
+    setSelectedAvatar(avatar);
+    await fetchKnowledgeFiles(avatar.id);
+    setIsLoadingDetails(false);
+  };
+
+  const handleBackToList = () => {
+    setSelectedAvatar(null);
+    setKnowledgeFiles([]);
+  };
+
+  const handleEditAvatar = (avatarId: string) => {
+    navigate(`/create-avatar/${avatarId}`);
   };
 
   const handleChatWithAvatar = (avatarId: string) => {
@@ -108,6 +165,11 @@ const MyAvatarSection = () => {
 
       // Refresh the avatars list
       fetchAvatars();
+      
+      // If the deleted avatar was currently selected, go back to list
+      if (selectedAvatar && selectedAvatar.id === deleteDialog.avatarId) {
+        handleBackToList();
+      }
     } catch (error: any) {
       console.error('Error deleting avatar:', error);
       toast({
@@ -118,6 +180,14 @@ const MyAvatarSection = () => {
     } finally {
       setDeleteDialog({ open: false, avatarId: '', avatarName: '' });
     }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   if (isLoading) {
@@ -144,6 +214,244 @@ const MyAvatarSection = () => {
     );
   }
 
+  // Show avatar details view
+  if (selectedAvatar) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBackToList}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">{selectedAvatar.name}</h1>
+              <p className="text-muted-foreground">
+                {selectedAvatar.age} years old • {selectedAvatar.gender} • {selectedAvatar.origin_country}
+              </p>
+            </div>
+          </div>
+          <Button onClick={() => handleEditAvatar(selectedAvatar.id)} className="btn-hero">
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Avatar
+          </Button>
+        </div>
+
+        {isLoadingDetails ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground mt-4">Loading avatar details...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Avatar Images and Basic Info */}
+            <div className="space-y-6">
+              {/* Avatar Images */}
+              <Card className="card-modern">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Avatar Images
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {selectedAvatar.avatar_images && selectedAvatar.avatar_images.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {selectedAvatar.avatar_images.map((image: string, index: number) => (
+                        <div key={index} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                          <img
+                            src={image}
+                            alt={`${selectedAvatar.name} ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="aspect-square rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                      <User className="h-16 w-16 text-muted-foreground" />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Basic Information */}
+              <Card className="card-modern">
+                <CardHeader>
+                  <CardTitle>Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Age</p>
+                      <p className="font-medium">{selectedAvatar.age} years old</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Gender</p>
+                      <p className="font-medium capitalize">{selectedAvatar.gender}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Origin Country</p>
+                    <p className="font-medium">{selectedAvatar.origin_country}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Created</p>
+                    <p className="font-medium">
+                      {new Date(selectedAvatar.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column - Detailed Information */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Languages */}
+              <Card className="card-modern">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-5 w-5" />
+                    Languages
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Primary Language</p>
+                      <Badge variant="default">{selectedAvatar.primary_language}</Badge>
+                    </div>
+                    {selectedAvatar.secondary_languages && selectedAvatar.secondary_languages.length > 0 && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">Secondary Languages</p>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedAvatar.secondary_languages.map((lang: string, index: number) => (
+                            <Badge key={index} variant="outline">{lang}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Personality Traits */}
+              {selectedAvatar.personality_traits && selectedAvatar.personality_traits.length > 0 && (
+                <Card className="card-modern">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Personality Traits
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedAvatar.personality_traits.map((trait: string, index: number) => (
+                        <Badge key={index} variant="secondary">{trait}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* MBTI Type */}
+              {selectedAvatar.mbti_type && (
+                <Card className="card-modern">
+                  <CardHeader>
+                    <CardTitle>MBTI Type</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Badge variant="default" className="text-lg px-4 py-2">{selectedAvatar.mbti_type}</Badge>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Backstory */}
+              {selectedAvatar.backstory && (
+                <Card className="card-modern">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BookOpen className="h-5 w-5" />
+                      Backstory
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {selectedAvatar.backstory}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Knowledge Base */}
+              {knowledgeFiles && knowledgeFiles.length > 0 && (
+                <Card className="card-modern">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Knowledge Base ({knowledgeFiles.length} files)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {knowledgeFiles.map((file: KnowledgeFile) => (
+                        <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-5 w-5 text-primary" />
+                            <div>
+                              <p className="text-sm font-medium">{file.file_name}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline" className="text-xs">
+                                  {file.content_type === 'application/pdf' ? 'PDF' : 'FILE'}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatFileSize(file.file_size)}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(file.uploaded_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Hidden Rules */}
+              {selectedAvatar.hidden_rules && (
+                <Card className="card-modern">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Hidden Rules & Instructions
+                    </CardTitle>
+                    <CardDescription>
+                      Special instructions and constraints for this avatar
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {selectedAvatar.hidden_rules}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Show avatars list view
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -215,7 +523,7 @@ const MyAvatarSection = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleViewAvatar(avatar.id)}
+                    onClick={() => handleViewAvatar(avatar)}
                     className="flex-1"
                   >
                     <Edit className="h-3 w-3 mr-1" />
