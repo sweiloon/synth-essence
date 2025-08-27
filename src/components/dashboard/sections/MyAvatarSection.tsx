@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
+import AvatarAssignSection from '@/components/dashboard/sections/AvatarAssignSection';
 
 interface Avatar {
   id: string;
@@ -40,6 +41,7 @@ const MyAvatarSection = () => {
   const { toast } = useToast();
   const [avatars, setAvatars] = useState<Avatar[]>([]);
   const [selectedAvatar, setSelectedAvatar] = useState<Avatar | null>(null);
+  const [assigningAvatar, setAssigningAvatar] = useState<Avatar | null>(null);
   const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
@@ -126,6 +128,7 @@ const MyAvatarSection = () => {
 
   const handleBackToList = () => {
     setSelectedAvatar(null);
+    setAssigningAvatar(null);
     setKnowledgeFiles([]);
   };
 
@@ -138,8 +141,8 @@ const MyAvatarSection = () => {
     navigate(`/dashboard?section=chatbot&avatar=${avatarId}`);
   };
 
-  const handleAssignAvatar = (avatarId: string) => {
-    navigate(`/assign-avatar/${avatarId}`);
+  const handleAssignAvatar = (avatar: Avatar) => {
+    setAssigningAvatar(avatar);
   };
 
   const openDeleteDialog = (avatarId: string, avatarName: string) => {
@@ -170,8 +173,9 @@ const MyAvatarSection = () => {
       // Refresh the avatars list
       fetchAvatars();
       
-      // If the deleted avatar was currently selected, go back to list
-      if (selectedAvatar && selectedAvatar.id === deleteDialog.avatarId) {
+      // If the deleted avatar was currently selected or being assigned, go back to list
+      if ((selectedAvatar && selectedAvatar.id === deleteDialog.avatarId) || 
+          (assigningAvatar && assigningAvatar.id === deleteDialog.avatarId)) {
         handleBackToList();
       }
     } catch (error: any) {
@@ -215,6 +219,16 @@ const MyAvatarSection = () => {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Show avatar assign view
+  if (assigningAvatar) {
+    return (
+      <AvatarAssignSection 
+        avatar={assigningAvatar} 
+        onBack={handleBackToList}
+      />
     );
   }
 
@@ -536,7 +550,7 @@ const MyAvatarSection = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleAssignAvatar(avatar.id)}
+                    onClick={() => handleAssignAvatar(avatar)}
                     className="flex-1"
                   >
                     <QrCode className="h-3 w-3 mr-1" />

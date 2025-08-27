@@ -55,7 +55,7 @@ export const useUnsavedChanges = ({
   const confirmNavigation = (callback: () => void) => {
     if (hasUnsavedChanges) {
       setShowDialog(true);
-      setPendingCallback(() => callback);
+      setPendingCallback(callback);
     } else {
       callback();
     }

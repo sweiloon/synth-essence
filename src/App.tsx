@@ -10,7 +10,7 @@ import AvatarDetail from '@/pages/AvatarDetail';
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import CreateAvatar from '@/pages/CreateAvatar';
-import AvatarAssign from '@/pages/AvatarAssign';
+
 import { useAuth } from '@/hooks/useAuth';
 
 // Create a client
@@ -77,10 +77,6 @@ function App() {
           <Route 
             path="/avatar/:id" 
             element={user ? <AvatarDetail /> : <Navigate to="/auth" />} 
-          />
-          <Route 
-            path="/assign-avatar/:id" 
-            element={user ? <AvatarAssign /> : <Navigate to="/auth" />} 
           />
           <Route path="*" element={<NotFound />} />
         </Routes>
