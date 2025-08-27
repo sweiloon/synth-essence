@@ -11,6 +11,7 @@ import AvatarSection from '@/components/dashboard/sections/AvatarSection';
 import LearningPathSection from '@/components/dashboard/sections/LearningPathSection';
 import SettingsSection from '@/components/dashboard/sections/SettingsSection';
 import MyAvatarSection from '@/components/dashboard/sections/MyAvatarSection';
+import BillingSection from '@/components/dashboard/sections/BillingSection';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -66,6 +67,8 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         return <LearningPathSection />;
       case 'my-avatar':
         return <MyAvatarSection />;
+      case 'billing':
+        return <BillingSection />;
       case 'settings':
         return <SettingsSection />;
       default:
