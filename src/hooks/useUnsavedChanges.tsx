@@ -55,7 +55,7 @@ export const useUnsavedChanges = ({
   const confirmNavigation = (callback: () => void) => {
     if (hasUnsavedChanges) {
       setShowDialog(true);
-      setPendingCallback(callback);
+      setPendingCallback(() => callback);
     } else {
       callback();
     }
@@ -64,8 +64,10 @@ export const useUnsavedChanges = ({
   const handleConfirm = () => {
     setShowDialog(false);
     if (pendingCallback) {
-      pendingCallback();
+      const callback = pendingCallback;
       setPendingCallback(null);
+      // Execute callback after state updates
+      setTimeout(() => callback(), 0);
     }
   };
 
