@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, User, MessageCircle, Edit, Trash2, ArrowLeft, Globe, BookOpen, Shield, FileText } from 'lucide-react';
+import { Plus, User, MessageCircle, Edit, Trash2, ArrowLeft, Globe, BookOpen, Shield, FileText, QrCode } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -136,6 +136,10 @@ const MyAvatarSection = () => {
   const handleChatWithAvatar = (avatarId: string) => {
     // Navigate to dashboard with chatbot section and pre-selected avatar
     navigate(`/dashboard?section=chatbot&avatar=${avatarId}`);
+  };
+
+  const handleAssignAvatar = (avatarId: string) => {
+    navigate(`/assign-avatar/${avatarId}`);
   };
 
   const openDeleteDialog = (avatarId: string, avatarName: string) => {
@@ -519,7 +523,7 @@ const MyAvatarSection = () => {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 gap-2 mb-3">
                   <Button
                     variant="outline"
                     size="sm"
@@ -529,6 +533,17 @@ const MyAvatarSection = () => {
                     <Edit className="h-3 w-3 mr-1" />
                     View
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAssignAvatar(avatar.id)}
+                    className="flex-1"
+                  >
+                    <QrCode className="h-3 w-3 mr-1" />
+                    Assign
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"

@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useBackNavigation } from '@/hooks/useBackNavigation';
+import { UnsavedChangesDialog } from '@/components/ui/unsaved-changes-dialog';
 
 // Import step components
 import { AvatarDetailStep } from '@/components/avatar-creation/AvatarDetailStep';
@@ -85,7 +86,7 @@ export default function CreateAvatar() {
   }, [formData, avatarId]);
 
   // Use unsaved changes protection
-  const { confirmNavigation } = useUnsavedChanges({
+  const { confirmNavigation, showDialog, handleConfirm, handleCancel, message } = useUnsavedChanges({
     hasUnsavedChanges,
     message: "You have unsaved changes in your avatar creation. If you leave now, all your progress will be lost. Are you sure you want to continue?"
   });
@@ -538,6 +539,14 @@ export default function CreateAvatar() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={showDialog}
+        onOpenChange={(open) => !open && handleCancel()}
+        onConfirm={handleConfirm}
+        message={message}
+      />
     </div>
   );
 }
