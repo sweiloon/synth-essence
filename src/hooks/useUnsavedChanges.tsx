@@ -20,7 +20,9 @@ export const useUnsavedChanges = ({
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
+      // Only show browser dialog for actual page unload (refresh/close)
+      // Not for in-app navigation
+      if (hasUnsavedChanges && !showDialog) {
         e.preventDefault();
         e.returnValue = messageRef.current;
         return messageRef.current;
@@ -28,8 +30,9 @@ export const useUnsavedChanges = ({
     };
 
     const handlePopState = (e: PopStateEvent) => {
-      if (hasUnsavedChanges) {
-        // Prevent navigation and show dialog
+      if (hasUnsavedChanges && !showDialog) {
+        // Prevent navigation and show custom dialog
+        e.preventDefault();
         window.history.pushState(null, '', window.location.href);
         setShowDialog(true);
         setPendingCallback(() => () => {
@@ -50,7 +53,7 @@ export const useUnsavedChanges = ({
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [hasUnsavedChanges]);
+  }, [hasUnsavedChanges, showDialog]);
 
   const confirmNavigation = (callback: () => void) => {
     if (hasUnsavedChanges) {
@@ -62,12 +65,14 @@ export const useUnsavedChanges = ({
   };
 
   const handleConfirm = () => {
-    setShowDialog(false);
     if (pendingCallback) {
       const callback = pendingCallback;
       setPendingCallback(null);
-      // Execute callback after state updates
-      setTimeout(() => callback(), 0);
+      setShowDialog(false);
+      // Execute callback immediately
+      callback();
+    } else {
+      setShowDialog(false);
     }
   };
 
