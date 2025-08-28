@@ -36,7 +36,6 @@ interface AvatarData {
   backstory: string;
   personality_traits: string[];
   hidden_rules: string;
-  mbti_type: string;
   created_at: string;
   status?: string;
 }
@@ -151,7 +150,6 @@ const AvatarDetail = () => {
         backstory: data.backstory || '',
         personality_traits: data.personality_traits || [],
         hidden_rules: data.hidden_rules || '',
-        mbti_type: data.mbti_type || '',
         created_at: data.created_at,
         status: data.status
       };
@@ -242,7 +240,7 @@ const AvatarDetail = () => {
 
   console.log('AvatarDetail: Component rendering, activeTab:', activeTab);
   
-  console.log('🎨 Rendering Instagram-Style Avatar Detail UI v3.0');
+  console.log('🎨 Rendering Instagram-Style Avatar Detail UI');
   
   return (
     <div className="min-h-screen bg-background">
@@ -258,6 +256,11 @@ const AvatarDetail = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-xl font-semibold">{avatar.name}</h1>
+          <div className="ml-auto">
+            <span className="text-xs text-muted-foreground bg-primary/10 px-2 py-1 rounded">
+              New Instagram UI
+            </span>
+          </div>
         </div>
 
         {/* Profile Header - Instagram Style */}
@@ -265,13 +268,13 @@ const AvatarDetail = () => {
           <div className="flex items-start gap-6 mb-6">
             {/* Profile Avatar */}
             <div className="flex-shrink-0">
-              <Avatar className="w-20 h-20 md:w-32 md:h-32 border-2 border-border">
+              <Avatar className="w-32 h-32 border-2 border-border">
                 <AvatarImage 
                   src={avatar.avatar_images?.[0]} 
                   alt={avatar.name}
                   className="object-cover"
                 />
-                <AvatarFallback className="text-xl md:text-2xl">
+                <AvatarFallback className="text-2xl">
                   {avatar.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
@@ -279,44 +282,41 @@ const AvatarDetail = () => {
 
             {/* Profile Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-4">
-                <h2 className="text-lg md:text-xl font-light">{avatar.name}</h2>
-                <div className="flex gap-2">
-                  <Button onClick={handleEditAvatar} variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </div>
+              <div className="flex items-center gap-4 mb-4">
+                <h2 className="text-xl font-light">{avatar.name}</h2>
+                <Button onClick={handleEditAvatar} variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button variant="outline" size="sm">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
               </div>
 
               {/* Stats */}
-              <div className="flex gap-6 md:gap-8 mb-4">
+              <div className="flex gap-8 mb-4">
                 <div className="text-center">
-                  <div className="font-semibold text-sm md:text-base">{avatar.avatar_images?.length || 0}</div>
-                  <div className="text-xs md:text-sm text-muted-foreground">Images</div>
+                  <div className="font-semibold">{avatar.avatar_images?.length || 0}</div>
+                  <div className="text-sm text-muted-foreground">Media</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-semibold text-sm md:text-base">{knowledgeFiles.length}</div>
-                  <div className="text-xs md:text-sm text-muted-foreground">Files</div>
+                  <div className="font-semibold">{knowledgeFiles.length}</div>
+                  <div className="text-sm text-muted-foreground">Files</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-semibold text-sm md:text-base">{avatar.personality_traits?.length || 0}</div>
-                  <div className="text-xs md:text-sm text-muted-foreground">Traits</div>
+                  <div className="font-semibold">{avatar.personality_traits?.length || 0}</div>
+                  <div className="text-sm text-muted-foreground">Traits</div>
                 </div>
               </div>
 
               {/* Bio Preview */}
               <div className="space-y-1">
-                <div className="text-sm font-semibold">{avatar.name}</div>
-                <div className="text-sm text-muted-foreground">
-                  {avatar.age} years old • {avatar.gender} • {avatar.origin_country}
+                <div className="text-sm">
+                  <span className="font-semibold">{avatar.age} years old</span> • {avatar.gender} • {avatar.origin_country}
                 </div>
                 {avatar.backstory && (
-                  <div className="text-sm text-muted-foreground line-clamp-3 mt-2">
-                    {avatar.backstory.length > 100 ? `${avatar.backstory.substring(0, 100)}...` : avatar.backstory}
+                  <div className="text-sm text-muted-foreground line-clamp-2">
+                    {avatar.backstory}
                   </div>
                 )}
               </div>
@@ -338,19 +338,19 @@ const AvatarDetail = () => {
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-0">
-            <TabsTrigger value="media" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-3">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="media" className="flex items-center gap-2">
               <Grid3X3 className="h-4 w-4" />
-              Images
+              Media
             </TabsTrigger>
-            <TabsTrigger value="about" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-3">
+            <TabsTrigger value="about" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               About
             </TabsTrigger>
           </TabsList>
 
           {/* Media Tab */}
-          <TabsContent value="media" className="mt-6">
+          <TabsContent value="media" className="mt-0">
             {avatar.avatar_images && avatar.avatar_images.length > 0 ? (
               <div className="grid grid-cols-3 gap-1">
                 {avatar.avatar_images.map((image: string, index: number) => (
@@ -358,12 +358,16 @@ const AvatarDetail = () => {
                     <img
                       src={image}
                       alt={`${avatar.name} ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover rounded-lg"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-4 text-white">
-                        <Heart className="h-5 w-5" />
-                        <MessageCircle className="h-5 w-5" />
+                        <div className="flex items-center gap-1">
+                          <Heart className="h-4 w-4" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MessageCircle className="h-4 w-4" />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -372,23 +376,14 @@ const AvatarDetail = () => {
             ) : (
               <div className="text-center py-12">
                 <Grid3X3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No images yet</h3>
+                <h3 className="text-lg font-medium mb-2">No media yet</h3>
                 <p className="text-muted-foreground">Upload some images to see them here</p>
-                <Button 
-                  onClick={handleEditAvatar} 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-4"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Add Images
-                </Button>
               </div>
             )}
           </TabsContent>
 
           {/* About Tab */}
-          <TabsContent value="about" className="mt-6">
+          <TabsContent value="about" className="mt-0">
             <div className="space-y-6">
               {/* About Section */}
               {avatar.backstory && (
@@ -398,7 +393,7 @@ const AvatarDetail = () => {
                       <BookOpen className="h-5 w-5" />
                       About
                     </h3>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
                       {avatar.backstory}
                     </p>
                   </CardContent>
@@ -448,16 +443,6 @@ const AvatarDetail = () => {
                 </Card>
               )}
 
-              {/* MBTI Type */}
-              {avatar.mbti_type && (
-                <Card>
-                  <CardContent className="pt-6">
-                    <h3 className="text-lg font-semibold mb-3">MBTI Type</h3>
-                    <Badge variant="default" className="text-lg px-4 py-2">{avatar.mbti_type}</Badge>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Knowledge Base */}
               {knowledgeFiles && knowledgeFiles.length > 0 && (
                 <Card>
@@ -499,7 +484,7 @@ const AvatarDetail = () => {
                       <Shield className="h-5 w-5" />
                       Hidden Rules & Instructions
                     </h3>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
                       {avatar.hidden_rules}
                     </p>
                   </CardContent>
