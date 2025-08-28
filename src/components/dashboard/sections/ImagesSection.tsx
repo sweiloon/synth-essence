@@ -181,14 +181,29 @@ const ImagesSection = () => {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       processUploadedFile(files[0]);
     }
+  };
+
+  const handleClick = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/jpeg,image/png,image/webp';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        processUploadedFile(file);
+      }
+    };
+    input.click();
   };
 
   const uploadImageToStorage = async (file: File): Promise<string> => {

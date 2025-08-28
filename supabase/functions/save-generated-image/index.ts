@@ -14,7 +14,55 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, imageUrl, originalImageUrl, generationType } = await req.json();
+    console.log('save-generated-image function called:', req.method, req.url);
+    
+    // Check if request has body
+    const contentLength = req.headers.get('content-length');
+    const contentType = req.headers.get('content-type');
+    
+    console.log('Content-Type:', contentType);
+    console.log('Content-Length:', contentLength);
+    
+    let requestData = {};
+    if (contentLength !== '0' && contentType?.includes('application/json')) {
+      const rawBody = await req.text();
+      console.log('Raw request body:', rawBody);
+      
+      if (rawBody.trim()) {
+        try {
+          requestData = JSON.parse(rawBody);
+        } catch (parseError) {
+          console.error('Failed to parse JSON:', parseError);
+          return new Response(
+            JSON.stringify({ error: 'Invalid JSON in request body' }),
+            { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+      } else {
+        console.error('Request body is empty');
+        return new Response(
+          JSON.stringify({ error: 'Request body is empty' }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+    } else {
+      console.error('No content or invalid content type');
+      return new Response(
+        JSON.stringify({ error: 'Request must have JSON body' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    const { prompt, imageUrl, originalImageUrl, generationType } = requestData;
     
     if (!prompt || !imageUrl) {
       return new Response(

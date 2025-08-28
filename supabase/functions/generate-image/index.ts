@@ -102,7 +102,7 @@ serve(async (req) => {
 
     // Prepare API request for KIE AI Flux API
     const apiUrl = 'https://api.kie.ai/api/v1/flux/kontext/generate';
-    let requestBody: any = { 
+    let kieRequestBody: any = { 
       prompt,
       aspectRatio: '1:1',
       model: 'flux-kontext-pro'
@@ -110,10 +110,10 @@ serve(async (req) => {
 
     // Add input image for image-to-image generation
     if (generationType === 'image-to-image' && imageUrls && imageUrls.length > 0) {
-      requestBody.inputImage = imageUrls[0];
+      kieRequestBody.inputImage = imageUrls[0];
     }
 
-    console.log('Making request to Kie AI:', { apiUrl, requestBody });
+    console.log('Making request to Kie AI:', { apiUrl, kieRequestBody });
 
     // Call Kie AI API
     const response = await fetch(apiUrl, {
@@ -122,7 +122,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${kieApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify(kieRequestBody),
     });
 
     if (!response.ok) {
