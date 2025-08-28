@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, User, Globe, Calendar, FileText, BookOpen, Shield, Edit, Grid3X3, Info } from 'lucide-react';
+import { ArrowLeft, User, Globe, FileText, BookOpen, Shield, Edit, Grid3X3, Info } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +24,7 @@ interface Avatar {
   hidden_rules: string;
   created_at: string;
   status?: string;
+  mbti_type?: string;
 }
 
 interface KnowledgeFile {
@@ -131,7 +132,8 @@ const AvatarDetail = () => {
         personality_traits: data.personality_traits || [],
         hidden_rules: data.hidden_rules || '',
         created_at: data.created_at,
-        status: data.status
+        status: data.status,
+        mbti_type: data.mbti_type
       };
 
       setAvatar(avatarData);
@@ -235,10 +237,10 @@ const AvatarDetail = () => {
         </div>
 
         {/* Profile Header Section - Instagram Style */}
-        <div className="flex flex-col sm:flex-row gap-6 mb-8">
+        <div className="flex flex-col sm:flex-row gap-6 mb-8 animate-fade-in">
           {/* Profile Avatar */}
           <div className="flex-shrink-0">
-            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden bg-muted border-4 border-border">
+            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden bg-muted border-4 border-border shadow-lg">
               {avatar.avatar_images && avatar.avatar_images.length > 0 ? (
                 <img
                   src={avatar.avatar_images[0]}
@@ -257,7 +259,7 @@ const AvatarDetail = () => {
           <div className="flex-1 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <h2 className="text-2xl font-normal">{avatar.name}</h2>
-              <Button onClick={handleEditAvatar} variant="outline" size="sm">
+              <Button onClick={handleEditAvatar} variant="outline" size="sm" className="hover-scale">
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Profile
               </Button>
@@ -266,26 +268,26 @@ const AvatarDetail = () => {
             {/* Stats */}
             <div className="flex gap-8">
               <div className="text-center">
-                <div className="font-semibold">{avatar.avatar_images?.length || 0}</div>
+                <div className="font-semibold text-lg">{avatar.avatar_images?.length || 0}</div>
                 <div className="text-sm text-muted-foreground">media</div>
               </div>
               <div className="text-center">
-                <div className="font-semibold">{knowledgeFiles.length}</div>
+                <div className="font-semibold text-lg">{knowledgeFiles.length}</div>
                 <div className="text-sm text-muted-foreground">files</div>
               </div>
               <div className="text-center">
-                <div className="font-semibold">{avatar.personality_traits?.length || 0}</div>
+                <div className="font-semibold text-lg">{avatar.personality_traits?.length || 0}</div>
                 <div className="text-sm text-muted-foreground">traits</div>
               </div>
             </div>
 
-            {/* Bio */}
+            {/* Bio Summary */}
             <div className="space-y-2">
               <div className="font-semibold">{avatar.age} years old • {avatar.gender} • {avatar.origin_country}</div>
               {avatar.backstory && (
-                <div className="text-sm leading-relaxed max-w-md">
-                  {avatar.backstory.length > 100 
-                    ? `${avatar.backstory.substring(0, 100)}...` 
+                <div className="text-sm leading-relaxed max-w-md text-muted-foreground">
+                  {avatar.backstory.length > 150 
+                    ? `${avatar.backstory.substring(0, 150)}...` 
                     : avatar.backstory}
                 </div>
               )}
@@ -307,11 +309,11 @@ const AvatarDetail = () => {
           </TabsList>
 
           {/* Media Tab */}
-          <TabsContent value="media" className="space-y-6">
+          <TabsContent value="media" className="space-y-6 animate-fade-in">
             {avatar.avatar_images && avatar.avatar_images.length > 0 ? (
               <div className="grid grid-cols-3 gap-1 sm:gap-2">
                 {avatar.avatar_images.map((image: string, index: number) => (
-                  <div key={index} className="aspect-square bg-muted rounded-lg overflow-hidden">
+                  <div key={index} className="aspect-square bg-muted rounded-lg overflow-hidden hover-scale">
                     <img
                       src={image}
                       alt={`${avatar.name} ${index + 1}`}
@@ -329,7 +331,7 @@ const AvatarDetail = () => {
           </TabsContent>
 
           {/* About Tab */}
-          <TabsContent value="about" className="space-y-6">
+          <TabsContent value="about" className="space-y-6 animate-fade-in">
             {/* Languages */}
             <Card className="card-modern">
               <CardHeader>
@@ -370,9 +372,21 @@ const AvatarDetail = () => {
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {avatar.personality_traits.map((trait: string, index: number) => (
-                      <Badge key={index} variant="secondary">{trait}</Badge>
+                      <Badge key={index} variant="secondary" className="hover-scale">{trait}</Badge>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* MBTI Type */}
+            {avatar.mbti_type && (
+              <Card className="card-modern">
+                <CardHeader>
+                  <CardTitle>MBTI Type</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Badge variant="default" className="text-lg px-4 py-2">{avatar.mbti_type}</Badge>
                 </CardContent>
               </Card>
             )}
@@ -435,7 +449,7 @@ const AvatarDetail = () => {
                 <CardContent>
                   <div className="space-y-2">
                     {knowledgeFiles.map((file: KnowledgeFile) => (
-                      <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg hover-scale">
                         <div className="flex items-center gap-3">
                           <FileText className="h-5 w-5 text-primary" />
                           <div>
