@@ -8,62 +8,54 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('manage-images function called:', req.method, req.url);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('manage-images function called:', req.method, req.url);
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    // Check if request has body
-    const contentLength = req.headers.get('content-length');
-    const contentType = req.headers.get('content-type');
-    
-    console.log('Content-Type:', contentType);
-    console.log('Content-Length:', contentLength);
-    
-    let requestData = {};
-    if (contentLength !== '0' && contentType?.includes('application/json')) {
-      const rawBody = await req.text();
-      console.log('Raw request body:', rawBody);
-      
-      if (rawBody.trim()) {
-        try {
-          requestData = JSON.parse(rawBody);
-        } catch (parseError) {
-          console.error('Failed to parse JSON:', parseError);
-          return new Response(
-            JSON.stringify({ error: 'Invalid JSON in request body' }),
-            { 
-              status: 400, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        }
-      } else {
-        console.error('Request body is empty');
-        return new Response(
-          JSON.stringify({ error: 'Request body is empty' }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-    } else {
-      console.error('No content or invalid content type');
+    console.log('Environment check:', { 
+      hasUrl: !!supabaseUrl, 
+      hasServiceKey: !!supabaseServiceKey 
+    });
+
+    if (!supabaseUrl || !supabaseServiceKey) {
       return new Response(
-        JSON.stringify({ error: 'Request must have JSON body' }),
+        JSON.stringify({ error: 'Missing environment variables' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Parse request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('Request body:', requestBody);
+    } catch (error) {
+      console.error('Failed to parse request body:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
-    
-    const { action, imageId, isFavorite } = requestData;
-    
+
+    const { action, imageId, isFavorite } = requestBody;
+
     if (!action) {
       return new Response(
         JSON.stringify({ error: 'Action is required' }),
@@ -74,14 +66,10 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
     // Get user from auth header
     const authHeader = req.headers.get('authorization');
+    console.log('Auth header present:', !!authHeader);
+    
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
@@ -92,9 +80,8 @@ serve(async (req) => {
       );
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       console.error('Auth error:', authError);
@@ -107,6 +94,7 @@ serve(async (req) => {
       );
     }
 
+    console.log('Authenticated user:', user.id);
     let result;
 
     switch (action) {
@@ -128,7 +116,7 @@ serve(async (req) => {
           );
         }
 
-        result = { images };
+        result = { images: images || [] };
         break;
 
       case 'toggle_favorite':
@@ -219,6 +207,7 @@ serve(async (req) => {
         );
     }
 
+    console.log('Returning successful result:', result);
     return new Response(
       JSON.stringify({ success: true, ...result }),
       { 

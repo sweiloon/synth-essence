@@ -8,16 +8,29 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('generate-image function called:', req.method, req.url);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Generate image function called with method:', req.method);
-    
-    const requestBody = await req.json();
-    console.log('Request body:', requestBody);
+    // Parse request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('Request body:', requestBody);
+    } catch (error) {
+      console.error('Failed to parse request body:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
     
     const { prompt, imageUrls, generationType = 'text-to-image', checkProgress = false, taskId } = requestBody;
     
@@ -75,6 +88,8 @@ serve(async (req) => {
         );
       }
     }
+
+    // Validate prompt for new generation
     if (!prompt) {
       console.error('No prompt provided');
       return new Response(
@@ -102,7 +117,7 @@ serve(async (req) => {
 
     // Prepare API request for KIE AI Flux API
     const apiUrl = 'https://api.kie.ai/api/v1/flux/kontext/generate';
-    let kieRequestBody: any = { 
+    const kieRequestBody: any = { 
       prompt,
       aspectRatio: '1:1',
       model: 'flux-kontext-pro'
@@ -173,7 +188,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
-
 
   } catch (error) {
     console.error('Unexpected error:', error);

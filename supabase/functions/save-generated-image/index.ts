@@ -8,61 +8,31 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('save-generated-image function called:', req.method, req.url);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('save-generated-image function called:', req.method, req.url);
-    
-    // Check if request has body
-    const contentLength = req.headers.get('content-length');
-    const contentType = req.headers.get('content-type');
-    
-    console.log('Content-Type:', contentType);
-    console.log('Content-Length:', contentLength);
-    
-    let requestData = {};
-    if (contentLength !== '0' && contentType?.includes('application/json')) {
-      const rawBody = await req.text();
-      console.log('Raw request body:', rawBody);
-      
-      if (rawBody.trim()) {
-        try {
-          requestData = JSON.parse(rawBody);
-        } catch (parseError) {
-          console.error('Failed to parse JSON:', parseError);
-          return new Response(
-            JSON.stringify({ error: 'Invalid JSON in request body' }),
-            { 
-              status: 400, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        }
-      } else {
-        console.error('Request body is empty');
-        return new Response(
-          JSON.stringify({ error: 'Request body is empty' }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-    } else {
-      console.error('No content or invalid content type');
+    // Parse request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('Request body:', requestBody);
+    } catch (error) {
+      console.error('Failed to parse request body:', error);
       return new Response(
-        JSON.stringify({ error: 'Request must have JSON body' }),
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
-    
-    const { prompt, imageUrl, originalImageUrl, generationType } = requestData;
+
+    const { prompt, imageUrl, originalImageUrl, generationType } = requestBody;
     
     if (!prompt || !imageUrl) {
       return new Response(
@@ -75,10 +45,20 @@ serve(async (req) => {
     }
 
     // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({ error: 'Missing environment variables' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get user from auth header
     const authHeader = req.headers.get('authorization');
@@ -92,9 +72,8 @@ serve(async (req) => {
       );
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       console.error('Auth error:', authError);
@@ -131,6 +110,7 @@ serve(async (req) => {
       );
     }
 
+    console.log('Image saved successfully:', savedImage.id);
     return new Response(
       JSON.stringify({ 
         success: true, 
