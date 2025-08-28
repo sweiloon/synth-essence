@@ -244,94 +244,115 @@ const AvatarDetail = () => {
   
   return (
     <div className="min-h-screen bg-background">
+      {/* Very visible indicator that new UI is loaded */}
+      <div className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white text-center py-2 text-sm font-medium">
+        🎉 NEW INSTAGRAM-STYLE UI LOADED! 🎉
+      </div>
+      
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Header with Back Button */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-8 border-b border-border pb-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={goBack}
-            className="p-2 hover:bg-muted/50"
+            className="p-2 hover:bg-muted/50 rounded-full"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-6 w-6" />
           </Button>
-          <h1 className="text-lg font-semibold">{avatar.name}</h1>
+          <h1 className="text-2xl font-bold">{avatar.name}</h1>
+          <div className="ml-auto">
+            <span className="text-xs bg-green-500 text-white px-3 py-1 rounded-full font-medium">
+              INSTAGRAM UI ✨
+            </span>
+          </div>
         </div>
 
-        {/* Profile Header - Enhanced Instagram Style */}
-        <div className="mb-8">
-          <div className="flex items-start gap-6 mb-6">
-            {/* Profile Avatar */}
+        {/* Instagram-Style Profile Header */}
+        <div className="mb-10">
+          <div className="flex items-start gap-8 mb-8">
+            {/* Large Profile Avatar with Instagram-style border */}
             <div className="flex-shrink-0">
               <div className="relative">
-                <Avatar className="w-32 h-32 md:w-36 md:h-36 border-4 border-background shadow-lg ring-1 ring-border">
-                  <AvatarImage 
-                    src={avatar.avatar_images?.[0]} 
-                    alt={avatar.name}
-                    className="object-cover"
-                  />
-                  <AvatarFallback className="text-2xl font-semibold bg-gradient-to-br from-primary/10 to-secondary/10">
-                    {avatar.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="w-40 h-40 p-1 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 rounded-full">
+                  <Avatar className="w-full h-full border-4 border-background">
+                    <AvatarImage 
+                      src={avatar.avatar_images?.[0]} 
+                      alt={avatar.name}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary/20 to-secondary/20">
+                      {avatar.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
               </div>
             </div>
 
-            {/* Profile Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-3 mb-4">
-                <h2 className="text-2xl font-light">{avatar.name}</h2>
-                <Button onClick={handleEditAvatar} variant="outline" size="sm" className="hover:bg-primary hover:text-primary-foreground transition-colors">
-                  <Edit className="h-4 w-4 mr-2" />
+            {/* Profile Info Section */}
+            <div className="flex-1 min-w-0 pt-4">
+              <div className="flex flex-wrap items-center gap-4 mb-6">
+                <h2 className="text-3xl font-light tracking-wide">{avatar.name}</h2>
+                <Button 
+                  onClick={handleEditAvatar} 
+                  variant="outline" 
+                  size="sm" 
+                  className="px-6 font-semibold border-2 hover:bg-primary hover:text-primary-foreground transition-all"
+                >
                   Edit Profile
                 </Button>
-                <Button variant="outline" size="sm" className="hover:bg-muted/80">
-                  <MoreHorizontal className="h-4 w-4" />
+                <Button variant="outline" size="sm" className="p-2">
+                  <MoreHorizontal className="h-5 w-5" />
                 </Button>
               </div>
 
-              {/* Stats Row */}
-              <div className="flex gap-6 md:gap-8 mb-4">
+              {/* Instagram-style Stats Row */}
+              <div className="flex gap-10 mb-6">
                 <div className="text-center">
-                  <div className="text-lg font-semibold">{avatar.avatar_images?.length || 0}</div>
-                  <div className="text-sm text-muted-foreground font-medium">posts</div>
+                  <div className="text-2xl font-bold">{avatar.avatar_images?.length || 0}</div>
+                  <div className="text-sm text-muted-foreground font-medium tracking-wide">posts</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-semibold">{knowledgeFiles.length}</div>
-                  <div className="text-sm text-muted-foreground font-medium">files</div>
+                  <div className="text-2xl font-bold">{knowledgeFiles.length}</div>
+                  <div className="text-sm text-muted-foreground font-medium tracking-wide">files</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-semibold">{avatar.personality_traits?.length || 0}</div>
-                  <div className="text-sm text-muted-foreground font-medium">traits</div>
+                  <div className="text-2xl font-bold">{avatar.personality_traits?.length || 0}</div>
+                  <div className="text-sm text-muted-foreground font-medium tracking-wide">traits</div>
                 </div>
               </div>
 
-              {/* Bio Section */}
-              <div className="space-y-2">
-                <div className="text-sm font-medium">
-                  {avatar.age} | {avatar.gender} | {avatar.origin_country}
+              {/* Bio Section with Instagram styling */}
+              <div className="space-y-3 max-w-lg">
+                <div className="font-bold text-base">
+                  {avatar.age} • {avatar.gender} • {avatar.origin_country}
                 </div>
-                <div className="text-sm font-medium">
-                  Primary Language: <span className="text-primary">{avatar.primary_language}</span>
+                <div className="text-sm">
+                  <span className="font-semibold text-primary">🌐 {avatar.primary_language}</span>
+                  {avatar.secondary_languages && avatar.secondary_languages.length > 0 && (
+                    <span className="text-muted-foreground ml-2">
+                      +{avatar.secondary_languages.length} more languages
+                    </span>
+                  )}
                 </div>
                 {avatar.backstory && (
-                  <div className="text-sm text-muted-foreground leading-relaxed max-w-md">
-                    {avatar.backstory.length > 150 
-                      ? `${avatar.backstory.slice(0, 150)}...` 
+                  <div className="text-sm leading-relaxed">
+                    {avatar.backstory.length > 120 
+                      ? `${avatar.backstory.slice(0, 120)}...` 
                       : avatar.backstory
                     }
                   </div>
                 )}
                 {avatar.personality_traits && avatar.personality_traits.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {avatar.personality_traits.slice(0, 3).map((trait: string, index: number) => (
-                      <span key={index} className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {avatar.personality_traits.slice(0, 4).map((trait: string, index: number) => (
+                      <span key={index} className="text-xs px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
                         #{trait.toLowerCase().replace(/\s+/g, '')}
                       </span>
                     ))}
-                    {avatar.personality_traits.length > 3 && (
-                      <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded-full">
-                        +{avatar.personality_traits.length - 3} more
+                    {avatar.personality_traits.length > 4 && (
+                      <span className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">
+                        +{avatar.personality_traits.length - 4} more
                       </span>
                     )}
                   </div>
@@ -340,18 +361,18 @@ const AvatarDetail = () => {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2">
+          {/* Action Buttons - Instagram Style */}
+          <div className="flex gap-3">
             <Button 
-              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" 
+              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-lg" 
               onClick={() => navigate(`/dashboard?section=chatbot&avatar=${avatar.id}`)}
             >
-              <MessageCircle className="h-4 w-4 mr-2" />
+              <MessageCircle className="h-5 w-5 mr-2" />
               Message
             </Button>
-            <Button className="flex-1 border-2 hover:bg-muted/50 font-medium" variant="outline">
-              <Share className="h-4 w-4 mr-2" />
-              Share Profile
+            <Button className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2.5 rounded-lg">
+              <Share className="h-5 w-5 mr-2" />
+              Share
             </Button>
           </div>
         </div>
