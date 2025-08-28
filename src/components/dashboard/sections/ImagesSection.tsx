@@ -77,8 +77,23 @@ const ImagesSection = () => {
 
   const loadImages = async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error('No session found');
+        toast({
+          title: "Error", 
+          description: "Please log in to continue",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('manage-images', {
-        body: { action: 'get_images' }
+        body: { action: 'get_images' },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
@@ -97,8 +112,18 @@ const ImagesSection = () => {
 
   const loadCollections = async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error('No session found');
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('manage-collections', {
-        body: { action: 'get_collections' }
+        body: { action: 'get_collections' },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
@@ -169,11 +194,20 @@ const ImagesSection = () => {
 
   const checkProgress = async (taskId: string) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No session found');
+      }
+
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
           checkProgress: true,
           taskId
-        }
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
@@ -193,7 +227,10 @@ const ImagesSection = () => {
             imageUrl: data.imageUrl,
             originalImageUrl,
             generationType: uploadedImage ? 'image-to-image' : 'text-to-image'
-          }
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
         });
 
         if (saveError) throw saveError;
@@ -239,6 +276,12 @@ const ImagesSection = () => {
     setGeneratedImage(null);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Please log in to generate images');
+      }
+
       let originalImageUrl = null;
       const generationType = uploadedImage ? 'image-to-image' : 'text-to-image';
       
@@ -252,7 +295,10 @@ const ImagesSection = () => {
           prompt,
           imageUrls: originalImageUrl ? [originalImageUrl] : null,
           generationType
-        }
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
@@ -275,7 +321,7 @@ const ImagesSection = () => {
       console.error('Error generating image:', error);
       toast({
         title: "Error",
-        description: "Failed to generate image. Please try again.",
+        description: error.message || "Failed to generate image. Please try again.",
         variant: "destructive",
       });
       setIsGenerating(false);
@@ -295,12 +341,21 @@ const ImagesSection = () => {
 
   const handleToggleFavorite = async (imageId: string, currentFavorite: boolean) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Please log in to manage favorites');
+      }
+
       const { error } = await supabase.functions.invoke('manage-images', {
         body: {
           action: 'toggle_favorite',
           imageId,
           isFavorite: !currentFavorite
-        }
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
@@ -317,7 +372,7 @@ const ImagesSection = () => {
       console.error('Error toggling favorite:', error);
       toast({
         title: "Error",
-        description: "Failed to update favorite status",
+        description: error.message || "Failed to update favorite status",
         variant: "destructive",
       });
     }
@@ -325,11 +380,20 @@ const ImagesSection = () => {
 
   const handleDeleteImage = async (imageId: string) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Please log in to delete images');
+      }
+
       const { error } = await supabase.functions.invoke('manage-images', {
         body: {
           action: 'delete_image',
           imageId
-        }
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
@@ -344,7 +408,7 @@ const ImagesSection = () => {
       console.error('Error deleting image:', error);
       toast({
         title: "Error",
-        description: "Failed to delete image",
+        description: error.message || "Failed to delete image",
         variant: "destructive",
       });
     }
@@ -361,12 +425,21 @@ const ImagesSection = () => {
     }
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Please log in to create collections');
+      }
+
       const { error } = await supabase.functions.invoke('manage-collections', {
         body: {
           action: 'create_collection',
           name: newCollectionName,
           description: newCollectionDescription
-        }
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
@@ -384,7 +457,7 @@ const ImagesSection = () => {
       console.error('Error creating collection:', error);
       toast({
         title: "Error",
-        description: "Failed to create collection",
+        description: error.message || "Failed to create collection",
         variant: "destructive",
       });
     }
@@ -392,12 +465,21 @@ const ImagesSection = () => {
 
   const handleAddToCollection = async (collectionId: string, imageId: string) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Please log in to manage collections');
+      }
+
       const { error } = await supabase.functions.invoke('manage-collections', {
         body: {
           action: 'add_to_collection',
           collectionId,
           imageId
-        }
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
@@ -412,7 +494,7 @@ const ImagesSection = () => {
       console.error('Error adding to collection:', error);
       toast({
         title: "Error",
-        description: "Failed to add image to collection",
+        description: error.message || "Failed to add image to collection",
         variant: "destructive",
       });
     }
@@ -441,7 +523,7 @@ const ImagesSection = () => {
           </p>
         </div>
         <Badge variant="outline" className="learning-path-gradient text-white">
-          DALL-E 3 Powered
+          KIE AI Flux Powered
         </Badge>
       </div>
 
@@ -485,9 +567,21 @@ const ImagesSection = () => {
                 <div className="space-y-2">
                   <Label>Upload Image (Optional)</Label>
                   <div 
-                    className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 transition-colors hover:border-muted-foreground/50"
+                    className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 transition-colors hover:border-muted-foreground/50 cursor-pointer relative"
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
+                    onClick={() => {
+                      if (!uploadedImageUrl) {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0];
+                          if (file) processUploadedFile(file);
+                        };
+                        input.click();
+                      }
+                    }}
                   >
                     {uploadedImageUrl ? (
                       <div className="relative">
@@ -500,7 +594,8 @@ const ImagesSection = () => {
                           size="sm"
                           variant="destructive"
                           className="absolute top-2 right-2"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setUploadedImage(null);
                             setUploadedImageUrl(null);
                           }}
@@ -517,12 +612,6 @@ const ImagesSection = () => {
                         <p className="text-xs text-muted-foreground">
                           Supported formats: JPEG, PNG, WEBP • Maximum file size: 10MB
                         </p>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="mt-2"
-                        />
                       </div>
                     )}
                   </div>
