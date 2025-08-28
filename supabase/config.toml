@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.manage-collections]
 verify_jwt = true
+
+[functions.save-generated-image]
+verify_jwt = true

@@ -13,7 +13,52 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, imageUrls, generationType = 'text-to-image' } = await req.json();
+    const { prompt, imageUrls, generationType = 'text-to-image', checkProgress = false, taskId } = await req.json();
+    
+    // Handle progress check request
+    if (checkProgress && taskId) {
+      const kieApiKey = Deno.env.get('KIE_AI_API_KEY');
+      if (!kieApiKey) {
+        return new Response(
+          JSON.stringify({ error: 'API key not configured' }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
+      const statusResponse = await fetch(`https://api.kie.ai/api/v1/flux/kontext/${taskId}`, {
+        headers: {
+          'Authorization': `Bearer ${kieApiKey}`,
+        },
+      });
+
+      if (statusResponse.ok) {
+        const statusResult = await statusResponse.json();
+        console.log('Progress check:', statusResult);
+        
+        if (statusResult.code === 200) {
+          const status = statusResult.data?.status || 'processing';
+          const progress = statusResult.data?.progress || 0;
+          
+          return new Response(
+            JSON.stringify({
+              status,
+              progress,
+              imageUrl: statusResult.data?.images?.[0] || null,
+              taskId
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+      
+      return new Response(
+        JSON.stringify({ status: 'processing', progress: 0, taskId }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     if (!prompt) {
       return new Response(
@@ -99,106 +144,18 @@ serve(async (req) => {
     const taskId = result.data.taskId;
     console.log('Task ID received:', taskId);
 
-    // Poll for completion
-    let imageUrl = null;
-    let attempts = 0;
-    const maxAttempts = 30; // 30 seconds timeout
-
-    while (!imageUrl && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-      
-      const statusResponse = await fetch(`https://api.kie.ai/api/v1/flux/kontext/${taskId}`, {
-        headers: {
-          'Authorization': `Bearer ${kieApiKey}`,
-        },
-      });
-
-      if (statusResponse.ok) {
-        const statusResult = await statusResponse.json();
-        console.log('Status check:', statusResult);
-        
-        if (statusResult.code === 200 && statusResult.data?.status === 'completed' && statusResult.data?.images?.[0]) {
-          imageUrl = statusResult.data.images[0];
-          break;
-        } else if (statusResult.data?.status === 'failed') {
-          throw new Error('Image generation failed');
-        }
-      }
-      
-      attempts++;
-    }
-
-    if (!imageUrl) {
-      throw new Error('Image generation timeout');
-    }
-
-    // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Get user from auth header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      console.error('Auth error:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Save generated image to database
-    const { data: savedImage, error: dbError } = await supabase
-      .from('generated_images')
-      .insert({
-        user_id: user.id,
-        prompt,
-        image_url: imageUrl,
-        original_image_url: imageUrls?.[0] || null,
-        generation_type: generationType,
-      })
-      .select()
-      .single();
-
-    if (dbError) {
-      console.error('Database error:', dbError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to save image', details: dbError.message }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
+    // Return task ID immediately for progress tracking
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        image: savedImage,
-        generatedUrl: imageUrl 
+        success: true,
+        taskId,
+        status: 'processing'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
+
 
   } catch (error) {
     console.error('Unexpected error:', error);

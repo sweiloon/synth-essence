@@ -47,14 +47,13 @@ const ImagesSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
-  const [style, setStyle] = useState('realistic');
-  const [aspectRatio, setAspectRatio] = useState('1:1');
-  const [quality, setQuality] = useState('high');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [isPromptExpanded, setIsPromptExpanded] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   
   // Data states
   const [images, setImages] = useState<GeneratedImage[]>([]);
@@ -119,18 +118,34 @@ const ImagesSection = () => {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast({
-          title: "Error",
-          description: "File size must be less than 10MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setUploadedImage(file);
-      const imageUrl = URL.createObjectURL(file);
-      setUploadedImageUrl(imageUrl);
+      processUploadedFile(file);
+    }
+  };
+
+  const processUploadedFile = (file: File) => {
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      toast({
+        title: "Error",
+        description: "File size must be less than 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setUploadedImage(file);
+    const imageUrl = URL.createObjectURL(file);
+    setUploadedImageUrl(imageUrl);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      processUploadedFile(files[0]);
     }
   };
 
@@ -152,6 +167,63 @@ const ImagesSection = () => {
     return data.publicUrl;
   };
 
+  const checkProgress = async (taskId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: {
+          checkProgress: true,
+          taskId
+        }
+      });
+
+      if (error) throw error;
+
+      setGenerationProgress(data.progress || 0);
+
+      if (data.status === 'completed' && data.imageUrl) {
+        // Save the generated image
+        let originalImageUrl = null;
+        if (uploadedImage) {
+          originalImageUrl = await uploadImageToStorage(uploadedImage);
+        }
+
+        const { error: saveError } = await supabase.functions.invoke('save-generated-image', {
+          body: {
+            prompt,
+            imageUrl: data.imageUrl,
+            originalImageUrl,
+            generationType: uploadedImage ? 'image-to-image' : 'text-to-image'
+          }
+        });
+
+        if (saveError) throw saveError;
+
+        setGeneratedImage(data.imageUrl);
+        setIsGenerating(false);
+        setCurrentTaskId(null);
+        setGenerationProgress(0);
+        await loadImages();
+
+        toast({
+          title: "Success",
+          description: "Image generated successfully!",
+        });
+
+        return true;
+      } else if (data.status === 'failed') {
+        throw new Error('Image generation failed');
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error checking progress:', error);
+      setIsGenerating(false);
+      setCurrentTaskId(null);
+      setGenerationProgress(0);
+      return true; // Stop polling on error
+    }
+  };
+
   const handleGenerateImage = async () => {
     if (!prompt.trim()) {
       toast({
@@ -163,6 +235,9 @@ const ImagesSection = () => {
     }
 
     setIsGenerating(true);
+    setGenerationProgress(0);
+    setGeneratedImage(null);
+
     try {
       let originalImageUrl = null;
       const generationType = uploadedImage ? 'image-to-image' : 'text-to-image';
@@ -182,13 +257,19 @@ const ImagesSection = () => {
 
       if (error) throw error;
 
-      setGeneratedImage(data.generatedUrl);
-      await loadImages(); // Refresh the images list
-      
-      toast({
-        title: "Success",
-        description: "Image generated successfully!",
-      });
+      if (data.taskId) {
+        setCurrentTaskId(data.taskId);
+        
+        // Start polling for progress
+        const pollProgress = async () => {
+          const completed = await checkProgress(data.taskId);
+          if (!completed) {
+            setTimeout(pollProgress, 2000); // Check every 2 seconds
+          }
+        };
+        
+        setTimeout(pollProgress, 1000); // Start after 1 second
+      }
       
     } catch (error) {
       console.error('Error generating image:', error);
@@ -197,9 +278,19 @@ const ImagesSection = () => {
         description: "Failed to generate image. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsGenerating(false);
+      setCurrentTaskId(null);
+      setGenerationProgress(0);
     }
+  };
+
+  const handleReset = () => {
+    setPrompt('');
+    setUploadedImage(null);
+    setUploadedImageUrl(null);
+    setGeneratedImage(null);
+    setGenerationProgress(0);
+    setCurrentTaskId(null);
   };
 
   const handleToggleFavorite = async (imageId: string, currentFavorite: boolean) => {
@@ -393,7 +484,11 @@ const ImagesSection = () => {
                 {/* Upload Image Section */}
                 <div className="space-y-2">
                   <Label>Upload Image (Optional)</Label>
-                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                  <div 
+                    className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 transition-colors hover:border-muted-foreground/50"
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                  >
                     {uploadedImageUrl ? (
                       <div className="relative">
                         <img 
@@ -433,70 +528,32 @@ const ImagesSection = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Style</Label>
-                  <Select value={style} onValueChange={setStyle}>
-                    <SelectTrigger className="input-modern">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="realistic">Photorealistic</SelectItem>
-                      <SelectItem value="artistic">Artistic</SelectItem>
-                      <SelectItem value="cartoon">Cartoon</SelectItem>
-                      <SelectItem value="professional">Professional</SelectItem>
-                      <SelectItem value="casual">Casual Lifestyle</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex gap-3">
+                  <Button 
+                    className="flex-1 btn-hero"
+                    onClick={handleGenerateImage}
+                    disabled={isGenerating}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Generate Image
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={handleReset}
+                    disabled={isGenerating}
+                  >
+                    Reset
+                  </Button>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Aspect Ratio</Label>
-                    <Select defaultValue="1:1">
-                      <SelectTrigger className="input-modern">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1:1">Square (1:1)</SelectItem>
-                        <SelectItem value="4:3">Landscape (4:3)</SelectItem>
-                        <SelectItem value="16:9">Widescreen (16:9)</SelectItem>
-                        <SelectItem value="3:4">Portrait (3:4)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Quality</Label>
-                    <Select defaultValue="high">
-                      <SelectTrigger className="input-modern">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="high">High Quality</SelectItem>
-                        <SelectItem value="hd">HD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <Button 
-                  className="w-full btn-hero"
-                  onClick={handleGenerateImage}
-                  disabled={isGenerating}
-                >
-                  {isGenerating ? (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Image
-                    </>
-                  )}
-                </Button>
               </CardContent>
             </Card>
 
@@ -509,7 +566,19 @@ const ImagesSection = () => {
               </CardHeader>
               <CardContent>
                 <div className="aspect-square bg-muted/20 rounded-lg flex items-center justify-center overflow-hidden">
-                  {generatedImage ? (
+                  {isGenerating ? (
+                    <div className="text-center text-muted-foreground p-4">
+                      <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin" />
+                      <p className="text-sm mb-2">Generating image...</p>
+                      <div className="w-full bg-muted rounded-full h-2 mb-2">
+                        <div 
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.max(10, generationProgress)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs">{Math.round(generationProgress)}% complete</p>
+                    </div>
+                  ) : generatedImage ? (
                     <img 
                       src={generatedImage} 
                       alt="Generated image" 
@@ -527,7 +596,7 @@ const ImagesSection = () => {
                   <Button 
                     variant="outline" 
                     className="w-full" 
-                    disabled={!generatedImage}
+                    disabled={!generatedImage || isGenerating}
                     onClick={() => generatedImage && handleDownloadImage(generatedImage, prompt)}
                   >
                     <Download className="mr-2 h-4 w-4" />
@@ -536,10 +605,9 @@ const ImagesSection = () => {
                   <Button 
                     variant="outline" 
                     className="w-full" 
-                    disabled={!generatedImage}
+                    disabled={!generatedImage || isGenerating}
                     onClick={() => {
                       if (generatedImage) {
-                        // Clear current preview after download suggestion
                         toast({
                           title: "Tip",
                           description: "Image saved to your gallery. You can favorite it from there!",
