@@ -193,11 +193,11 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
           continue;
         }
 
-        // Validate file size (25MB max)
-        if (file.size > 25 * 1024 * 1024) {
+        // Validate file size (10MB max)
+        if (file.size > 10 * 1024 * 1024) {
           toast({
             title: "File Too Large",
-            description: `${file.name} is larger than 25MB.`,
+            description: `${file.name} is larger than 10MB.`,
             variant: "destructive"
           });
           continue;
@@ -323,7 +323,7 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
                 {isUploading ? 'Uploading images...' : 'Click to upload avatar images or drag and drop'}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                PNG, JPG, GIF up to 25MB each
+                PNG, JPG, GIF up to 10MB each
               </p>
             </label>
           </div>
