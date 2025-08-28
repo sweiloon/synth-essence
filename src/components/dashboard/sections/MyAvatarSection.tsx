@@ -235,353 +235,314 @@ const MyAvatarSection = () => {
     );
   }
 
-  // Show avatar details view - INSTAGRAM STYLE UI
+  // Show avatar details view - CLEAN DESKTOP STYLE UI
   if (selectedAvatar) {
     return (
-      <div className="max-w-4xl mx-auto">
-        {/* Very visible indicator */}
-        <div className="w-full bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 text-white text-center py-3 text-sm font-bold mb-6 rounded-lg">
-          🚀 INSTAGRAM-STYLE AVATAR DETAIL UI LOADED! 🚀
-        </div>
-
+      <div className="max-w-5xl mx-auto">
         {/* Header with Back Button */}
-        <div className="flex items-center gap-4 mb-8 border-b border-border pb-4">
+        <div className="flex items-center gap-4 mb-6">
           <Button
             variant="ghost"
             size="sm"
             onClick={handleBackToList}
             className="p-2 hover:bg-muted/50 rounded-full"
           >
-            <ArrowLeft className="h-6 w-6" />
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold">{selectedAvatar.name}</h1>
+          <h1 className="text-xl font-semibold">{selectedAvatar.name}</h1>
           <div className="ml-auto">
-            <span className="text-xs bg-gradient-to-r from-purple-500 to-blue-500 text-white px-3 py-1 rounded-full font-bold">
-              NEW UI ✨
+            <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full font-medium">
+              Updated UI
             </span>
           </div>
         </div>
 
         {isLoadingDetails ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
-            <p className="text-lg text-muted-foreground">Loading Instagram-style avatar details...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading avatar details...</p>
           </div>
         ) : (
           <>
-            {/* Instagram-Style Profile Header */}
-            <div className="mb-10">
-              <div className="flex items-start gap-8 mb-8">
-                {/* Large Profile Avatar with Instagram-style gradient border */}
+            {/* Profile Header - Clean Desktop Style */}
+            <div className="bg-background border border-border rounded-lg p-6 mb-6">
+              <div className="flex items-start gap-6">
+                {/* Profile Avatar */}
                 <div className="flex-shrink-0">
-                  <div className="relative">
-                    <div className="w-40 h-40 p-1 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 rounded-full">
-                      <Avatar className="w-full h-full border-4 border-background">
-                        <AvatarImage 
-                          src={selectedAvatar.avatar_images?.[0]} 
-                          alt={selectedAvatar.name}
-                          className="object-cover"
-                        />
-                        <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary/20 to-secondary/20">
-                          {selectedAvatar.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                  </div>
+                  <Avatar className="w-24 h-24 border-2 border-border">
+                    <AvatarImage 
+                      src={selectedAvatar.avatar_images?.[0]} 
+                      alt={selectedAvatar.name}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="text-xl font-semibold">
+                      {selectedAvatar.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
 
-                {/* Profile Info Section */}
-                <div className="flex-1 min-w-0 pt-4">
-                  <div className="flex flex-wrap items-center gap-4 mb-6">
-                    <h2 className="text-3xl font-light tracking-wide">{selectedAvatar.name}</h2>
+                {/* Profile Info */}
+                <div className="flex-1">
+                  <div className="flex items-center gap-4 mb-3">
+                    <h2 className="text-2xl font-semibold">{selectedAvatar.name}</h2>
                     <Button 
                       onClick={() => handleEditAvatar(selectedAvatar.id)} 
                       variant="outline" 
-                      size="sm" 
-                      className="px-6 font-semibold border-2 hover:bg-primary hover:text-primary-foreground transition-all"
+                      size="sm"
+                      className="px-4"
                     >
-                      Edit Profile
-                    </Button>
-                    <Button variant="outline" size="sm" className="p-2">
-                      <MoreHorizontal className="h-5 w-5" />
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Avatar
                     </Button>
                   </div>
 
-                  {/* Instagram-style Stats Row */}
-                  <div className="flex gap-10 mb-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{selectedAvatar.avatar_images?.length || 0}</div>
-                      <div className="text-sm text-muted-foreground font-medium tracking-wide">posts</div>
+                  {/* Bio line */}
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {selectedAvatar.age} years old | {selectedAvatar.gender} | {selectedAvatar.origin_country}
+                  </p>
+
+                  {/* Stats Row */}
+                  <div className="flex gap-8 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Grid3X3 className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold">{selectedAvatar.avatar_images?.length || 0}</span>
+                      <span className="text-sm text-muted-foreground">Posts</span>
                     </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{knowledgeFiles.length}</div>
-                      <div className="text-sm text-muted-foreground font-medium tracking-wide">files</div>
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold">{knowledgeFiles.length}</span>
+                      <span className="text-sm text-muted-foreground">Files</span>
                     </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{selectedAvatar.personality_traits?.length || 0}</div>
-                      <div className="text-sm text-muted-foreground font-medium tracking-wide">traits</div>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold">{selectedAvatar.personality_traits?.length || 0}</span>
+                      <span className="text-sm text-muted-foreground">Traits</span>
                     </div>
                   </div>
 
-                  {/* Bio Section with Instagram styling */}
-                  <div className="space-y-3 max-w-lg">
-                    <div className="font-bold text-base">
-                      {selectedAvatar.age} • {selectedAvatar.gender} • {selectedAvatar.origin_country}
-                    </div>
-                    <div className="text-sm">
-                      <span className="font-semibold text-blue-600">🌐 {selectedAvatar.primary_language}</span>
-                      {selectedAvatar.secondary_languages && selectedAvatar.secondary_languages.length > 0 && (
-                        <span className="text-muted-foreground ml-2">
-                          +{selectedAvatar.secondary_languages.length} more languages
-                        </span>
-                      )}
-                    </div>
-                    {selectedAvatar.backstory && (
-                      <div className="text-sm leading-relaxed">
-                        {selectedAvatar.backstory.length > 120 
-                          ? `${selectedAvatar.backstory.slice(0, 120)}...` 
-                          : selectedAvatar.backstory
-                        }
-                      </div>
-                    )}
-                    {selectedAvatar.personality_traits && selectedAvatar.personality_traits.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {selectedAvatar.personality_traits.slice(0, 4).map((trait: string, index: number) => (
-                          <span key={index} className="text-xs px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
-                            #{trait.toLowerCase().replace(/\s+/g, '')}
-                          </span>
-                        ))}
-                        {selectedAvatar.personality_traits.length > 4 && (
-                          <span className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">
-                            +{selectedAvatar.personality_traits.length - 4} more
-                          </span>
-                        )}
-                      </div>
-                    )}
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <Button 
+                      className="px-8" 
+                      onClick={() => handleChatWithAvatar(selectedAvatar.id)}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Chat
+                    </Button>
+                    <Button variant="outline" className="px-6">
+                      <Share className="h-4 w-4 mr-2" />
+                      Share
+                    </Button>
                   </div>
                 </div>
               </div>
-
-              {/* Action Buttons - Instagram Style */}
-              <div className="flex gap-3">
-                <Button 
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg" 
-                  onClick={() => handleChatWithAvatar(selectedAvatar.id)}
-                >
-                  <MessageCircle className="h-5 w-5 mr-2" />
-                  Message
-                </Button>
-                <Button className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-lg">
-                  <Share className="h-5 w-5 mr-2" />
-                  Share
-                </Button>
-              </div>
             </div>
 
-            {/* Instagram-Style Tabs */}
+            {/* Navigation Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8 h-12 bg-muted/30">
-                <TabsTrigger value="media" className="flex items-center gap-2 text-base font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  <Grid3X3 className="h-5 w-5" />
-                  POSTS
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50">
+                <TabsTrigger value="media" className="flex items-center gap-2 py-3">
+                  <Grid3X3 className="h-4 w-4" />
+                  Posts
                 </TabsTrigger>
-                <TabsTrigger value="about" className="flex items-center gap-2 text-base font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  <User className="h-5 w-5" />
-                  ABOUT
+                <TabsTrigger value="about" className="flex items-center gap-2 py-3">
+                  <User className="h-4 w-4" />
+                  About
                 </TabsTrigger>
               </TabsList>
 
-              {/* POSTS Tab - Instagram Grid */}
+              {/* Posts Tab - Clean Grid Layout */}
               <TabsContent value="media" className="mt-0">
                 {selectedAvatar.avatar_images && selectedAvatar.avatar_images.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-px">
-                    {selectedAvatar.avatar_images.map((image: string, index: number) => (
-                      <div key={index} className="aspect-square relative group cursor-pointer overflow-hidden bg-muted">
-                        <img
-                          src={image}
-                          alt={`${selectedAvatar.name} ${index + 1}`}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
-                          <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 flex gap-8 text-white">
-                            <div className="flex items-center gap-2 text-lg font-bold">
-                              <Heart className="h-6 w-6" />
-                              <span>Like</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-lg font-bold">
-                              <MessageCircle className="h-6 w-6" />
-                              <span>View</span>
+                  <>
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      {selectedAvatar.avatar_images.map((image: string, index: number) => (
+                        <div key={index} className="aspect-square relative group cursor-pointer overflow-hidden rounded-lg bg-muted">
+                          <img
+                            src={image}
+                            alt={`${selectedAvatar.name} ${index + 1}`}
+                            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <div className="bg-white/90 rounded-full p-2">
+                                <Heart className="h-5 w-5 text-gray-700" />
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                    
-                    {/* Fill remaining grid spots */}
-                    {selectedAvatar.avatar_images.length % 3 !== 0 && (
-                      Array.from({ length: 3 - (selectedAvatar.avatar_images.length % 3) }).map((_, index) => (
-                        <div key={`placeholder-${index}`} className="aspect-square bg-transparent"></div>
-                      ))
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-20">
-                    <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-muted/50 mb-6">
-                      <Grid3X3 className="h-12 w-12 text-muted-foreground" />
+                      ))}
                     </div>
-                    <h3 className="text-2xl font-bold mb-3">No posts yet</h3>
-                    <p className="text-muted-foreground text-lg mb-6">When you share photos, they'll appear on your profile.</p>
+                    
+                    {/* Load more button */}
+                    <div className="text-center">
+                      <Button variant="outline" className="px-8 py-2">
+                        Load more
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-16 bg-muted/20 rounded-lg">
+                    <Grid3X3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No posts yet</h3>
+                    <p className="text-muted-foreground mb-4">When you share photos, they'll appear on your profile.</p>
                     <Button 
                       onClick={() => handleEditAvatar(selectedAvatar.id)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white font-bold px-8 py-3 rounded-lg text-lg"
+                      variant="outline"
                     >
-                      <Edit className="h-5 w-5 mr-2" />
-                      Add Your First Photo
+                      <Edit className="h-4 w-4 mr-2" />
+                      Add Photos
                     </Button>
                   </div>
                 )}
               </TabsContent>
 
-              {/* ABOUT Tab */}
+              {/* About Tab - Clean Layout */}
               <TabsContent value="about" className="mt-0">
-                <div className="space-y-8 max-w-2xl">
-                  {/* Full Bio */}
+                <div className="space-y-8">
+                  {/* About Me Section */}
                   {selectedAvatar.backstory && (
-                    <div className="space-y-3">
-                      <h3 className="text-xl font-bold flex items-center gap-2">
-                        <BookOpen className="h-6 w-6 text-blue-500" />
-                        About {selectedAvatar.name}
-                      </h3>
-                      <p className="text-base leading-relaxed whitespace-pre-wrap bg-muted/30 p-4 rounded-lg">
-                        {selectedAvatar.backstory}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Languages Section */}
-                  <div className="space-y-3">
-                    <h3 className="text-xl font-bold flex items-center gap-2">
-                      <Globe className="h-6 w-6 text-green-500" />
-                      Languages
-                    </h3>
-                    <div className="bg-muted/30 p-4 rounded-lg space-y-3">
-                      <div>
-                        <p className="text-sm font-semibold text-muted-foreground mb-2">Primary Language</p>
-                        <Badge variant="default" className="text-base px-4 py-2">{selectedAvatar.primary_language}</Badge>
-                      </div>
-                      {selectedAvatar.secondary_languages && selectedAvatar.secondary_languages.length > 0 && (
-                        <div>
-                          <p className="text-sm font-semibold text-muted-foreground mb-2">Also speaks</p>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedAvatar.secondary_languages.map((lang: string, index: number) => (
-                              <Badge key={index} variant="outline" className="text-sm px-3 py-1">{lang}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Personality Traits */}
-                  {selectedAvatar.personality_traits && selectedAvatar.personality_traits.length > 0 && (
-                    <div className="space-y-3">
-                      <h3 className="text-xl font-bold flex items-center gap-2">
-                        <User className="h-6 w-6 text-purple-500" />
-                        Personality Traits
-                      </h3>
-                      <div className="bg-muted/30 p-4 rounded-lg">
-                        <div className="flex flex-wrap gap-3">
-                          {selectedAvatar.personality_traits.map((trait: string, index: number) => (
-                            <Badge key={index} variant="secondary" className="text-sm px-4 py-2 font-medium">{trait}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* MBTI Type */}
-                  {selectedAvatar.mbti_type && (
-                    <div className="space-y-3">
-                      <h3 className="text-xl font-bold">MBTI Personality Type</h3>
-                      <div className="bg-muted/30 p-4 rounded-lg">
-                        <Badge variant="default" className="text-2xl px-6 py-3 font-bold">{selectedAvatar.mbti_type}</Badge>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Knowledge Base */}
-                  {knowledgeFiles && knowledgeFiles.length > 0 && (
-                    <div className="space-y-3">
-                      <h3 className="text-xl font-bold flex items-center gap-2">
-                        <FileText className="h-6 w-6 text-orange-500" />
-                        Knowledge Base ({knowledgeFiles.length} files)
-                      </h3>
-                      <div className="bg-muted/30 p-4 rounded-lg space-y-3">
-                        {knowledgeFiles.map((file: KnowledgeFile) => (
-                          <div key={file.id} className="flex items-center gap-4 p-3 bg-background rounded-lg border">
-                            <div className="bg-blue-100 p-2 rounded-lg">
-                              <FileText className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold truncate">{file.file_name}</p>
-                              <div className="flex items-center gap-3 mt-1">
-                                <Badge variant="outline" className="text-xs">
-                                  {file.content_type === 'application/pdf' ? 'PDF' : 'FILE'}
-                                </Badge>
-                                <span className="text-sm text-muted-foreground">
-                                  {formatFileSize(file.file_size)}
-                                </span>
-                                <span className="text-sm text-muted-foreground">
-                                  {new Date(file.uploaded_at).toLocaleDateString()}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Hidden Rules */}
-                  {selectedAvatar.hidden_rules && (
-                    <div className="space-y-3">
-                      <h3 className="text-xl font-bold flex items-center gap-2">
-                        <Shield className="h-6 w-6 text-red-500" />
-                        Special Instructions
-                      </h3>
-                      <div className="bg-muted/30 p-4 rounded-lg">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">About me</h3>
+                      <div className="bg-muted/20 rounded-lg p-6">
                         <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                          {selectedAvatar.hidden_rules}
+                          {selectedAvatar.backstory}
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {/* Basic Info Summary */}
-                  <div className="space-y-3">
-                    <h3 className="text-xl font-bold">Basic Information</h3>
-                    <div className="bg-muted/30 p-4 rounded-lg">
-                      <div className="grid grid-cols-2 gap-4">
+                  {/* Two Column Layout for Traits and Details */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Left Column - Personality & Languages */}
+                    <div className="space-y-6">
+                      {/* Personality Traits */}
+                      {selectedAvatar.personality_traits && selectedAvatar.personality_traits.length > 0 && (
                         <div>
-                          <p className="text-sm font-semibold text-muted-foreground">Age</p>
-                          <p className="text-lg font-medium">{selectedAvatar.age} years old</p>
+                          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <User className="h-5 w-5" />
+                            Personality
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedAvatar.personality_traits.map((trait: string, index: number) => (
+                              <span 
+                                key={index} 
+                                className="px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer"
+                              >
+                                {trait}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-muted-foreground">Gender</p>
-                          <p className="text-lg font-medium capitalize">{selectedAvatar.gender}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-muted-foreground">Origin</p>
-                          <p className="text-lg font-medium">{selectedAvatar.origin_country}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-muted-foreground">Created</p>
-                          <p className="text-lg font-medium">
-                            {new Date(selectedAvatar.created_at).toLocaleDateString()}
-                          </p>
+                      )}
+
+                      {/* Languages */}
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                          <Globe className="h-5 w-5" />
+                          Languages
+                        </h3>
+                        <div className="space-y-3">
+                          <div>
+                            <span className="px-4 py-2 bg-secondary/80 text-secondary-foreground rounded-full text-sm font-medium mr-2">
+                              {selectedAvatar.primary_language}
+                            </span>
+                            <span className="text-xs text-muted-foreground">Primary</span>
+                          </div>
+                          {selectedAvatar.secondary_languages && selectedAvatar.secondary_languages.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {selectedAvatar.secondary_languages.map((lang: string, index: number) => (
+                                <span 
+                                  key={index} 
+                                  className="px-3 py-1 bg-muted border rounded-full text-sm"
+                                >
+                                  {lang}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
+                    </div>
+
+                    {/* Right Column - Details & Files */}
+                    <div className="space-y-6">
+                      {/* Basic Information */}
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+                        <div className="bg-muted/20 rounded-lg p-4 space-y-3">
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Age:</span>
+                            <span className="text-sm font-medium">{selectedAvatar.age} years old</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Gender:</span>
+                            <span className="text-sm font-medium capitalize">{selectedAvatar.gender}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Origin:</span>
+                            <span className="text-sm font-medium">{selectedAvatar.origin_country}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Created:</span>
+                            <span className="text-sm font-medium">
+                              {new Date(selectedAvatar.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          {selectedAvatar.mbti_type && (
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">MBTI:</span>
+                              <Badge variant="outline">{selectedAvatar.mbti_type}</Badge>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Knowledge Base */}
+                      {knowledgeFiles && knowledgeFiles.length > 0 && (
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Knowledge Base
+                          </h3>
+                          <div className="space-y-2">
+                            {knowledgeFiles.map((file: KnowledgeFile) => (
+                              <div key={file.id} className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg">
+                                <div className="bg-primary/10 p-2 rounded">
+                                  <FileText className="h-4 w-4 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{file.file_name}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-xs px-2 py-1 bg-background rounded border">
+                                      {file.content_type === 'application/pdf' ? 'PDF' : 'FILE'}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {formatFileSize(file.file_size)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Hidden Rules */}
+                      {selectedAvatar.hidden_rules && (
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <Shield className="h-5 w-5" />
+                            Special Instructions
+                          </h3>
+                          <div className="bg-muted/20 rounded-lg p-4">
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                              {selectedAvatar.hidden_rules}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
