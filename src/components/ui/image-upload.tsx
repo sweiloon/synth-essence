@@ -76,13 +76,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           continue;
         }
 
-        console.log(`ImageUpload: File size check: ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-        // Validate file size (25MB max)
-        if (file.size > 25 * 1024 * 1024) {
-          console.error(`ImageUpload: File too large: ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB, limit is 25MB`);
+        console.log(`✅ ImageUpload: File size check: ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        // Validate file size (50MB max - matches Supabase bucket limit)
+        if (file.size > 50 * 1024 * 1024) {
+          console.error(`❌ ImageUpload: File too large: ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB, limit is 50MB`);
           toast({
             title: "File Too Large",
-            description: `${file.name} is larger than 25MB (${(file.size / 1024 / 1024).toFixed(2)}MB).`,
+            description: `${file.name} is larger than 50MB (${(file.size / 1024 / 1024).toFixed(2)}MB).`,
             variant: "destructive"
           });
           continue;

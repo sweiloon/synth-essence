@@ -114,7 +114,7 @@ const AvatarDetail = () => {
   const fetchAvatar = async () => {
     if (!user || !id) return;
     
-    console.log('AvatarDetail: Fetching avatar with new Instagram-style UI for ID:', id);
+    console.log('🔥 AvatarDetail: Loading NEW Instagram-Style UI v2.0 for avatar:', id);
     try {
       const { data, error } = await supabase
         .from('avatars')
@@ -239,6 +239,8 @@ const AvatarDetail = () => {
   }
 
   console.log('AvatarDetail: Component rendering, activeTab:', activeTab);
+  
+  console.log('🎨 Rendering Instagram-Style Avatar Detail UI');
   
   return (
     <div className="min-h-screen bg-background">

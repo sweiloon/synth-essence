@@ -193,13 +193,13 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
           continue;
         }
 
-        console.log(`File size check: ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-        // Validate file size (25MB max)
-        if (file.size > 25 * 1024 * 1024) {
-          console.error(`File too large: ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB, limit is 25MB`);
+        console.log(`✅ File size check: ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        // Validate file size (50MB max - matches Supabase bucket limit)
+        if (file.size > 50 * 1024 * 1024) {
+          console.error(`❌ File too large: ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB, limit is 50MB`);
           toast({
             title: "File Too Large",
-            description: `${file.name} is larger than 25MB (${(file.size / 1024 / 1024).toFixed(2)}MB).`,
+            description: `${file.name} is larger than 50MB (${(file.size / 1024 / 1024).toFixed(2)}MB).`,
             variant: "destructive"
           });
           continue;
@@ -325,7 +325,7 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
                 {isUploading ? 'Uploading images...' : 'Click to upload avatar images or drag and drop'}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                PNG, JPG, GIF up to 25MB each
+                PNG, JPG, GIF up to 50MB each
               </p>
             </label>
           </div>
