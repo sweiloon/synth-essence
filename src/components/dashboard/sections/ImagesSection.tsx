@@ -76,33 +76,43 @@ const ImagesSection = () => {
   }, [user]);
 
   const loadImages = async () => {
+    if (!user) {
+      setIsLoadingImages(false);
+      return;
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!session?.access_token) {
         console.error('No session found');
-        toast({
-          title: "Error", 
-          description: "Please log in to continue",
-          variant: "destructive",
-        });
+        setIsLoadingImages(false);
         return;
       }
+
+      console.log('Loading images with token:', session.access_token.substring(0, 20) + '...');
 
       const { data, error } = await supabase.functions.invoke('manage-images', {
         body: { action: 'get_images' },
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         },
       });
 
-      if (error) throw error;
-      setImages(data.images || []);
+      console.log('Load images response:', { data, error });
+
+      if (error) {
+        console.error('Load images error:', error);
+        throw error;
+      }
+      
+      setImages(data?.images || []);
     } catch (error) {
       console.error('Error loading images:', error);
       toast({
         title: "Error",
-        description: "Failed to load images",
+        description: `Failed to load images: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -111,28 +121,35 @@ const ImagesSection = () => {
   };
 
   const loadCollections = async () => {
+    if (!user) {
+      setIsLoadingCollections(false);
+      return;
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!session?.access_token) {
         console.error('No session found');
+        setIsLoadingCollections(false);
         return;
       }
 
       const { data, error } = await supabase.functions.invoke('manage-collections', {
         body: { action: 'get_collections' },
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         },
       });
 
       if (error) throw error;
-      setCollections(data.collections || []);
+      setCollections(data?.collections || []);
     } catch (error) {
       console.error('Error loading collections:', error);
       toast({
         title: "Error",
-        description: "Failed to load collections",
+        description: `Failed to load collections: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -196,9 +213,11 @@ const ImagesSection = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!session?.access_token) {
         throw new Error('No session found');
       }
+
+      console.log('Checking progress for task:', taskId);
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
@@ -206,20 +225,28 @@ const ImagesSection = () => {
           taskId
         },
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         },
       });
 
+      console.log('Progress check response:', { data, error });
+
       if (error) throw error;
 
-      setGenerationProgress(data.progress || 0);
+      const progress = Math.min(Math.max(data.progress || 0, 40), 95);
+      setGenerationProgress(progress);
 
       if (data.status === 'completed' && data.imageUrl) {
+        console.log('Generation completed! Image URL:', data.imageUrl);
+        
         // Save the generated image
         let originalImageUrl = null;
         if (uploadedImage) {
           originalImageUrl = await uploadImageToStorage(uploadedImage);
         }
+
+        setGenerationProgress(95);
 
         const { error: saveError } = await supabase.functions.invoke('save-generated-image', {
           body: {
@@ -229,17 +256,26 @@ const ImagesSection = () => {
             generationType: uploadedImage ? 'image-to-image' : 'text-to-image'
           },
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
           },
         });
 
-        if (saveError) throw saveError;
+        if (saveError) {
+          console.error('Save error:', saveError);
+          throw saveError;
+        }
 
         setGeneratedImage(data.imageUrl);
         setIsGenerating(false);
         setCurrentTaskId(null);
-        setGenerationProgress(0);
-        await loadImages();
+        setGenerationProgress(100);
+        
+        // Refresh the images list
+        setTimeout(async () => {
+          await loadImages();
+          setGenerationProgress(0);
+        }, 1000);
 
         toast({
           title: "Success",
@@ -254,6 +290,11 @@ const ImagesSection = () => {
       return false;
     } catch (error) {
       console.error('Error checking progress:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to check generation progress",
+        variant: "destructive",
+      });
       setIsGenerating(false);
       setCurrentTaskId(null);
       setGenerationProgress(0);
@@ -271,24 +312,41 @@ const ImagesSection = () => {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Please log in to generate images",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGenerating(true);
-    setGenerationProgress(0);
+    setGenerationProgress(10);
     setGeneratedImage(null);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!session?.access_token) {
         throw new Error('Please log in to generate images');
       }
+
+      console.log('Starting image generation with token:', session.access_token.substring(0, 20) + '...');
 
       let originalImageUrl = null;
       const generationType = uploadedImage ? 'image-to-image' : 'text-to-image';
       
       // Upload the input image if provided
       if (uploadedImage) {
+        console.log('Uploading input image...');
+        setGenerationProgress(20);
         originalImageUrl = await uploadImageToStorage(uploadedImage);
+        console.log('Input image uploaded:', originalImageUrl);
       }
+
+      setGenerationProgress(30);
+      console.log('Calling generate-image function...');
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
@@ -297,24 +355,42 @@ const ImagesSection = () => {
           generationType
         },
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         },
       });
 
-      if (error) throw error;
+      console.log('Generate image response:', { data, error });
 
-      if (data.taskId) {
+      if (error) {
+        console.error('Generate image error:', error);
+        throw new Error(`Generation failed: ${error.message}`);
+      }
+
+      if (data?.taskId) {
+        console.log('Task ID received:', data.taskId);
         setCurrentTaskId(data.taskId);
+        setGenerationProgress(40);
         
         // Start polling for progress
         const pollProgress = async () => {
-          const completed = await checkProgress(data.taskId);
-          if (!completed) {
-            setTimeout(pollProgress, 2000); // Check every 2 seconds
+          try {
+            console.log('Polling progress for task:', data.taskId);
+            const completed = await checkProgress(data.taskId);
+            if (!completed && currentTaskId === data.taskId) {
+              setTimeout(pollProgress, 2000); // Check every 2 seconds
+            }
+          } catch (error) {
+            console.error('Error in polling:', error);
+            setIsGenerating(false);
+            setCurrentTaskId(null);
+            setGenerationProgress(0);
           }
         };
         
-        setTimeout(pollProgress, 1000); // Start after 1 second
+        setTimeout(pollProgress, 2000); // Start after 2 seconds
+      } else {
+        throw new Error('No task ID received from generation service');
       }
       
     } catch (error) {
@@ -343,7 +419,7 @@ const ImagesSection = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!session?.access_token) {
         throw new Error('Please log in to manage favorites');
       }
 
@@ -354,7 +430,8 @@ const ImagesSection = () => {
           isFavorite: !currentFavorite
         },
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         },
       });
 
@@ -382,7 +459,7 @@ const ImagesSection = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!session?.access_token) {
         throw new Error('Please log in to delete images');
       }
 
@@ -392,7 +469,8 @@ const ImagesSection = () => {
           imageId
         },
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         },
       });
 
@@ -427,7 +505,7 @@ const ImagesSection = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!session?.access_token) {
         throw new Error('Please log in to create collections');
       }
 
@@ -438,7 +516,8 @@ const ImagesSection = () => {
           description: newCollectionDescription
         },
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         },
       });
 
@@ -467,7 +546,7 @@ const ImagesSection = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!session?.access_token) {
         throw new Error('Please log in to manage collections');
       }
 
@@ -478,7 +557,8 @@ const ImagesSection = () => {
           imageId
         },
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         },
       });
 
