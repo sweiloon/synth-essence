@@ -110,6 +110,7 @@ const AvatarDetail = () => {
   const fetchAvatar = async () => {
     if (!user || !id) return;
     
+    console.log('AvatarDetail: Fetching avatar with new Instagram-style UI for ID:', id);
     try {
       const { data, error } = await supabase
         .from('avatars')

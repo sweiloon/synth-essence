@@ -193,11 +193,13 @@ export const AvatarDetailStep: React.FC<AvatarDetailStepProps> = ({
           continue;
         }
 
+        console.log(`File size check: ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
         // Validate file size (25MB max)
         if (file.size > 25 * 1024 * 1024) {
+          console.error(`File too large: ${file.name} is ${(file.size / 1024 / 1024).toFixed(2)}MB, limit is 25MB`);
           toast({
             title: "File Too Large",
-            description: `${file.name} is larger than 25MB.`,
+            description: `${file.name} is larger than 25MB (${(file.size / 1024 / 1024).toFixed(2)}MB).`,
             variant: "destructive"
           });
           continue;
