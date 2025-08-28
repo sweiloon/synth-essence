@@ -1,15 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, User, Globe, Calendar, FileText, BookOpen, Shield, Edit } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  ArrowLeft, 
+  Grid3X3, 
+  User, 
+  Globe, 
+  FileText, 
+  BookOpen, 
+  Shield, 
+  Edit, 
+  Heart,
+  MessageCircle,
+  Share,
+  MoreHorizontal
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useBackNavigation } from '@/hooks/useBackNavigation';
 
-interface Avatar {
+interface AvatarData {
   id: string;
   name: string;
   avatar_images: string[];
@@ -39,9 +54,10 @@ const AvatarDetail = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { goBack } = useBackNavigation();
-  const [avatar, setAvatar] = useState<Avatar | null>(null);
+  const [avatar, setAvatar] = useState<AvatarData | null>(null);
   const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('media');
 
   useEffect(() => {
     if (user && id) {
@@ -117,7 +133,7 @@ const AvatarDetail = () => {
       }
 
       // Transform the data to match our Avatar interface
-      const avatarData: Avatar = {
+      const avatarData: AvatarData = {
         id: data.id,
         name: data.name,
         avatar_images: data.avatar_images || [],
@@ -190,10 +206,10 @@ const AvatarDetail = () => {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+            <div className="h-8 bg-muted rounded w-1/4 mb-6"></div>
             <div className="space-y-4">
-              <div className="h-64 bg-gray-200 rounded-lg"></div>
-              <div className="h-32 bg-gray-200 rounded-lg"></div>
+              <div className="h-64 bg-muted rounded-lg"></div>
+              <div className="h-32 bg-muted rounded-lg"></div>
             </div>
           </div>
         </div>
@@ -219,176 +235,214 @@ const AvatarDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goBack}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold">{avatar.name}</h1>
-              <p className="text-muted-foreground">
-                {avatar.age} years old • {avatar.gender} • {avatar.origin_country}
-              </p>
-            </div>
-          </div>
-          <Button onClick={handleEditAvatar} className="btn-hero">
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Avatar
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        {/* Header with Back Button */}
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={goBack}
+            className="p-2"
+          >
+            <ArrowLeft className="h-5 w-5" />
           </Button>
+          <h1 className="text-xl font-semibold">{avatar.name}</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Avatar Images and Basic Info */}
-          <div className="space-y-6">
-            {/* Avatar Images */}
-            <Card className="card-modern">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Avatar Images
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {avatar.avatar_images && avatar.avatar_images.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    {avatar.avatar_images.map((image: string, index: number) => (
-                      <div key={index} className="aspect-square rounded-lg overflow-hidden bg-muted">
-                        <img
-                          src={image}
-                          alt={`${avatar.name} ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="aspect-square rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                    <User className="h-16 w-16 text-muted-foreground" />
+        {/* Profile Header - Instagram Style */}
+        <div className="mb-8">
+          <div className="flex items-start gap-6 mb-6">
+            {/* Profile Avatar */}
+            <div className="flex-shrink-0">
+              <Avatar className="w-32 h-32 border-2 border-border">
+                <AvatarImage 
+                  src={avatar.avatar_images?.[0]} 
+                  alt={avatar.name}
+                  className="object-cover"
+                />
+                <AvatarFallback className="text-2xl">
+                  {avatar.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+
+            {/* Profile Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-4 mb-4">
+                <h2 className="text-xl font-light">{avatar.name}</h2>
+                <Button onClick={handleEditAvatar} variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button variant="outline" size="sm">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Stats */}
+              <div className="flex gap-8 mb-4">
+                <div className="text-center">
+                  <div className="font-semibold">{avatar.avatar_images?.length || 0}</div>
+                  <div className="text-sm text-muted-foreground">Media</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold">{knowledgeFiles.length}</div>
+                  <div className="text-sm text-muted-foreground">Files</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold">{avatar.personality_traits?.length || 0}</div>
+                  <div className="text-sm text-muted-foreground">Traits</div>
+                </div>
+              </div>
+
+              {/* Bio Preview */}
+              <div className="space-y-1">
+                <div className="text-sm">
+                  <span className="font-semibold">{avatar.age} years old</span> • {avatar.gender} • {avatar.origin_country}
+                </div>
+                {avatar.backstory && (
+                  <div className="text-sm text-muted-foreground line-clamp-2">
+                    {avatar.backstory}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Basic Information */}
-            <Card className="card-modern">
-              <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Age</p>
-                    <p className="font-medium">{avatar.age} years old</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Gender</p>
-                    <p className="font-medium capitalize">{avatar.gender}</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Origin Country</p>
-                  <p className="font-medium">{avatar.origin_country}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Created</p>
-                  <p className="font-medium">
-                    {new Date(avatar.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
-          {/* Right Column - Detailed Information */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Languages */}
-            <Card className="card-modern">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  Languages
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">Primary Language</p>
-                    <Badge variant="default">{avatar.primary_language}</Badge>
-                  </div>
-                  {avatar.secondary_languages && avatar.secondary_languages.length > 0 && (
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2">Secondary Languages</p>
-                      <div className="flex flex-wrap gap-2">
-                        {avatar.secondary_languages.map((lang: string, index: number) => (
-                          <Badge key={index} variant="outline">{lang}</Badge>
-                        ))}
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button className="flex-1" variant="default">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Chat
+            </Button>
+            <Button className="flex-1" variant="outline">
+              <Share className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+          </div>
+        </div>
+
+        {/* Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="media" className="flex items-center gap-2">
+              <Grid3X3 className="h-4 w-4" />
+              Media
+            </TabsTrigger>
+            <TabsTrigger value="about" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              About
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Media Tab */}
+          <TabsContent value="media" className="mt-0">
+            {avatar.avatar_images && avatar.avatar_images.length > 0 ? (
+              <div className="grid grid-cols-3 gap-1">
+                {avatar.avatar_images.map((image: string, index: number) => (
+                  <div key={index} className="aspect-square relative group cursor-pointer">
+                    <img
+                      src={image}
+                      alt={`${avatar.name} ${index + 1}`}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-4 text-white">
+                        <div className="flex items-center gap-1">
+                          <Heart className="h-4 w-4" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MessageCircle className="h-4 w-4" />
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Grid3X3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No media yet</h3>
+                <p className="text-muted-foreground">Upload some images to see them here</p>
+              </div>
+            )}
+          </TabsContent>
 
-            {/* Personality Traits */}
-            {avatar.personality_traits && avatar.personality_traits.length > 0 && (
-              <Card className="card-modern">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    Personality Traits
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {avatar.personality_traits.map((trait: string, index: number) => (
-                      <Badge key={index} variant="secondary">{trait}</Badge>
-                    ))}
+          {/* About Tab */}
+          <TabsContent value="about" className="mt-0">
+            <div className="space-y-6">
+              {/* About Section */}
+              {avatar.backstory && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <BookOpen className="h-5 w-5" />
+                      About
+                    </h3>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                      {avatar.backstory}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Languages */}
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Globe className="h-5 w-5" />
+                    Languages
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Primary</p>
+                      <Badge variant="default">{avatar.primary_language}</Badge>
+                    </div>
+                    {avatar.secondary_languages && avatar.secondary_languages.length > 0 && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">Secondary</p>
+                        <div className="flex flex-wrap gap-2">
+                          {avatar.secondary_languages.map((lang: string, index: number) => (
+                            <Badge key={index} variant="outline">{lang}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-            )}
 
-            {/* Backstory */}
-            {avatar.backstory && (
-              <Card className="card-modern">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5" />
-                    Backstory
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {avatar.backstory}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+              {/* Personality Traits */}
+              {avatar.personality_traits && avatar.personality_traits.length > 0 && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Personality
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {avatar.personality_traits.map((trait: string, index: number) => (
+                        <Badge key={index} variant="secondary">{trait}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-            {/* Knowledge Base */}
-            {knowledgeFiles && knowledgeFiles.length > 0 && (
-              <Card className="card-modern">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Knowledge Base ({knowledgeFiles.length} files)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {knowledgeFiles.map((file: KnowledgeFile) => (
-                      <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-primary" />
-                          <div>
-                            <p className="text-sm font-medium">{file.file_name}</p>
+              {/* Knowledge Base */}
+              {knowledgeFiles && knowledgeFiles.length > 0 && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Knowledge Base ({knowledgeFiles.length} files)
+                    </h3>
+                    <div className="space-y-2">
+                      {knowledgeFiles.map((file: KnowledgeFile) => (
+                        <div key={file.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                          <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{file.file_name}</p>
                             <div className="flex items-center gap-2 mt-1">
                               <Badge variant="outline" className="text-xs">
                                 {file.content_type === 'application/pdf' ? 'PDF' : 'FILE'}
@@ -402,34 +456,56 @@ const AvatarDetail = () => {
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Hidden Rules */}
+              {avatar.hidden_rules && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Hidden Rules & Instructions
+                    </h3>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                      {avatar.hidden_rules}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Basic Info */}
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="text-lg font-semibold mb-3">Details</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Age</p>
+                      <p className="font-medium">{avatar.age} years old</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Gender</p>
+                      <p className="font-medium capitalize">{avatar.gender}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Origin</p>
+                      <p className="font-medium">{avatar.origin_country}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Created</p>
+                      <p className="font-medium">
+                        {new Date(avatar.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-            )}
-
-            {/* Hidden Rules */}
-            {avatar.hidden_rules && (
-              <Card className="card-modern">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    Hidden Rules & Instructions
-                  </CardTitle>
-                  <CardDescription>
-                    Special instructions and constraints for this avatar
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {avatar.hidden_rules}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
