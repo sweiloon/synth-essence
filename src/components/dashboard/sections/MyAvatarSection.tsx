@@ -250,11 +250,6 @@ const MyAvatarSection = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-xl font-semibold">{selectedAvatar.name}</h1>
-          <div className="ml-auto">
-            <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full font-medium">
-              Updated UI
-            </span>
-          </div>
         </div>
 
         {isLoadingDetails ? (
@@ -265,31 +260,31 @@ const MyAvatarSection = () => {
         ) : (
           <>
             {/* Profile Header - Clean Desktop Style */}
-            <div className="bg-background border border-border rounded-lg p-6 mb-6">
-              <div className="flex items-start gap-6">
+            <div className="bg-background border border-border rounded-lg p-4 sm:p-6 mb-6">
+              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                 {/* Profile Avatar */}
-                <div className="flex-shrink-0">
-                  <Avatar className="w-24 h-24 border-2 border-border">
+                <div className="flex-shrink-0 mx-auto sm:mx-0">
+                  <Avatar className="w-20 h-20 sm:w-24 sm:h-24 border-2 border-border">
                     <AvatarImage 
                       src={selectedAvatar.avatar_images?.[0]} 
                       alt={selectedAvatar.name}
                       className="object-cover"
                     />
-                    <AvatarFallback className="text-xl font-semibold">
+                    <AvatarFallback className="text-lg sm:text-xl font-semibold">
                       {selectedAvatar.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                 </div>
 
                 {/* Profile Info */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-4 mb-3">
-                    <h2 className="text-2xl font-semibold">{selectedAvatar.name}</h2>
+                <div className="flex-1 w-full text-center sm:text-left">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
+                    <h2 className="text-xl sm:text-2xl font-semibold">{selectedAvatar.name}</h2>
                     <Button 
                       onClick={() => handleEditAvatar(selectedAvatar.id)} 
                       variant="outline" 
                       size="sm"
-                      className="px-4"
+                      className="px-3 sm:px-4 self-center sm:self-auto"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Avatar
@@ -297,39 +292,38 @@ const MyAvatarSection = () => {
                   </div>
 
                   {/* Bio line */}
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <p className="text-sm text-muted-foreground mb-3 break-words">
                     {selectedAvatar.age} years old | {selectedAvatar.gender} | {selectedAvatar.origin_country}
                   </p>
 
                   {/* Stats Row */}
-                  <div className="flex gap-8 mb-4">
+                  <div className="flex flex-wrap gap-4 sm:gap-8 mb-4">
                     <div className="flex items-center gap-2">
                       <Grid3X3 className="h-4 w-4 text-muted-foreground" />
                       <span className="font-semibold">{selectedAvatar.avatar_images?.length || 0}</span>
                       <span className="text-sm text-muted-foreground">Posts</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold">{knowledgeFiles.length}</span>
-                      <span className="text-sm text-muted-foreground">Files</span>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold">{selectedAvatar.personality_traits?.length || 0}</span>
-                      <span className="text-sm text-muted-foreground">Traits</span>
+                      <span className="font-semibold">124</span>
+                      <span className="text-sm text-muted-foreground">Followers</span>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-3">
                     <Button 
-                      className="px-8" 
+                      className="px-6 sm:px-8" 
                       onClick={() => handleChatWithAvatar(selectedAvatar.id)}
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Chat
                     </Button>
-                    <Button variant="outline" className="px-6">
+                    <Button variant="outline" className="px-4 sm:px-6">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Follow
+                    </Button>
+                    <Button variant="outline" className="px-4 sm:px-6">
                       <Share className="h-4 w-4 mr-2" />
                       Share
                     </Button>
@@ -355,7 +349,7 @@ const MyAvatarSection = () => {
               <TabsContent value="media" className="mt-0">
                 {selectedAvatar.avatar_images && selectedAvatar.avatar_images.length > 0 ? (
                   <>
-                    <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-6">
                       {selectedAvatar.avatar_images.map((image: string, index: number) => (
                         <div key={index} className="aspect-square relative group cursor-pointer overflow-hidden rounded-lg bg-muted">
                           <img
@@ -414,7 +408,7 @@ const MyAvatarSection = () => {
                   )}
 
                   {/* Two Column Layout for Traits and Details */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                     {/* Left Column - Personality & Languages */}
                     <div className="space-y-6">
                       {/* Personality Traits */}
