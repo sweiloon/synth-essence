@@ -377,13 +377,60 @@ const ImagesSection = () => {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="prompt">Image Description</Label>
-                  <Input
+                  <Textarea
                     id="prompt"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="Describe the image you want to generate..."
-                    className="input-modern"
+                    className={`resize-none transition-all duration-200 ${
+                      isPromptExpanded ? 'min-h-[120px]' : 'min-h-[80px]'
+                    }`}
+                    onFocus={() => setIsPromptExpanded(true)}
+                    onBlur={() => setIsPromptExpanded(false)}
                   />
+                </div>
+
+                {/* Upload Image Section */}
+                <div className="space-y-2">
+                  <Label>Upload Image (Optional)</Label>
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                    {uploadedImageUrl ? (
+                      <div className="relative">
+                        <img 
+                          src={uploadedImageUrl} 
+                          alt="Uploaded" 
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-2 right-2"
+                          onClick={() => {
+                            setUploadedImage(null);
+                            setUploadedImageUrl(null);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Supported formats: JPEG, PNG, WEBP • Maximum file size: 10MB
+                        </p>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="mt-2"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -496,37 +543,103 @@ const ImagesSection = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {generatedImages.map((image) => (
-                  <div key={image.id} className="group relative">
-                    <div className="aspect-square bg-muted/20 rounded-lg overflow-hidden">
-                      <img 
-                        src={image.url} 
-                        alt={image.prompt}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="secondary">
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="secondary">
-                          <Heart className={`h-4 w-4 ${image.liked ? 'fill-red-500 text-red-500' : ''}`} />
-                        </Button>
-                        <Button size="sm" variant="destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+              {isLoadingImages ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : images.length === 0 ? (
+                <div className="text-center py-8">
+                  <Image className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No images generated yet</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {images.map((image) => (
+                    <div key={image.id} className="group relative">
+                      <div className="aspect-square bg-muted/20 rounded-lg overflow-hidden">
+                        <img 
+                          src={image.image_url} 
+                          alt={image.prompt}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="secondary"
+                            onClick={() => handleDownloadImage(image.image_url, image.prompt)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant={image.is_favorite ? "default" : "secondary"}
+                            onClick={() => handleToggleFavorite(image.id, image.is_favorite)}
+                          >
+                            <Heart className={`h-4 w-4 ${image.is_favorite ? 'fill-current' : ''}`} />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleDeleteImage(image.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                size="sm" 
+                                variant="secondary"
+                                onClick={() => setSelectedImageForCollection(image.id)}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Add to Collection</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                {collections.map((collection) => (
+                                  <Button
+                                    key={collection.id}
+                                    variant="outline"
+                                    className="w-full justify-start"
+                                    onClick={() => {
+                                      if (selectedImageForCollection) {
+                                        handleAddToCollection(collection.id, selectedImageForCollection);
+                                      }
+                                    }}
+                                  >
+                                    {collection.name}
+                                  </Button>
+                                ))}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-2">
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {image.prompt}
+                        </p>
+                        <div className="flex items-center justify-between mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            {image.generation_type === 'text-to-image' ? 'Text → Image' : 'Image → Image'}
+                          </Badge>
+                          {image.is_favorite && (
+                            <Heart className="h-4 w-4 fill-current text-red-500" />
+                          )}
+                        </div>
                       </div>
                     </div>
-                    
-                    <p className="mt-2 text-xs text-muted-foreground line-clamp-2">
-                      {image.prompt}
-                    </p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -542,51 +655,86 @@ const ImagesSection = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Button className="btn-hero w-full md:w-auto">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create New Collection
-                </Button>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="border rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">Professional Headshots</h4>
-                      <Badge variant="outline">12 images</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Business and professional portrait images
-                    </p>
-                    <Button variant="outline" size="sm" className="w-full">
-                      View Collection
+                <Dialog open={isCreateCollectionOpen} onOpenChange={setIsCreateCollectionOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="btn-hero w-full md:w-auto">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create New Collection
                     </Button>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">Lifestyle Photos</h4>
-                      <Badge variant="outline">8 images</Badge>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Collection</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="collection-name">Collection Name</Label>
+                        <Input
+                          id="collection-name"
+                          value={newCollectionName}
+                          onChange={(e) => setNewCollectionName(e.target.value)}
+                          placeholder="Enter collection name..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="collection-description">Description (Optional)</Label>
+                        <Textarea
+                          id="collection-description"
+                          value={newCollectionDescription}
+                          onChange={(e) => setNewCollectionDescription(e.target.value)}
+                          placeholder="Enter collection description..."
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setIsCreateCollectionOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleCreateCollection}>
+                          Create Collection
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Casual and lifestyle photography
-                    </p>
-                    <Button variant="outline" size="sm" className="w-full">
-                      View Collection
-                    </Button>
+                  </DialogContent>
+                </Dialog>
+
+                {isLoadingCollections ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin" />
                   </div>
-                  
-                  <div className="border rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">Artistic Portraits</h4>
-                      <Badge variant="outline">5 images</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Creative and artistic image variations
-                    </p>
-                    <Button variant="outline" size="sm" className="w-full">
-                      View Collection
-                    </Button>
+                ) : collections.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FolderPlus className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No collections created yet</p>
                   </div>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {collections.map((collection) => (
+                      <Card key={collection.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <h3 className="font-semibold">{collection.name}</h3>
+                              {collection.description && (
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                  {collection.description}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Image className="h-3 w-3" />
+                                <span>
+                                  {collection.image_collection_items?.[0]?.count || 0} images
+                                </span>
+                              </div>
+                            </div>
+                            <Button size="sm" variant="ghost">
+                              View Collection
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
