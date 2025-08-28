@@ -211,6 +211,108 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_images: {
+        Row: {
+          created_at: string
+          generation_type: string
+          id: string
+          image_url: string
+          is_favorite: boolean
+          original_image_url: string | null
+          prompt: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          generation_type?: string
+          id?: string
+          image_url: string
+          is_favorite?: boolean
+          original_image_url?: string | null
+          prompt: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          generation_type?: string
+          id?: string
+          image_url?: string
+          is_favorite?: boolean
+          original_image_url?: string | null
+          prompt?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      image_collection_items: {
+        Row: {
+          added_at: string
+          collection_id: string
+          id: string
+          image_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          collection_id: string
+          id?: string
+          image_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          collection_id?: string
+          id?: string
+          image_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "image_collection_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "image_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "image_collection_items_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "generated_images"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      image_collections: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

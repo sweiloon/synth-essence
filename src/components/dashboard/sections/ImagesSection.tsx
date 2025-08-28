@@ -1,12 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Image, 
   Sparkles, 
@@ -15,49 +17,324 @@ import {
   Grid3x3,
   Heart,
   Trash2,
-  Plus
+  Plus,
+  Loader2,
+  FolderPlus
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+
+interface GeneratedImage {
+  id: string;
+  prompt: string;
+  image_url: string;
+  original_image_url?: string;
+  generation_type: 'text-to-image' | 'image-to-image';
+  is_favorite: boolean;
+  created_at: string;
+}
+
+interface ImageCollection {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  image_collection_items?: { count: number }[];
+}
 
 const ImagesSection = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('realistic');
+  const [aspectRatio, setAspectRatio] = useState('1:1');
+  const [quality, setQuality] = useState('high');
   const [isGenerating, setIsGenerating] = useState(false);
-  const { toast } = useToast();
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [isPromptExpanded, setIsPromptExpanded] = useState(false);
+  
+  // Data states
+  const [images, setImages] = useState<GeneratedImage[]>([]);
+  const [collections, setCollections] = useState<ImageCollection[]>([]);
+  const [isLoadingImages, setIsLoadingImages] = useState(true);
+  const [isLoadingCollections, setIsLoadingCollections] = useState(true);
+  
+  // Collection dialog states
+  const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState('');
+  const [newCollectionDescription, setNewCollectionDescription] = useState('');
+  const [selectedImageForCollection, setSelectedImageForCollection] = useState<string | null>(null);
 
-  const handleGenerateImage = () => {
+  // Load images and collections on component mount
+  useEffect(() => {
+    if (user) {
+      loadImages();
+      loadCollections();
+    }
+  }, [user]);
+
+  const loadImages = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-images', {
+        body: { action: 'get_images' }
+      });
+
+      if (error) throw error;
+      setImages(data.images || []);
+    } catch (error) {
+      console.error('Error loading images:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load images",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingImages(false);
+    }
+  };
+
+  const loadCollections = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-collections', {
+        body: { action: 'get_collections' }
+      });
+
+      if (error) throw error;
+      setCollections(data.collections || []);
+    } catch (error) {
+      console.error('Error loading collections:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load collections",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingCollections(false);
+    }
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        toast({
+          title: "Error",
+          description: "File size must be less than 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setUploadedImage(file);
+      const imageUrl = URL.createObjectURL(file);
+      setUploadedImageUrl(imageUrl);
+    }
+  };
+
+  const uploadImageToStorage = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `ai-images/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
+  const handleGenerateImage = async () => {
     if (!prompt.trim()) {
       toast({
-        title: "Prompt Required",
-        description: "Please enter a description for the image you want to generate.",
-        variant: "destructive"
+        title: "Error",
+        description: "Please enter a prompt",
+        variant: "destructive",
       });
       return;
     }
 
     setIsGenerating(true);
-    toast({
-      title: "Generating Image",
-      description: "Creating your AI-generated image...",
-    });
-    
-    setTimeout(() => {
-      setIsGenerating(false);
-      toast({
-        title: "Image Generated!",
-        description: "Your new image has been added to the gallery.",
+    try {
+      let originalImageUrl = null;
+      const generationType = uploadedImage ? 'image-to-image' : 'text-to-image';
+      
+      // Upload the input image if provided
+      if (uploadedImage) {
+        originalImageUrl = await uploadImageToStorage(uploadedImage);
+      }
+
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: {
+          prompt,
+          imageUrls: originalImageUrl ? [originalImageUrl] : null,
+          generationType
+        }
       });
-    }, 3000);
+
+      if (error) throw error;
+
+      setGeneratedImage(data.generatedUrl);
+      await loadImages(); // Refresh the images list
+      
+      toast({
+        title: "Success",
+        description: "Image generated successfully!",
+      });
+      
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const generatedImages = [
-    { id: 1, url: '/placeholder.svg', prompt: 'Professional headshot of a friendly AI avatar', liked: true },
-    { id: 2, url: '/placeholder.svg', prompt: 'Casual lifestyle photo in a modern office', liked: false },
-    { id: 3, url: '/placeholder.svg', prompt: 'Avatar in a natural outdoor setting', liked: true },
-    { id: 4, url: '/placeholder.svg', prompt: 'Artistic portrait with soft lighting', liked: false },
-    { id: 5, url: '/placeholder.svg', prompt: 'Avatar in business attire for professional use', liked: true },
-    { id: 6, url: '/placeholder.svg', prompt: 'Creative lifestyle shot with vibrant colors', liked: false },
-  ];
+  const handleToggleFavorite = async (imageId: string, currentFavorite: boolean) => {
+    try {
+      const { error } = await supabase.functions.invoke('manage-images', {
+        body: {
+          action: 'toggle_favorite',
+          imageId,
+          isFavorite: !currentFavorite
+        }
+      });
+
+      if (error) throw error;
+      
+      setImages(prev => prev.map(img => 
+        img.id === imageId ? { ...img, is_favorite: !currentFavorite } : img
+      ));
+      
+      toast({
+        title: "Success",
+        description: currentFavorite ? "Removed from favorites" : "Added to favorites",
+      });
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update favorite status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('manage-images', {
+        body: {
+          action: 'delete_image',
+          imageId
+        }
+      });
+
+      if (error) throw error;
+      
+      setImages(prev => prev.filter(img => img.id !== imageId));
+      
+      toast({
+        title: "Success",
+        description: "Image deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete image",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCreateCollection = async () => {
+    if (!newCollectionName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a collection name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.functions.invoke('manage-collections', {
+        body: {
+          action: 'create_collection',
+          name: newCollectionName,
+          description: newCollectionDescription
+        }
+      });
+
+      if (error) throw error;
+      
+      await loadCollections();
+      setIsCreateCollectionOpen(false);
+      setNewCollectionName('');
+      setNewCollectionDescription('');
+      
+      toast({
+        title: "Success",
+        description: "Collection created successfully",
+      });
+    } catch (error) {
+      console.error('Error creating collection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create collection",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddToCollection = async (collectionId: string, imageId: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('manage-collections', {
+        body: {
+          action: 'add_to_collection',
+          collectionId,
+          imageId
+        }
+      });
+
+      if (error) throw error;
+      
+      await loadCollections();
+      
+      toast({
+        title: "Success",
+        description: "Image added to collection",
+      });
+    } catch (error) {
+      console.error('Error adding to collection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add image to collection",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadImage = (imageUrl: string, prompt: string) => {
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `ai-generated-${prompt.slice(0, 20).replace(/[^a-z0-9]/gi, '_')}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6">
