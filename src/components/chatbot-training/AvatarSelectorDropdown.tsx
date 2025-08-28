@@ -46,6 +46,7 @@ export const AvatarSelectorDropdown: React.FC<AvatarSelectorDropdownProps> = ({
         .from('avatars')
         .select('id, name, avatar_images, primary_language, secondary_languages')
         .eq('user_id', user.id)
+        .eq('status', 'active')
         .order('created_at', { ascending: false });
 
       if (error) {
