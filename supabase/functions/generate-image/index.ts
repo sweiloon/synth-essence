@@ -37,13 +37,17 @@ serve(async (req) => {
       );
     }
 
-    // Prepare API request based on generation type
-    let apiUrl = 'https://api.kie.ai/v1/models/google/nano-banana';
-    let requestBody: any = { prompt };
+    // Prepare API request for KIE AI Flux API
+    const apiUrl = 'https://api.kie.ai/api/v1/flux/kontext/generate';
+    let requestBody: any = { 
+      prompt,
+      aspectRatio: '1:1',
+      model: 'flux-kontext-pro'
+    };
 
+    // Add input image for image-to-image generation
     if (generationType === 'image-to-image' && imageUrls && imageUrls.length > 0) {
-      apiUrl = 'https://api.kie.ai/v1/models/google/nano-banana-edit';
-      requestBody.image_urls = imageUrls;
+      requestBody.inputImage = imageUrls[0];
     }
 
     console.log('Making request to Kie AI:', { apiUrl, requestBody });
@@ -76,6 +80,57 @@ serve(async (req) => {
 
     const result = await response.json();
     console.log('Kie AI API response:', result);
+
+    // Handle task-based response from Kie AI
+    if (result.code !== 200 || !result.data?.taskId) {
+      console.error('Invalid response from Kie AI:', result);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid response from Kie AI API',
+          details: result.msg || 'Unknown error'
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const taskId = result.data.taskId;
+    console.log('Task ID received:', taskId);
+
+    // Poll for completion
+    let imageUrl = null;
+    let attempts = 0;
+    const maxAttempts = 30; // 30 seconds timeout
+
+    while (!imageUrl && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+      
+      const statusResponse = await fetch(`https://api.kie.ai/api/v1/flux/kontext/${taskId}`, {
+        headers: {
+          'Authorization': `Bearer ${kieApiKey}`,
+        },
+      });
+
+      if (statusResponse.ok) {
+        const statusResult = await statusResponse.json();
+        console.log('Status check:', statusResult);
+        
+        if (statusResult.code === 200 && statusResult.data?.status === 'completed' && statusResult.data?.images?.[0]) {
+          imageUrl = statusResult.data.images[0];
+          break;
+        } else if (statusResult.data?.status === 'failed') {
+          throw new Error('Image generation failed');
+        }
+      }
+      
+      attempts++;
+    }
+
+    if (!imageUrl) {
+      throw new Error('Image generation timeout');
+    }
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -116,7 +171,7 @@ serve(async (req) => {
       .insert({
         user_id: user.id,
         prompt,
-        image_url: result.output || result.image_url || result.url,
+        image_url: imageUrl,
         original_image_url: imageUrls?.[0] || null,
         generation_type: generationType,
       })
@@ -138,7 +193,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         image: savedImage,
-        generatedUrl: result.output || result.image_url || result.url 
+        generatedUrl: imageUrl 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

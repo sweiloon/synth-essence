@@ -508,19 +508,45 @@ const ImagesSection = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="aspect-square bg-muted/20 rounded-lg flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    <Image className="h-12 w-12 mx-auto mb-4" />
-                    <p className="text-sm">Generated image preview</p>
-                  </div>
+                <div className="aspect-square bg-muted/20 rounded-lg flex items-center justify-center overflow-hidden">
+                  {generatedImage ? (
+                    <img 
+                      src={generatedImage} 
+                      alt="Generated image" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center text-muted-foreground">
+                      <Image className="h-12 w-12 mx-auto mb-4" />
+                      <p className="text-sm">Generated image preview</p>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="mt-4 space-y-2">
-                  <Button variant="outline" className="w-full" disabled>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    disabled={!generatedImage}
+                    onClick={() => generatedImage && handleDownloadImage(generatedImage, prompt)}
+                  >
                     <Download className="mr-2 h-4 w-4" />
                     Download Image
                   </Button>
-                  <Button variant="outline" className="w-full" disabled>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    disabled={!generatedImage}
+                    onClick={() => {
+                      if (generatedImage) {
+                        // Clear current preview after download suggestion
+                        toast({
+                          title: "Tip",
+                          description: "Image saved to your gallery. You can favorite it from there!",
+                        });
+                      }
+                    }}
+                  >
                     <Heart className="mr-2 h-4 w-4" />
                     Add to Favorites
                   </Button>
