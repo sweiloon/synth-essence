@@ -60,6 +60,10 @@ const AvatarDetail = () => {
   const [activeTab, setActiveTab] = useState('media');
 
   useEffect(() => {
+    console.log('AvatarDetail: Component loaded with Instagram-style UI');
+    console.log('AvatarDetail: Avatar ID from params:', id);
+    console.log('AvatarDetail: User authenticated:', !!user);
+    
     if (user && id) {
       fetchAvatar();
       fetchKnowledgeFiles();
@@ -234,6 +238,8 @@ const AvatarDetail = () => {
     );
   }
 
+  console.log('AvatarDetail: Component rendering, activeTab:', activeTab);
+  
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
@@ -248,6 +254,11 @@ const AvatarDetail = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-xl font-semibold">{avatar.name}</h1>
+          <div className="ml-auto">
+            <span className="text-xs text-muted-foreground bg-primary/10 px-2 py-1 rounded">
+              New Instagram UI
+            </span>
+          </div>
         </div>
 
         {/* Profile Header - Instagram Style */}
