@@ -22,10 +22,10 @@ const AuthLayout = ({ children }: AuthLayoutProps) => {
         {/* Content Container */}
         <div className="relative z-10 flex flex-col justify-between h-full p-8">
           {/* Top Section - Logo/Brand */}
-          <div className="text-white">
+          <a href="/" className="text-white hover:opacity-80 transition-opacity">
             <h1 className="text-2xl font-bold mb-1">AvatarHub</h1>
             <p className="text-sm opacity-90">Your AI Avatar Station</p>
-          </div>
+          </a>
           
           {/* Bottom Section - Main Bio */}
           <div className="text-white space-y-4">
