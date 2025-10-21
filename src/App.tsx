@@ -7,6 +7,7 @@ import Auth from '@/pages/Auth';
 import Dashboard from '@/pages/Dashboard';
 import NotFound from '@/pages/NotFound';
 import AvatarDetail from '@/pages/AvatarDetail';
+import Landing from '@/pages/Landing';
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import CreateAvatar from '@/pages/CreateAvatar';
@@ -50,17 +51,11 @@ function App() {
         <Routes>
           <Route 
             path="/" 
-            element={
-              <Index 
-                isAuthenticated={!!user} 
-                onLogin={handleLogin} 
-                onLogout={handleLogout} 
-              />
-            } 
+            element={<Landing />} 
           />
           <Route 
             path="/auth" 
-            element={!user ? <Auth onLogin={handleLogin} /> : <Navigate to="/" />} 
+            element={!user ? <Auth onLogin={handleLogin} /> : <Navigate to="/dashboard" />} 
           />
           <Route 
             path="/dashboard" 
