@@ -1,7 +1,9 @@
 "use client";
-import React, { SVGProps, useState } from "react";
-import { motion, useMotionValueEvent, useScroll } from "framer-motion";
+import React, { SVGProps, useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+
+const BANNER_CLOSED_KEY = "sticky-banner-closed";
 
 export const StickyBanner = ({
   className,
@@ -13,15 +15,21 @@ export const StickyBanner = ({
   hideOnScroll?: boolean;
 }) => {
   const [open, setOpen] = useState(true);
-  const { scrollY } = useScroll();
 
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    if (hideOnScroll && latest > 40) {
+  // Check if banner was previously closed on mount
+  useEffect(() => {
+    const wasClosed = sessionStorage.getItem(BANNER_CLOSED_KEY);
+    if (wasClosed === "true") {
       setOpen(false);
-    } else {
-      setOpen(true);
     }
-  });
+  }, []);
+
+  const handleClose = () => {
+    setOpen(false);
+    sessionStorage.setItem(BANNER_CLOSED_KEY, "true");
+    // Dispatch event to notify other components
+    window.dispatchEvent(new Event('banner-closed'));
+  };
 
   return (
     <motion.div
@@ -52,7 +60,7 @@ export const StickyBanner = ({
           scale: 1,
         }}
         className="absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer"
-        onClick={() => setOpen(!open)}
+        onClick={handleClose}
       >
         <CloseIcon className="h-5 w-5 text-white" />
       </motion.button>

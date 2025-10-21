@@ -20,6 +20,17 @@ const Landing = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [bannerClosed, setBannerClosed] = useState(false);
+
+  React.useEffect(() => {
+    const wasClosed = sessionStorage.getItem('sticky-banner-closed');
+    setBannerClosed(wasClosed === 'true');
+    
+    // Listen for banner close events
+    const handleBannerClose = () => setBannerClosed(true);
+    window.addEventListener('banner-closed', handleBannerClose);
+    return () => window.removeEventListener('banner-closed', handleBannerClose);
+  }, []);
 
   const fadeInUp = {
     initial: { opacity: 0, y: 20 },
@@ -65,7 +76,7 @@ const Landing = () => {
       </StickyBanner>
 
       {/* Header Navigation */}
-      <header className="fixed top-14 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
+      <header className={`fixed left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl transition-all duration-300 ${bannerClosed ? 'top-0' : 'top-14'}`}>
         <nav className="container mx-auto px-4 md:px-6 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-2">
@@ -202,7 +213,7 @@ const Landing = () => {
       </header>
 
       {/* Hero Section with Aurora Background */}
-      <section className="pt-14">
+      <section className={`transition-all duration-300 ${bannerClosed ? 'pt-16' : 'pt-28'}`}>
         <AuroraBackground>
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -213,25 +224,25 @@ const Landing = () => {
               duration: 0.8,
               ease: "easeInOut",
             }}
-            className="relative flex flex-col gap-4 md:gap-6 items-start justify-center px-4 md:px-6 max-w-4xl mx-auto text-left"
+            className="relative flex flex-col gap-4 md:gap-6 items-center justify-center px-4 md:px-6 max-w-4xl mx-auto text-center"
           >
             {/* Label */}
-            <div className="flex items-center gap-3 text-white/90">
-              <div className="h-px w-12 bg-white/40"></div>
+            <div className="flex items-center gap-3 text-foreground">
+              <div className="h-px w-12 bg-border"></div>
               <span className="text-xs md:text-sm uppercase tracking-wider font-light">
                 An all-in-one ecosystem for AI creation, training, and monetization
               </span>
             </div>
 
             {/* Headline */}
-            <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold leading-tight text-white">
+            <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold leading-tight text-foreground">
               A platform where AI learns,
               <br />
               grows, and earns like humans.
             </h1>
 
             {/* Subheading */}
-            <p className="text-base md:text-lg lg:text-xl text-white/80 font-medium max-w-2xl">
+            <p className="text-base md:text-lg lg:text-xl text-muted-foreground font-medium max-w-2xl">
               Build multi-modal AI personalities that talk, think, and create like humans
             </p>
 
@@ -246,20 +257,20 @@ const Landing = () => {
             </Button>
 
             {/* Rating */}
-            <div className="flex items-center gap-3 mt-4 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
+            <div className="flex items-center gap-3 mt-4 bg-card px-4 py-2 rounded-full border border-border">
               <div className="flex">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="w-4 h-4 md:w-5 md:h-5 fill-yellow-400 text-yellow-400" />
                 ))}
               </div>
-              <span className="text-sm md:text-base text-white font-medium">100+ Positive Client Reviews</span>
+              <span className="text-sm md:text-base text-foreground font-medium">100+ Positive Client Reviews</span>
             </div>
           </motion.div>
         </AuroraBackground>
       </section>
 
       {/* Features Section - Directly after Hero */}
-      <section id="features" className="bg-muted/30">
+      <section id="features" className="bg-muted/30 -mt-1">
         <FeaturesSection />
       </section>
 
@@ -313,7 +324,7 @@ const Landing = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-12 md:py-20 px-4 md:px-6 bg-background">
+      <section id="pricing" className="py-12 md:py-20 px-4 md:px-6 bg-background -mt-1">
         <div className="container mx-auto">
           <motion.div {...fadeInUp} className="text-center mb-12 md:mb-16">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">Simple, Transparent Pricing</h2>
