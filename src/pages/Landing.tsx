@@ -230,7 +230,7 @@ const Landing = () => {
       </header>
 
       {/* Hero Section with Aurora Background */}
-      <section className={`transition-all duration-300 ${bannerClosed ? 'pt-16' : 'pt-28'}`}>
+      <section className={`transition-all duration-300 ${bannerClosed ? 'pt-20' : 'pt-32'}`}>
         <AuroraBackground>
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -287,12 +287,12 @@ const Landing = () => {
       </section>
 
       {/* Features Section - Directly after Hero */}
-      <section id="features" className="bg-muted/30 -mt-1">
+      <section id="features" className="bg-muted/30">
         <FeaturesSection />
       </section>
 
-      {/* Details Section */}
-      <section className="py-12 md:py-20 px-4 md:px-6 bg-background -mt-1">
+      {/* Pricing Section */}
+      <section id="pricing" className="py-12 md:py-20 px-4 md:px-6 bg-muted/30">
         <div className="container mx-auto">
           <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
             <motion.div
@@ -340,8 +340,8 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-12 md:py-20 px-4 md:px-6 bg-muted/30 -mt-1">
+      {/* Details Section */}
+      <section className="py-12 md:py-20 px-4 md:px-6 bg-background">
         <div className="container mx-auto">
           <motion.div {...fadeInUp} className="text-center mb-8">
             <span className="text-sm text-primary font-medium uppercase tracking-wide">Pricing</span>
@@ -603,80 +603,78 @@ const Landing = () => {
         </motion.div>
       </section>
 
-      {/* Contact Section with Grid Background */}
-      <section id="contact" className="relative">
-        <GridBackground>
-          <div className="relative z-10 container mx-auto px-4 md:px-6 py-12 md:py-20">
-            <motion.div
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
-              variants={fadeInUp}
-              className="max-w-2xl mx-auto"
-            >
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground text-center mb-4">
-                Get In Touch
-              </h2>
-              <p className="text-base md:text-lg text-muted-foreground text-center mb-8">
-                Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
-              </p>
+      {/* Contact Section */}
+      <section id="contact" className="relative py-12 md:py-20 px-4 md:px-6 bg-background">
+        <div className="container mx-auto">
+          <motion.div
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            variants={fadeInUp}
+            className="max-w-2xl mx-auto"
+          >
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground text-center mb-4">
+              Get In Touch
+            </h2>
+            <p className="text-base md:text-lg text-muted-foreground text-center mb-8">
+              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+            </p>
 
-              <form className="space-y-6 bg-card p-6 md:p-8 rounded-lg border border-border">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                    placeholder="Your name"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                    placeholder="+1 (555) 000-0000"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                    placeholder="your@email.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="request" className="block text-sm font-medium text-foreground mb-2">
-                    Request
-                  </label>
-                  <textarea
-                    id="request"
-                    rows={4}
-                    className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                    placeholder="Tell us about your request..."
-                    required
-                  />
-                </div>
-                <Button type="submit" size="lg" className="w-full">
-                  Send Message
-                </Button>
-              </form>
-            </motion.div>
-          </div>
-        </GridBackground>
+            <form className="space-y-6 bg-card p-6 md:p-8 rounded-lg border border-border shadow-lg">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  placeholder="Your name"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  placeholder="+1 (555) 000-0000"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="request" className="block text-sm font-medium text-foreground mb-2">
+                  Request
+                </label>
+                <textarea
+                  id="request"
+                  rows={4}
+                  className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  placeholder="Tell us about your request..."
+                  required
+                />
+              </div>
+              <Button type="submit" size="lg" className="w-full">
+                Send Message
+              </Button>
+            </form>
+          </motion.div>
+        </div>
       </section>
 
       {/* Footer */}
