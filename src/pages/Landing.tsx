@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Star, Sparkles, Zap, Shield, Users, Check, Menu, X } from 'lucide-react';
+import { ArrowRight, Star, Sparkles, Zap, Shield, Users, Check } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -12,14 +12,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { AuroraBackground } from '@/components/ui/aurora-background';
 import { GridBackground } from '@/components/ui/grid-background';
-import { StickyBanner } from '@/components/ui/sticky-banner';
 import { motion } from 'framer-motion';
-import FeaturesSection from '@/components/landing/FeaturesSection';
 
 const Landing = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const fadeInUp = {
     initial: { opacity: 0, y: 20 },
@@ -54,23 +51,13 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky Banner */}
-      <StickyBanner className="bg-gradient-to-b from-primary to-primary/80">
-        <p className="mx-0 max-w-[90%] text-primary-foreground drop-shadow-md text-center text-sm md:text-base">
-          🎉 Now available: Advanced AI Avatar Training Platform.{" "}
-          <Link to="/dashboard" className="transition duration-200 hover:underline font-semibold">
-            Get Started Free
-          </Link>
-        </p>
-      </StickyBanner>
-
       {/* Header Navigation */}
-      <header className="fixed top-14 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-        <nav className="container mx-auto px-4 md:px-6 py-4">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
+        <nav className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-2">
-              <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-              <span className="text-xl md:text-2xl font-bold">AvatarHub</span>
+              <Sparkles className="h-8 w-8 text-primary" />
+              <span className="text-2xl font-bold">AvatarHub</span>
             </Link>
             
             <div className="hidden md:flex items-center space-x-8">
@@ -80,7 +67,7 @@ const Landing = () => {
               <a href="#contact" className="text-sm font-medium hover:text-primary transition-colors">Contact</a>
             </div>
 
-            <div className="hidden md:flex items-center space-x-4">
+            <div className="flex items-center space-x-4">
               {user ? (
                 <>
                   <Button variant="outline" onClick={() => navigate('/dashboard')}>
@@ -113,198 +100,159 @@ const Landing = () => {
                 </>
               )}
             </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden text-foreground"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
           </div>
-
-          {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-background border-t border-border mt-4"
-            >
-              <div className="py-4 flex flex-col space-y-4">
-                <a 
-                  href="#features" 
-                  className="text-sm font-medium hover:text-primary transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Features
-                </a>
-                <a 
-                  href="#pricing" 
-                  className="text-sm font-medium hover:text-primary transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Pricing
-                </a>
-                <a 
-                  href="#about" 
-                  className="text-sm font-medium hover:text-primary transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  About
-                </a>
-                <a 
-                  href="#contact" 
-                  className="text-sm font-medium hover:text-primary transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Contact
-                </a>
-                <div className="pt-4 border-t border-border space-y-2">
-                  {user ? (
-                    <Button 
-                      className="w-full" 
-                      onClick={() => {
-                        navigate('/dashboard');
-                        setMobileMenuOpen(false);
-                      }}
-                    >
-                      Dashboard
-                    </Button>
-                  ) : (
-                    <>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full" 
-                        onClick={() => {
-                          navigate('/auth');
-                          setMobileMenuOpen(false);
-                        }}
-                      >
-                        Log in
-                      </Button>
-                      <Button 
-                        className="w-full" 
-                        onClick={() => {
-                          navigate('/auth');
-                          setMobileMenuOpen(false);
-                        }}
-                      >
-                        Get Started
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
         </nav>
       </header>
 
       {/* Hero Section with Aurora Background */}
-      <section className="pt-14">
-        <AuroraBackground>
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{
-              delay: 0.3,
-              duration: 0.8,
-              ease: "easeInOut",
-            }}
-            className="relative flex flex-col gap-4 md:gap-6 items-center justify-center px-4 md:px-6 text-center"
-          >
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight max-w-5xl">
-              Create Your Perfect
-              <br />
-              <span className="text-primary">AI Avatar</span>
-            </h1>
-            <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-2xl">
-              Build, train, and deploy intelligent AI avatars with advanced personality and voice customization
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 mt-4">
-              <Button size="lg" className="text-base md:text-lg px-6 md:px-8" onClick={() => navigate('/auth')}>
-                Start Creating Free
-              </Button>
-              <Button size="lg" variant="outline" className="text-base md:text-lg px-6 md:px-8">
-                <a href="#features">Learn More</a>
-              </Button>
-            </div>
-            <div className="flex items-center gap-2 mt-4">
+      <AuroraBackground>
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            delay: 0.3,
+            duration: 0.8,
+            ease: "easeInOut",
+          }}
+          className="relative flex flex-col gap-8 items-center justify-center px-6 text-center"
+        >
+          <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+            <span className="text-sm font-medium">An all-in-one ecosystem for AI creation, training, and monetization</span>
+          </div>
+
+          <h1 className="text-5xl md:text-7xl font-bold leading-tight max-w-5xl">
+            A platform where AI<br />
+            <span className="text-primary">learns, grows, and earns</span><br />
+            like humans.
+          </h1>
+
+          <p className="text-xl text-muted-foreground max-w-2xl">
+            Build multi-modal AI personalities that talk, think, and create like humans
+          </p>
+
+          <div className="flex flex-col items-center gap-6">
+            <Button size="lg" className="text-lg px-8 py-6" onClick={() => navigate('/auth')}>
+              Start now
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+
+            <div className="flex items-center space-x-2">
               <div className="flex">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 md:w-5 md:h-5 fill-primary text-primary" />
+                  <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                 ))}
               </div>
-              <span className="text-sm md:text-base text-muted-foreground">4.9/5 from 2,500+ creators</span>
+              <span className="text-sm font-medium">100+ Positive Client Reviews</span>
             </div>
-          </motion.div>
-        </AuroraBackground>
-      </section>
+          </div>
+        </motion.div>
+      </AuroraBackground>
 
       {/* Details Section */}
-      <section className="py-12 md:py-20 px-4 md:px-6 bg-background">
+      <section className="py-20 px-6 bg-muted/50">
         <div className="container mx-auto">
-          <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
-            <motion.div
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
-              variants={fadeInLeft}
-            >
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 md:mb-6">
-                The Most Advanced AI Avatar Platform
+          <div className="grid lg:grid-cols-2 gap-16 items-center mb-20">
+            <motion.div {...fadeInLeft} className="space-y-6">
+              <h2 className="text-4xl md:text-5xl font-bold leading-tight">
+                From beginners to seasoned pros, I create custom plans{' '}
+                <span className="text-muted-foreground">
+                  tailored to help you unlock your full potential and succeed in races.
+                </span>
               </h2>
-              <p className="text-base md:text-lg text-muted-foreground mb-4 md:mb-6">
-                AvatarHub empowers creators and businesses to build sophisticated AI avatars with unprecedented control over personality, voice, and behavior. Join thousands of innovators shaping the future of digital interaction.
-              </p>
-              <Button size="lg" onClick={() => navigate('/auth')}>
-                Get Started Now
-              </Button>
             </motion.div>
 
-            <motion.div
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
-              variants={staggerContainer}
-              className="grid grid-cols-2 gap-4 md:gap-6"
-            >
-              <motion.div variants={fadeInUp} className="bg-card p-4 md:p-6 rounded-lg border border-border text-center">
-                <div className="text-3xl md:text-4xl font-bold text-primary mb-2">50K+</div>
-                <div className="text-xs md:text-sm text-muted-foreground">Active Users</div>
-              </motion.div>
-              <motion.div variants={fadeInUp} className="bg-card p-4 md:p-6 rounded-lg border border-border text-center">
-                <div className="text-3xl md:text-4xl font-bold text-primary mb-2">150K+</div>
-                <div className="text-xs md:text-sm text-muted-foreground">AI Avatars Created</div>
-              </motion.div>
-              <motion.div variants={fadeInUp} className="bg-card p-4 md:p-6 rounded-lg border border-border text-center">
-                <div className="text-3xl md:text-4xl font-bold text-primary mb-2">99.9%</div>
-                <div className="text-xs md:text-sm text-muted-foreground">Uptime</div>
-              </motion.div>
-              <motion.div variants={fadeInUp} className="bg-card p-4 md:p-6 rounded-lg border border-border text-center">
-                <div className="text-3xl md:text-4xl font-bold text-primary mb-2">24/7</div>
-                <div className="text-xs md:text-sm text-muted-foreground">Support</div>
-              </motion.div>
+            <motion.div {...fadeInRight}>
+              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Sparkles className="h-32 w-32 text-primary animate-pulse" />
+                </div>
+              </div>
             </motion.div>
           </div>
+
+          {/* Statistics */}
+          <motion.div 
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="whileInView"
+            viewport={{ once: true }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-8"
+          >
+            {[
+              { number: '15+', label: 'Years of experience' },
+              { number: '200+', label: 'Avatars created' },
+              { number: '500+', label: 'AI strategies' },
+              { number: '10,000+', label: 'Training hours' }
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                variants={fadeInUp}
+                className="text-center space-y-2 border-t border-border pt-4"
+              >
+                <div className="text-4xl md:text-5xl font-bold">{stat.number}</div>
+                <div className="text-sm text-muted-foreground">{stat.label}</div>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="bg-muted/30">
-        <FeaturesSection />
+      <section id="features" className="py-20 px-6">
+        <div className="container mx-auto">
+          <motion.div {...fadeInUp} className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">Powerful Features</h2>
+            <p className="text-xl text-muted-foreground">Everything you need to build, train, and deploy AI avatars</p>
+          </motion.div>
+
+          <motion.div 
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="whileInView"
+            viewport={{ once: true }}
+            className="grid md:grid-cols-3 gap-8"
+          >
+            {[
+              {
+                icon: Zap,
+                title: 'AI Training',
+                description: 'Advanced language and personality training with real-time learning capabilities'
+              },
+              {
+                icon: Shield,
+                title: 'Secure & Private',
+                description: 'Enterprise-grade security with full data privacy and compliance'
+              },
+              {
+                icon: Users,
+                title: 'Marketplace',
+                description: 'Monetize your AI avatars and discover avatars created by others'
+              }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                variants={fadeInUp}
+                className="bg-card border border-border rounded-xl p-8 space-y-4 hover:shadow-lg transition-shadow"
+              >
+                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <feature.icon className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-2xl font-bold">{feature.title}</h3>
+                <p className="text-muted-foreground">{feature.description}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-12 md:py-20 px-4 md:px-6 bg-background">
+      <section id="pricing" className="py-20 px-6 bg-muted/50">
         <div className="container mx-auto">
-          <motion.div {...fadeInUp} className="text-center mb-12 md:mb-16">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-base md:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Choose the perfect plan for your needs. All plans include core features.
-            </p>
+          <motion.div {...fadeInUp} className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">Simple Pricing</h2>
+            <p className="text-xl text-muted-foreground">Choose the perfect plan for your needs</p>
           </motion.div>
 
           <motion.div 
@@ -404,74 +352,63 @@ const Landing = () => {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-12 md:py-20 px-4 md:px-6 bg-muted/30">
-        <motion.div {...fadeInUp} className="container mx-auto max-w-4xl text-center space-y-4 md:space-y-6">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">About AvatarHub</h2>
-          <p className="text-base md:text-lg lg:text-xl text-muted-foreground leading-relaxed">
-            We're on a mission to democratize AI avatar technology. AvatarHub provides creators, businesses, and innovators with professional-grade tools to build, train, and deploy intelligent AI avatars that revolutionize digital interaction.
+      <section id="about" className="py-20 px-6">
+        <motion.div {...fadeInUp} className="container mx-auto max-w-4xl text-center space-y-6">
+          <h2 className="text-4xl md:text-5xl font-bold">About AvatarHub</h2>
+          <p className="text-xl text-muted-foreground leading-relaxed">
+            AvatarHub is the world's first comprehensive platform for creating, training, and monetizing AI avatars. 
+            Our mission is to democratize AI technology and enable everyone to build their own digital twin with 
+            unprecedented control over personality, voice, and behavior.
           </p>
-          <Button size="lg" onClick={() => navigate('/auth')}>
-            Join Our Community
-          </Button>
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            Join thousands of creators who are already building the future of AI interaction.
+          </p>
         </motion.div>
       </section>
 
       {/* Contact Section with Grid Background */}
-      <section id="contact" className="relative">
-        <GridBackground>
-          <div className="relative z-10 container mx-auto px-4 md:px-6 py-12 md:py-20">
-            <motion.div
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
-              variants={fadeInUp}
-              className="max-w-2xl mx-auto"
-            >
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground text-center mb-4">
-                Get In Touch
-              </h2>
-              <p className="text-base md:text-lg text-muted-foreground text-center mb-8">
-                Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
-              </p>
+      <section id="contact" className="py-20 px-6">
+        <GridBackground className="min-h-[600px] py-20">
+          <div className="container mx-auto max-w-2xl">
+            <motion.div {...fadeInUp} className="text-center mb-12">
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">Get in Touch</h2>
+              <p className="text-xl text-muted-foreground">Have questions? We'd love to hear from you.</p>
+            </motion.div>
 
-              <form className="space-y-6 bg-card p-6 md:p-8 rounded-lg border border-border">
+            <motion.div 
+              {...fadeInUp}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="bg-card border border-border rounded-xl p-8 space-y-6"
+            >
+              <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  <label className="text-sm font-medium mb-2 block">Name</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="Your name"
                   />
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  <label className="text-sm font-medium mb-2 block">Email</label>
+                  <input 
+                    type="email" 
+                    className="w-full px-4 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="your@email.com"
                   />
                 </div>
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-foreground mb-2">
-                    Message
-                  </label>
-                  <textarea
-                    id="message"
-                    rows={4}
-                    className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                    placeholder="Your message..."
-                  />
-                </div>
-                <Button type="submit" size="lg" className="w-full">
-                  Send Message
-                </Button>
-              </form>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Message</label>
+                <textarea 
+                  rows={5}
+                  className="w-full px-4 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Tell us what you're thinking..."
+                />
+              </div>
+              <Button className="w-full" size="lg">
+                Send Message
+              </Button>
             </motion.div>
           </div>
         </GridBackground>
