@@ -213,34 +213,54 @@ const Landing = () => {
               duration: 0.8,
               ease: "easeInOut",
             }}
-            className="relative flex flex-col gap-4 md:gap-6 items-center justify-center px-4 md:px-6 text-center"
+            className="relative flex flex-col gap-4 md:gap-6 items-start justify-center px-4 md:px-6 max-w-4xl mx-auto text-left"
           >
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight max-w-5xl">
-              Create Your Perfect
-              <br />
-              <span className="text-primary">AI Avatar</span>
-            </h1>
-            <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-2xl">
-              Build, train, and deploy intelligent AI avatars with advanced personality and voice customization
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 mt-4">
-              <Button size="lg" className="text-base md:text-lg px-6 md:px-8" onClick={() => navigate('/auth')}>
-                Start Creating Free
-              </Button>
-              <Button size="lg" variant="outline" className="text-base md:text-lg px-6 md:px-8">
-                <a href="#features">Learn More</a>
-              </Button>
+            {/* Label */}
+            <div className="flex items-center gap-3 text-white/90">
+              <div className="h-px w-12 bg-white/40"></div>
+              <span className="text-xs md:text-sm uppercase tracking-wider font-light">
+                An all-in-one ecosystem for AI creation, training, and monetization
+              </span>
             </div>
-            <div className="flex items-center gap-2 mt-4">
+
+            {/* Headline */}
+            <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold leading-tight text-white">
+              A platform where AI learns,
+              <br />
+              grows, and earns like humans.
+            </h1>
+
+            {/* Subheading */}
+            <p className="text-base md:text-lg lg:text-xl text-white/80 font-medium max-w-2xl">
+              Build multi-modal AI personalities that talk, think, and create like humans
+            </p>
+
+            {/* CTA Button */}
+            <Button 
+              size="lg" 
+              className="bg-white text-black hover:bg-white/90 border-2 border-black text-base md:text-lg px-6 md:px-8 mt-2"
+              onClick={() => navigate('/auth')}
+            >
+              Start now
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+
+            {/* Rating */}
+            <div className="flex items-center gap-3 mt-4 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
               <div className="flex">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 md:w-5 md:h-5 fill-primary text-primary" />
+                  <Star key={i} className="w-4 h-4 md:w-5 md:h-5 fill-yellow-400 text-yellow-400" />
                 ))}
               </div>
-              <span className="text-sm md:text-base text-muted-foreground">4.9/5 from 2,500+ creators</span>
+              <span className="text-sm md:text-base text-white font-medium">100+ Positive Client Reviews</span>
             </div>
           </motion.div>
         </AuroraBackground>
+      </section>
+
+      {/* Features Section - Directly after Hero */}
+      <section id="features" className="bg-muted/30">
+        <FeaturesSection />
       </section>
 
       {/* Details Section */}
@@ -290,11 +310,6 @@ const Landing = () => {
             </motion.div>
           </div>
         </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="bg-muted/30">
-        <FeaturesSection />
       </section>
 
       {/* Pricing Section */}
@@ -444,6 +459,19 @@ const Landing = () => {
                     id="name"
                     className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                     placeholder="Your name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                    placeholder="+1 (555) 000-0000"
+                    required
                   />
                 </div>
                 <div>
@@ -455,17 +483,19 @@ const Landing = () => {
                     id="email"
                     className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                     placeholder="your@email.com"
+                    required
                   />
                 </div>
                 <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-foreground mb-2">
-                    Message
+                  <label htmlFor="request" className="block text-sm font-medium text-foreground mb-2">
+                    Request
                   </label>
                   <textarea
-                    id="message"
+                    id="request"
                     rows={4}
                     className="w-full px-4 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                    placeholder="Your message..."
+                    placeholder="Tell us about your request..."
+                    required
                   />
                 </div>
                 <Button type="submit" size="lg" className="w-full">
