@@ -90,7 +90,7 @@ serve(async (req) => {
     let result;
 
     switch (action) {
-      case 'create_collection':
+      case 'create_collection': {
         if (!name) {
           return new Response(
             JSON.stringify({ error: 'Collection name is required' }),
@@ -124,8 +124,9 @@ serve(async (req) => {
 
         result = { collection: newCollection };
         break;
+      }
 
-      case 'add_to_collection':
+      case 'add_to_collection': {
         if (!collectionId || !imageId) {
           return new Response(
             JSON.stringify({ error: 'Collection ID and Image ID are required' }),
@@ -162,8 +163,9 @@ serve(async (req) => {
 
         result = { collectionItem };
         break;
+      }
 
-      case 'remove_from_collection':
+      case 'remove_from_collection': {
         if (!collectionId || !imageId) {
           return new Response(
             JSON.stringify({ error: 'Collection ID and Image ID are required' }),
@@ -197,8 +199,9 @@ serve(async (req) => {
 
         result = { success: true };
         break;
+      }
 
-      case 'get_collections':
+      case 'get_collections': {
         const { data: collections, error: getError } = await supabase
           .from('image_collections')
           .select(`
@@ -221,8 +224,9 @@ serve(async (req) => {
 
         result = { collections: collections || [] };
         break;
+      }
 
-      case 'get_collection_images':
+      case 'get_collection_images': {
         if (!collectionId) {
           return new Response(
             JSON.stringify({ error: 'Collection ID is required' }),
@@ -259,6 +263,7 @@ serve(async (req) => {
 
         result = { images: collectionImages || [] };
         break;
+      }
 
       default:
         return new Response(

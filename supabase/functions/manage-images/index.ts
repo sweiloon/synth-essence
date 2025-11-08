@@ -98,7 +98,7 @@ serve(async (req) => {
     let result;
 
     switch (action) {
-      case 'get_images':
+      case 'get_images': {
         const { data: images, error: getError } = await supabase
           .from('generated_images')
           .select('*')
@@ -118,8 +118,9 @@ serve(async (req) => {
 
         result = { images: images || [] };
         break;
+      }
 
-      case 'toggle_favorite':
+      case 'toggle_favorite': {
         if (!imageId) {
           return new Response(
             JSON.stringify({ error: 'Image ID is required' }),
@@ -154,8 +155,9 @@ serve(async (req) => {
 
         result = { image: updatedImage };
         break;
+      }
 
-      case 'delete_image':
+      case 'delete_image': {
         if (!imageId) {
           return new Response(
             JSON.stringify({ error: 'Image ID is required' }),
@@ -196,6 +198,7 @@ serve(async (req) => {
 
         result = { success: true };
         break;
+      }
 
       default:
         return new Response(
